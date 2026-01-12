@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="css/portal.css">
 </head>
 <body>
+    <div id="loading-overlay" style="position:fixed;inset:0;background:rgba(18,19,26,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;"><div style="text-align:center;color:white;"><div style="width:40px;height:40px;border:3px solid #333;border-top-color:#7c3aed;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px;"></div><p>Loading...</p></div></div>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
     <div class="portal-layout">
         <aside class="sidebar">
             <div class="sidebar-header"><a href="dashboard.html" class="sidebar-logo"><span class="sidebar-logo-icon">S</span>Sidequest</a></div>
@@ -71,7 +73,7 @@
         <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('new-ticket-modal')">Cancel</button><button class="btn btn-primary" onclick="submitTicket(AppState.currentItem?.id)">Submit</button></div></div>
     </div>
     
-    <script src="js/portal.js"></script>
+    <script type="module" src="js/app.js"></script>
     <script>function showTab(t){document.querySelectorAll('.tab-content').forEach(e=>e.style.display='none');document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+t).style.display='block';event.target.classList.add('active');}</script>
 </body>
 </html>
