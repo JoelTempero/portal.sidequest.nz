@@ -17,49 +17,26 @@ const firebaseConfig = {
     measurementId: "G-XDZBXRBJSW"
 };
 
-// Admin UIDs - add your UID here
-const ADMIN_UIDS = [
-    'XQINsp8rRqh9xmgQBrBjI4M2Z7e2'  // Joel
-];
+// Admin UIDs
+const ADMIN_UIDS = ['XQINsp8rRqh9xmgQBrBjI4M2Z7e2'];
 
 // ============================================
-// Firebase Initialization (using CDN modules)
+// Firebase Initialization
 // ============================================
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { 
-    getAuth, 
-    signInWithEmailAndPassword, 
-    signOut, 
-    onAuthStateChanged,
-    createUserWithEmailAndPassword,
-    updateProfile
+    getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
+    createUserWithEmailAndPassword, updateProfile
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { 
-    getFirestore, 
-    collection, 
-    doc, 
-    getDoc, 
-    getDocs, 
-    addDoc, 
-    updateDoc, 
-    deleteDoc, 
-    query, 
-    where, 
-    orderBy, 
-    onSnapshot,
-    serverTimestamp,
-    Timestamp
+    getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
+    query, where, orderBy, onSnapshot, serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import { 
-    getStorage, 
-    ref, 
-    uploadBytes, 
-    getDownloadURL,
-    deleteObject 
+    getStorage, ref, uploadBytes, getDownloadURL, deleteObject 
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js';
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -77,10 +54,11 @@ const AppState = {
     projects: [],
     archived: [],
     tickets: [],
+    clients: [],
     messages: [],
-    activity: [],
     currentItem: null,
-    unsubscribers: []  // For cleaning up Firestore listeners
+    unsubscribers: [],
+    filters: { search: '', location: '', businessType: '', status: '' }
 };
 
 // ============================================
@@ -93,9 +71,10 @@ const formatDate = d => {
     return date.toLocaleDateString('en-NZ', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
-const formatCurrency = n => new Intl.NumberFormat('en-NZ', { style: 'currency', currency: 'NZD' }).format(n);
+const formatCurrency = n => new Intl.NumberFormat('en-NZ', { style: 'currency', currency: 'NZD' }).format(n || 0);
 
 const timeAgo = d => {
+    if (!d) return '-';
     const date = d.toDate ? d.toDate() : new Date(d);
     const s = Math.floor((new Date() - date) / 1000);
     if (s < 60) return 'Just now';
@@ -106,179 +85,106 @@ const timeAgo = d => {
 
 const getInitials = n => n ? n.split(' ').map(x => x[0]).join('').slice(0,2).toUpperCase() : '??';
 const getTierOrder = t => ({ premium: 0, growth: 1, bugcatcher: 2, host: 3 }[t] ?? 4);
-const getStatusLabel = s => ({ 'noted': 'Noted', 'demo-complete': 'Demo Complete', 'demo-sent': 'Demo Sent', 'active': 'Active', 'paused': 'Paused', 'open': 'Open', 'in-progress': 'In Progress', 'resolved': 'Resolved' }[s] || s);
+const getStatusLabel = s => ({ 'noted': 'Noted', 'demo-complete': 'Demo Complete', 'demo-sent': 'Demo Sent', 'active': 'Active', 'paused': 'Paused', 'completed': 'Completed', 'open': 'Open', 'in-progress': 'In Progress', 'resolved': 'Resolved' }[s] || s);
 
-// Generate unique IDs
-const generateId = () => Math.random().toString(36).substr(2, 9);
-
-// Show loading state
 const showLoading = (show = true) => {
     const loader = document.getElementById('loading-overlay');
     if (loader) loader.style.display = show ? 'flex' : 'none';
 };
 
-// Show toast notifications
 const showToast = (message, type = 'info') => {
+    const existing = document.querySelector('.toast');
+    if (existing) existing.remove();
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
     toast.textContent = message;
-    toast.style.cssText = `position:fixed;bottom:20px;right:20px;padding:12px 24px;border-radius:8px;color:white;z-index:9999;animation:fadeIn 0.3s;`;
+    toast.style.cssText = `position:fixed;bottom:20px;right:20px;padding:12px 24px;border-radius:8px;color:white;z-index:9999;animation:fadeIn 0.3s;font-size:14px;`;
     toast.style.background = type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : '#3b82f6';
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
 };
 
 // ============================================
-// Authentication Functions
+// Authentication
 // ============================================
 
 async function login(email, password) {
     try {
         showLoading(true);
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        return { success: true, user: userCredential.user };
+        const cred = await signInWithEmailAndPassword(auth, email, password);
+        return { success: true, user: cred.user };
     } catch (error) {
         console.error('Login error:', error);
-        let message = 'Login failed. Please try again.';
-        if (error.code === 'auth/user-not-found') message = 'No account found with this email.';
-        if (error.code === 'auth/wrong-password') message = 'Incorrect password.';
-        if (error.code === 'auth/invalid-email') message = 'Invalid email address.';
-        if (error.code === 'auth/invalid-credential') message = 'Invalid email or password.';
-        return { success: false, error: message };
+        let msg = 'Login failed.';
+        if (error.code === 'auth/invalid-credential') msg = 'Invalid email or password.';
+        return { success: false, error: msg };
     } finally {
         showLoading(false);
     }
 }
 
 async function logout() {
-    try {
-        // Clean up Firestore listeners
-        AppState.unsubscribers.forEach(unsub => unsub());
-        AppState.unsubscribers = [];
-        
-        await signOut(auth);
-        window.location.href = 'login.html';
-    } catch (error) {
-        console.error('Logout error:', error);
-    }
-}
-
-async function getUserProfile(uid) {
-    try {
-        const userDoc = await getDoc(doc(db, 'users', uid));
-        if (userDoc.exists()) {
-            return userDoc.data();
-        }
-        return null;
-    } catch (error) {
-        console.error('Error getting user profile:', error);
-        return null;
-    }
-}
-
-async function createUserProfile(user, additionalData = {}) {
-    try {
-        const userRef = doc(db, 'users', user.uid);
-        const userData = {
-            email: user.email,
-            displayName: user.displayName || additionalData.displayName || 'User',
-            role: ADMIN_UIDS.includes(user.uid) ? 'admin' : 'client',
-            company: additionalData.company || '',
-            createdAt: serverTimestamp(),
-            ...additionalData
-        };
-        await updateDoc(userRef, userData).catch(() => {
-            // If update fails, document doesn't exist - would need setDoc
-            // But we'll handle user creation separately
-        });
-        return userData;
-    } catch (error) {
-        console.error('Error creating user profile:', error);
-        return null;
-    }
+    AppState.unsubscribers.forEach(u => u());
+    AppState.unsubscribers = [];
+    await signOut(auth);
+    window.location.href = 'login.html';
 }
 
 // ============================================
-// Firestore Data Functions - LEADS
+// LEADS
 // ============================================
 
 async function loadLeads() {
     try {
         const q = query(collection(db, 'leads'), orderBy('createdAt', 'desc'));
-        const snapshot = await getDocs(q);
-        AppState.leads = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const snap = await getDocs(q);
+        AppState.leads = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         return AppState.leads;
-    } catch (error) {
-        console.error('Error loading leads:', error);
-        return [];
-    }
+    } catch (e) { console.error('Load leads:', e); return []; }
 }
 
 function subscribeToLeads(callback) {
     const q = query(collection(db, 'leads'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, snapshot => {
-        AppState.leads = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const unsub = onSnapshot(q, snap => {
+        AppState.leads = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         if (callback) callback(AppState.leads);
     });
-    AppState.unsubscribers.push(unsubscribe);
-    return unsubscribe;
+    AppState.unsubscribers.push(unsub);
+    return unsub;
 }
 
-async function createLead(leadData) {
+async function createLead(data) {
     try {
-        const docRef = await addDoc(collection(db, 'leads'), {
-            ...leadData,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-        });
+        const ref = await addDoc(collection(db, 'leads'), { ...data, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
         showToast('Lead created!', 'success');
-        return { success: true, id: docRef.id };
-    } catch (error) {
-        console.error('Error creating lead:', error);
-        showToast('Failed to create lead', 'error');
-        return { success: false, error };
-    }
+        return { success: true, id: ref.id };
+    } catch (e) { console.error('Create lead:', e); showToast('Failed to create lead', 'error'); return { success: false }; }
 }
 
-async function updateLead(leadId, updates) {
+async function updateLead(id, updates) {
     try {
-        await updateDoc(doc(db, 'leads', leadId), {
-            ...updates,
-            updatedAt: serverTimestamp()
-        });
+        await updateDoc(doc(db, 'leads', id), { ...updates, updatedAt: serverTimestamp() });
         showToast('Lead updated!', 'success');
         return { success: true };
-    } catch (error) {
-        console.error('Error updating lead:', error);
-        showToast('Failed to update lead', 'error');
-        return { success: false, error };
-    }
+    } catch (e) { console.error('Update lead:', e); showToast('Failed to update', 'error'); return { success: false }; }
 }
 
-async function deleteLead(leadId) {
-    try {
-        await deleteDoc(doc(db, 'leads', leadId));
-        return { success: true };
-    } catch (error) {
-        console.error('Error deleting lead:', error);
-        return { success: false, error };
-    }
+async function deleteLead(id) {
+    try { await deleteDoc(doc(db, 'leads', id)); return { success: true }; }
+    catch (e) { console.error('Delete lead:', e); return { success: false }; }
 }
 
 // ============================================
-// Firestore Data Functions - PROJECTS
+// PROJECTS
 // ============================================
 
 async function loadProjects() {
     try {
         const q = query(collection(db, 'projects'), orderBy('createdAt', 'desc'));
-        const snapshot = await getDocs(q);
-        AppState.projects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const snap = await getDocs(q);
+        AppState.projects = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         return AppState.projects;
-    } catch (error) {
-        console.error('Error loading projects:', error);
-        return [];
-    }
+    } catch (e) { console.error('Load projects:', e); return []; }
 }
 
 function subscribeToProjects(callback) {
@@ -286,251 +192,220 @@ function subscribeToProjects(callback) {
     if (AppState.isAdmin) {
         q = query(collection(db, 'projects'), orderBy('createdAt', 'desc'));
     } else {
-        // Clients only see their assigned projects
-        q = query(
-            collection(db, 'projects'),
-            where('assignedClients', 'array-contains', AppState.currentUser.uid)
-        );
+        q = query(collection(db, 'projects'), where('assignedClients', 'array-contains', AppState.currentUser.uid));
     }
-    
-    const unsubscribe = onSnapshot(q, snapshot => {
-        AppState.projects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const unsub = onSnapshot(q, snap => {
+        AppState.projects = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         if (callback) callback(AppState.projects);
     });
-    AppState.unsubscribers.push(unsubscribe);
-    return unsubscribe;
+    AppState.unsubscribers.push(unsub);
+    return unsub;
 }
 
-async function createProject(projectData) {
+async function createProject(data) {
     try {
-        const docRef = await addDoc(collection(db, 'projects'), {
-            ...projectData,
-            status: 'active',
-            progress: 0,
-            assignedClients: [],
-            milestones: [],
-            invoices: [],
-            clientFiles: [],
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
+        const ref = await addDoc(collection(db, 'projects'), {
+            ...data, status: data.status || 'active', tier: data.tier || 'growth', progress: data.progress || 0,
+            assignedClients: data.assignedClients || [], milestones: data.milestones || [], invoices: data.invoices || [],
+            clientFiles: data.clientFiles || [], demoFiles: data.demoFiles || [],
+            createdAt: serverTimestamp(), updatedAt: serverTimestamp()
         });
         showToast('Project created!', 'success');
-        return { success: true, id: docRef.id };
-    } catch (error) {
-        console.error('Error creating project:', error);
-        showToast('Failed to create project', 'error');
-        return { success: false, error };
-    }
+        return { success: true, id: ref.id };
+    } catch (e) { console.error('Create project:', e); showToast('Failed to create project', 'error'); return { success: false }; }
 }
 
-async function updateProject(projectId, updates) {
+async function updateProject(id, updates) {
     try {
-        await updateDoc(doc(db, 'projects', projectId), {
-            ...updates,
-            updatedAt: serverTimestamp()
-        });
+        await updateDoc(doc(db, 'projects', id), { ...updates, updatedAt: serverTimestamp() });
         showToast('Project updated!', 'success');
         return { success: true };
-    } catch (error) {
-        console.error('Error updating project:', error);
-        showToast('Failed to update project', 'error');
-        return { success: false, error };
-    }
+    } catch (e) { console.error('Update project:', e); showToast('Failed to update', 'error'); return { success: false }; }
 }
 
 // ============================================
-// Firestore Data Functions - ARCHIVE
+// CLIENTS (Users)
+// ============================================
+
+async function loadClients() {
+    try {
+        const q = query(collection(db, 'users'), where('role', '==', 'client'));
+        const snap = await getDocs(q);
+        AppState.clients = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        return AppState.clients;
+    } catch (e) { console.error('Load clients:', e); return []; }
+}
+
+async function createClient(data) {
+    try {
+        // Create auth user first - this requires Firebase Admin SDK or a Cloud Function
+        // For now, we'll just create a client record that can be linked when they sign up
+        const ref = await addDoc(collection(db, 'users'), {
+            ...data, role: 'client', createdAt: serverTimestamp()
+        });
+        showToast('Client created!', 'success');
+        return { success: true, id: ref.id };
+    } catch (e) { console.error('Create client:', e); showToast('Failed to create client', 'error'); return { success: false }; }
+}
+
+async function updateClient(id, updates) {
+    try {
+        await updateDoc(doc(db, 'users', id), updates);
+        showToast('Client updated!', 'success');
+        return { success: true };
+    } catch (e) { console.error('Update client:', e); showToast('Failed to update', 'error'); return { success: false }; }
+}
+
+// ============================================
+// ARCHIVE
 // ============================================
 
 async function loadArchive() {
     try {
         const q = query(collection(db, 'archived'), orderBy('archivedAt', 'desc'));
-        const snapshot = await getDocs(q);
-        AppState.archived = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const snap = await getDocs(q);
+        AppState.archived = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         return AppState.archived;
-    } catch (error) {
-        console.error('Error loading archive:', error);
-        return [];
-    }
+    } catch (e) { console.error('Load archive:', e); return []; }
 }
 
 async function archiveItem(type, itemId) {
     try {
-        // Get the item
-        const itemRef = doc(db, type === 'lead' ? 'leads' : 'projects', itemId);
+        console.log('Archiving:', type, itemId);
+        const colName = type === 'lead' ? 'leads' : 'projects';
+        const itemRef = doc(db, colName, itemId);
         const itemSnap = await getDoc(itemRef);
         
         if (!itemSnap.exists()) {
-            throw new Error('Item not found');
+            showToast('Item not found', 'error');
+            return { success: false };
         }
         
         const itemData = itemSnap.data();
         
-        // Add to archive
         await addDoc(collection(db, 'archived'), {
-            type,
-            originalId: itemId,
-            companyName: itemData.companyName,
-            clientName: itemData.clientName,
-            clientEmail: itemData.clientEmail,
+            type, originalId: itemId,
+            companyName: itemData.companyName || '',
+            clientName: itemData.clientName || '',
+            clientEmail: itemData.clientEmail || '',
             reason: 'Manually archived',
             archivedAt: serverTimestamp(),
             originalData: itemData
         });
         
-        // Delete original
         await deleteDoc(itemRef);
-        
-        showToast('Item archived!', 'success');
+        showToast('Archived!', 'success');
+        window.location.href = type === 'lead' ? 'leads.html' : 'projects.html';
         return { success: true };
-    } catch (error) {
-        console.error('Error archiving item:', error);
-        showToast('Failed to archive', 'error');
-        return { success: false, error };
+    } catch (e) { 
+        console.error('Archive error:', e); 
+        showToast('Failed to archive: ' + e.message, 'error'); 
+        return { success: false }; 
     }
 }
 
 async function restoreFromArchive(archiveId) {
     try {
-        const archiveRef = doc(db, 'archived', archiveId);
-        const archiveSnap = await getDoc(archiveRef);
+        const archRef = doc(db, 'archived', archiveId);
+        const archSnap = await getDoc(archRef);
+        if (!archSnap.exists()) { showToast('Not found', 'error'); return { success: false }; }
         
-        if (!archiveSnap.exists()) {
-            throw new Error('Archived item not found');
-        }
+        const data = archSnap.data();
+        const col = data.type === 'lead' ? 'leads' : 'projects';
         
-        const archiveData = archiveSnap.data();
-        const targetCollection = archiveData.type === 'lead' ? 'leads' : 'projects';
+        await addDoc(collection(db, col), { ...data.originalData, restoredAt: serverTimestamp(), updatedAt: serverTimestamp() });
+        await deleteDoc(archRef);
         
-        // Restore to original collection
-        await addDoc(collection(db, targetCollection), {
-            ...archiveData.originalData,
-            restoredAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-        });
-        
-        // Delete from archive
-        await deleteDoc(archiveRef);
-        
-        showToast('Item restored!', 'success');
+        showToast('Restored!', 'success');
         return { success: true };
-    } catch (error) {
-        console.error('Error restoring item:', error);
-        showToast('Failed to restore', 'error');
-        return { success: false, error };
-    }
+    } catch (e) { console.error('Restore:', e); showToast('Failed to restore', 'error'); return { success: false }; }
 }
 
 // ============================================
-// Firestore Data Functions - TICKETS
+// TICKETS
 // ============================================
 
 async function loadTickets() {
     try {
         const q = query(collection(db, 'tickets'), orderBy('submittedAt', 'desc'));
-        const snapshot = await getDocs(q);
-        AppState.tickets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const snap = await getDocs(q);
+        AppState.tickets = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         return AppState.tickets;
-    } catch (error) {
-        console.error('Error loading tickets:', error);
-        return [];
-    }
+    } catch (e) { console.error('Load tickets:', e); return []; }
 }
 
 function subscribeToTickets(callback) {
     const q = query(collection(db, 'tickets'), orderBy('submittedAt', 'desc'));
-    const unsubscribe = onSnapshot(q, snapshot => {
-        AppState.tickets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const unsub = onSnapshot(q, snap => {
+        AppState.tickets = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         if (callback) callback(AppState.tickets);
     });
-    AppState.unsubscribers.push(unsubscribe);
-    return unsubscribe;
+    AppState.unsubscribers.push(unsub);
+    return unsub;
 }
 
-async function createTicket(ticketData) {
+async function createTicket(data) {
     try {
-        const docRef = await addDoc(collection(db, 'tickets'), {
-            ...ticketData,
-            status: 'open',
-            adminNotes: '',
-            updates: [],
-            submittedAt: serverTimestamp()
-        });
+        const ref = await addDoc(collection(db, 'tickets'), { ...data, status: 'open', adminNotes: '', updates: [], submittedAt: serverTimestamp() });
         showToast('Ticket submitted!', 'success');
-        return { success: true, id: docRef.id };
-    } catch (error) {
-        console.error('Error creating ticket:', error);
-        showToast('Failed to submit ticket', 'error');
-        return { success: false, error };
-    }
+        return { success: true, id: ref.id };
+    } catch (e) { console.error('Create ticket:', e); showToast('Failed', 'error'); return { success: false }; }
 }
 
-async function updateTicket(ticketId, updates) {
+async function updateTicket(id, updates) {
     try {
-        await updateDoc(doc(db, 'tickets', ticketId), updates);
+        await updateDoc(doc(db, 'tickets', id), updates);
         showToast('Ticket updated!', 'success');
         return { success: true };
-    } catch (error) {
-        console.error('Error updating ticket:', error);
-        showToast('Failed to update ticket', 'error');
-        return { success: false, error };
-    }
+    } catch (e) { console.error('Update ticket:', e); showToast('Failed', 'error'); return { success: false }; }
 }
 
 // ============================================
-// Firestore Data Functions - MESSAGES
+// MESSAGES
 // ============================================
 
 function subscribeToMessages(projectId, callback) {
-    const q = query(
-        collection(db, 'messages'),
-        where('projectId', '==', projectId),
-        orderBy('timestamp', 'asc')
-    );
-    const unsubscribe = onSnapshot(q, snapshot => {
-        const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (callback) callback(messages);
+    const q = query(collection(db, 'messages'), where('projectId', '==', projectId), orderBy('timestamp', 'asc'));
+    const unsub = onSnapshot(q, snap => {
+        const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (callback) callback(msgs);
     });
-    AppState.unsubscribers.push(unsubscribe);
-    return unsubscribe;
+    AppState.unsubscribers.push(unsub);
+    return unsub;
 }
 
 async function sendMessage(projectId, text) {
     try {
         await addDoc(collection(db, 'messages'), {
-            projectId,
-            senderId: AppState.currentUser.uid,
+            projectId, senderId: AppState.currentUser.uid,
             senderName: AppState.userProfile?.displayName || 'User',
-            text,
-            timestamp: serverTimestamp()
+            text, timestamp: serverTimestamp()
         });
         return { success: true };
-    } catch (error) {
-        console.error('Error sending message:', error);
-        return { success: false, error };
-    }
+    } catch (e) { console.error('Send message:', e); return { success: false }; }
 }
 
 // ============================================
-// Move Lead to Project
+// MOVE/CONVERT Functions
 // ============================================
 
 async function moveLeadToProject(leadId) {
     try {
+        console.log('Moving lead to project:', leadId);
         const leadRef = doc(db, 'leads', leadId);
         const leadSnap = await getDoc(leadRef);
         
         if (!leadSnap.exists()) {
-            throw new Error('Lead not found');
+            showToast('Lead not found', 'error');
+            return { success: false };
         }
         
         const leadData = leadSnap.data();
         
-        // Create project from lead data
-        await createProject({
-            companyName: leadData.companyName,
-            clientName: leadData.clientName,
-            clientEmail: leadData.clientEmail,
+        await addDoc(collection(db, 'projects'), {
+            companyName: leadData.companyName || '',
+            clientName: leadData.clientName || '',
+            clientEmail: leadData.clientEmail || '',
             clientPhone: leadData.clientPhone || '',
             websiteUrl: leadData.websiteUrl || '',
             logo: leadData.logo || null,
@@ -538,86 +413,96 @@ async function moveLeadToProject(leadId) {
             businessType: leadData.businessType || '',
             githubLink: leadData.githubLink || '',
             githubUrl: leadData.githubUrl || '',
-            tier: 'growth',
+            notes: leadData.notes || '',
             demoFiles: leadData.demoFiles || [],
-            notes: leadData.notes || ''
+            status: 'active',
+            tier: 'growth',
+            progress: 0,
+            assignedClients: [],
+            milestones: [{ id: 'm1', title: 'Kickoff', status: 'current', date: new Date().toISOString().split('T')[0] }],
+            invoices: [],
+            clientFiles: [],
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
         });
         
-        // Delete the lead
         await deleteDoc(leadRef);
-        
-        showToast('Lead moved to Projects!', 'success');
+        showToast('Moved to Projects!', 'success');
         window.location.href = 'projects.html';
         return { success: true };
-    } catch (error) {
-        console.error('Error moving lead to project:', error);
-        showToast('Failed to move lead', 'error');
-        return { success: false, error };
+    } catch (e) { 
+        console.error('Move lead error:', e); 
+        showToast('Failed: ' + e.message, 'error'); 
+        return { success: false }; 
     }
 }
-
-// ============================================
-// Return Project to Lead
-// ============================================
 
 async function returnProjectToLead(projectId) {
     try {
-        const projectRef = doc(db, 'projects', projectId);
-        const projectSnap = await getDoc(projectRef);
+        const projRef = doc(db, 'projects', projectId);
+        const projSnap = await getDoc(projRef);
+        if (!projSnap.exists()) { showToast('Project not found', 'error'); return { success: false }; }
         
-        if (!projectSnap.exists()) {
-            throw new Error('Project not found');
-        }
+        const data = projSnap.data();
         
-        const projectData = projectSnap.data();
-        
-        // Create lead from project data
-        await createLead({
-            companyName: projectData.companyName,
-            clientName: projectData.clientName,
-            clientEmail: projectData.clientEmail,
-            clientPhone: projectData.clientPhone || '',
-            websiteUrl: projectData.websiteUrl || '',
-            logo: projectData.logo || null,
-            location: projectData.location || '',
-            businessType: projectData.businessType || '',
-            githubLink: projectData.githubLink || '',
-            githubUrl: projectData.githubUrl || '',
-            status: 'noted',
-            demoFiles: projectData.demoFiles || [],
-            notes: 'Returned from project: ' + (projectData.notes || '')
+        await addDoc(collection(db, 'leads'), {
+            companyName: data.companyName, clientName: data.clientName, clientEmail: data.clientEmail,
+            clientPhone: data.clientPhone || '', websiteUrl: data.websiteUrl || '', logo: data.logo || null,
+            location: data.location || '', businessType: data.businessType || '',
+            githubLink: data.githubLink || '', githubUrl: data.githubUrl || '',
+            status: 'noted', demoFiles: data.demoFiles || [],
+            notes: 'Returned from project. ' + (data.notes || ''),
+            createdAt: serverTimestamp(), updatedAt: serverTimestamp()
         });
         
-        // Delete the project
-        await deleteDoc(projectRef);
-        
-        showToast('Project returned to Leads!', 'success');
+        await deleteDoc(projRef);
+        showToast('Returned to Leads!', 'success');
         window.location.href = 'leads.html';
         return { success: true };
-    } catch (error) {
-        console.error('Error returning project to lead:', error);
-        showToast('Failed to return project', 'error');
-        return { success: false, error };
-    }
+    } catch (e) { console.error('Return project:', e); showToast('Failed', 'error'); return { success: false }; }
 }
 
-// Make functions globally available
-window.moveLeadToProject = moveLeadToProject;
-window.returnProjectToLead = returnProjectToLead;
-window.archiveItem = archiveItem;
-window.restoreFromArchive = restoreFromArchive;
+// ============================================
+// FILE UPLOAD
+// ============================================
 
-// Export for module use
+async function uploadFile(file, path) {
+    try {
+        const storageRef = ref(storage, path);
+        const snap = await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(snap.ref);
+        return { success: true, url };
+    } catch (e) { console.error('Upload:', e); return { success: false }; }
+}
+
+async function uploadLogo(file, itemId, type = 'project') {
+    try {
+        const path = `logos/${type}s/${itemId}/${file.name}`;
+        const result = await uploadFile(file, path);
+        if (result.success) {
+            const col = type === 'lead' ? 'leads' : 'projects';
+            await updateDoc(doc(db, col, itemId), { logo: result.url });
+            showToast('Logo uploaded!', 'success');
+        }
+        return result;
+    } catch (e) { console.error('Upload logo:', e); showToast('Failed', 'error'); return { success: false }; }
+}
+
+// ============================================
+// Exports
+// ============================================
+
 export {
-    auth, db, storage,
-    AppState,
+    auth, db, storage, AppState, ADMIN_UIDS,
     login, logout,
     loadLeads, subscribeToLeads, createLead, updateLead, deleteLead,
     loadProjects, subscribeToProjects, createProject, updateProject,
+    loadClients, createClient, updateClient,
     loadArchive, archiveItem, restoreFromArchive,
     loadTickets, subscribeToTickets, createTicket, updateTicket,
     subscribeToMessages, sendMessage,
     moveLeadToProject, returnProjectToLead,
+    uploadFile, uploadLogo,
     formatDate, formatCurrency, timeAgo, getInitials, getTierOrder, getStatusLabel,
     showToast, showLoading
 };

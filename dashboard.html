@@ -9,27 +9,24 @@
     <link rel="stylesheet" href="css/portal.css">
 </head>
 <body>
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" style="position:fixed;inset:0;background:rgba(18,19,26,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;">
-        <div style="text-align:center;color:white;">
-            <div style="width:40px;height:40px;border:3px solid #333;border-top-color:#7c3aed;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px;"></div>
-            <p>Loading...</p>
-        </div>
-    </div>
+    <div id="loading-overlay" style="position:fixed;inset:0;background:rgba(18,19,26,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;"><div style="text-align:center;color:white;"><div style="width:40px;height:40px;border:3px solid #333;border-top-color:#7c3aed;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px;"></div><p>Loading...</p></div></div>
     <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
     <div class="portal-layout">
         <aside class="sidebar">
             <div class="sidebar-header"><a href="dashboard.html" class="sidebar-logo"><span class="sidebar-logo-icon">S</span>Sidequest</a></div>
             <nav class="sidebar-nav">
-                <div class="nav-section"><div class="nav-section-title">Main</div><a href="dashboard.html" class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Dashboard</a></div>
+                <div class="nav-section"><div class="nav-section-title">Main</div>
+                    <a href="dashboard.html" class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
+                </div>
                 <div class="nav-section admin-only"><div class="nav-section-title">Pipeline</div>
-                    <a href="leads.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>Leads</a>
+                    <a href="leads.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Leads</a>
                     <a href="projects.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Projects</a>
+                    <a href="clients.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Clients</a>
                     <a href="archive.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/></svg>Archive</a>
                 </div>
                 <div class="nav-section admin-only"><div class="nav-section-title">Support</div>
-                    <a href="tickets.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Tickets</a>
+                    <a href="tickets.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 8v4M12 16h.01"/></svg>Tickets</a>
                 </div>
                 <div class="nav-section client-only"><div class="nav-section-title">My Account</div>
                     <a href="projects.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>My Projects</a>
@@ -39,15 +36,12 @@
         </aside>
         
         <main class="main-content">
-            <header class="header">
-                <div class="header-left"><h1 class="header-title">Dashboard</h1></div>
-            </header>
-            
+            <header class="header"><div class="header-left"><h1 class="header-title">Dashboard</h1></div></header>
             <div class="page-content">
-                <div class="page-header"><h1>Welcome back! 👋</h1><p>Here's what's happening with your projects.</p></div>
+                <div class="page-header"><h1>Welcome back! </h1><p>Here's what's happening with your projects.</p></div>
                 <div class="stats-grid" id="stats-grid"></div>
                 <div style="display:grid;grid-template-columns:1fr;gap:24px;">
-                    <div class="card"><div class="card-header"><h3 class="card-title">Active Projects</h3><a href="projects.html" class="card-action">View all →</a></div><div class="item-grid" id="projects-grid"></div></div>
+                    <div class="card"><div class="card-header"><h3 class="card-title">Active Projects</h3><a href="projects.html" class="card-action">View all</a></div><div class="item-grid" id="projects-grid"></div></div>
                 </div>
             </div>
         </main>
