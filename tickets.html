@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tickets - Sidequest Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/portal.css">
+</head>
+<body>
+    <div class="portal-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header"><a href="dashboard.html" class="sidebar-logo"><span class="sidebar-logo-icon">S</span>Sidequest</a></div>
+            <nav class="sidebar-nav">
+                <div class="nav-section"><div class="nav-section-title">Main</div><a href="dashboard.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/></svg>Dashboard</a></div>
+                <div class="nav-section admin-only"><div class="nav-section-title">Pipeline</div><a href="leads.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/></svg>Leads</a><a href="projects.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Projects</a><a href="archive.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/></svg>Archive</a></div>
+                <div class="nav-section admin-only"><div class="nav-section-title">Support</div><a href="tickets.html" class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Tickets<span class="nav-badge">3</span></a></div>
+            </nav>
+            <div class="sidebar-footer"><div class="user-card" id="logout-btn"><div class="user-avatar" id="user-avatar">J</div><div class="user-info"><div class="user-name" id="user-name">Joel</div><div class="user-role" id="user-role">Admin</div></div></div></div>
+        </aside>
+        
+        <main class="main-content">
+            <header class="header"><div class="header-left"><h1 class="header-title">Support Tickets</h1></div></header>
+            <div class="page-content">
+                <div class="page-header"><h1>All Tickets</h1><p>Support requests from clients, prioritized by tier (Premium → Growth → Bug Catcher → Host).</p></div>
+                <div class="card"><div id="tickets-list"></div></div>
+            </div>
+        </main>
+    </div>
+    
+    <div class="modal-overlay" id="ticket-modal">
+        <div class="modal large"><div class="modal-header"><h3 class="modal-title">Ticket</h3><button class="modal-close" onclick="closeAllModals()">×</button></div>
+        <div class="modal-body"></div>
+        <div class="modal-footer admin-only"><button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button><button class="btn btn-primary" onclick="updateTicketStatus()">Save Changes</button></div></div>
+    </div>
+    
+    <script src="js/portal.js"></script>
+</body>
+</html>

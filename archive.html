@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archive - Sidequest Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/portal.css">
+</head>
+<body>
+    <div class="portal-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header"><a href="dashboard.html" class="sidebar-logo"><span class="sidebar-logo-icon">S</span>Sidequest</a></div>
+            <nav class="sidebar-nav">
+                <div class="nav-section"><div class="nav-section-title">Main</div><a href="dashboard.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/></svg>Dashboard</a></div>
+                <div class="nav-section admin-only"><div class="nav-section-title">Pipeline</div><a href="leads.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/></svg>Leads</a><a href="projects.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Projects</a><a href="archive.html" class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/></svg>Archive</a></div>
+                <div class="nav-section admin-only"><div class="nav-section-title">Support</div><a href="tickets.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>Tickets</a></div>
+            </nav>
+            <div class="sidebar-footer"><div class="user-card" id="logout-btn"><div class="user-avatar" id="user-avatar">J</div><div class="user-info"><div class="user-name" id="user-name">Joel</div><div class="user-role" id="user-role">Admin</div></div></div></div>
+        </aside>
+        
+        <main class="main-content">
+            <header class="header"><div class="header-left"><h1 class="header-title">Archive</h1></div></header>
+            <div class="page-content">
+                <div class="page-header"><h1>Archived Items</h1><p>Leads and projects that have been archived. Can be restored at any time.</p></div>
+                <div class="item-grid" id="archive-grid"></div>
+            </div>
+        </main>
+    </div>
+    <script src="js/portal.js"></script>
+</body>
+</html>

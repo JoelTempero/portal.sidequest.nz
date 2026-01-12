@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leads - Sidequest Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/portal.css">
+</head>
+<body>
+    <div class="portal-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header"><a href="dashboard.html" class="sidebar-logo"><span class="sidebar-logo-icon">S</span>Sidequest</a></div>
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Main</div>
+                    <a href="dashboard.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Dashboard</a>
+                </div>
+                <div class="nav-section admin-only">
+                    <div class="nav-section-title">Pipeline</div>
+                    <a href="leads.html" class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Leads<span class="nav-badge orange">3</span></a>
+                    <a href="projects.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Projects</a>
+                    <a href="archive.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>Archive</a>
+                </div>
+                <div class="nav-section admin-only">
+                    <div class="nav-section-title">Support</div>
+                    <a href="tickets.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Tickets<span class="nav-badge">3</span></a>
+                </div>
+            </nav>
+            <div class="sidebar-footer"><div class="user-card" id="logout-btn"><div class="user-avatar" id="user-avatar">J</div><div class="user-info"><div class="user-name" id="user-name">Joel</div><div class="user-role" id="user-role">Admin</div></div></div></div>
+        </aside>
+        
+        <main class="main-content">
+            <header class="header">
+                <div class="header-left"><h1 class="header-title">Leads</h1></div>
+                <div class="header-right"><button class="btn btn-primary" onclick="openModal('new-lead-modal')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Lead</button></div>
+            </header>
+            <div class="page-content">
+                <div class="page-header"><h1>Lead Pipeline</h1><p>Potential clients and demo projects awaiting conversion.</p></div>
+                <div class="item-grid" id="leads-grid"></div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- New Lead Modal -->
+    <div class="modal-overlay" id="new-lead-modal">
+        <div class="modal large">
+            <div class="modal-header"><h3 class="modal-title">Add New Lead</h3><button class="modal-close" onclick="closeModal('new-lead-modal')">×</button></div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group"><label class="form-label required">Company Name</label><input type="text" class="form-input" placeholder="Acme Corp"></div>
+                    <div class="form-group"><label class="form-label required">Client Name</label><input type="text" class="form-input" placeholder="John Smith"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label class="form-label required">Email</label><input type="email" class="form-input" placeholder="john@acme.co.nz"></div>
+                    <div class="form-group"><label class="form-label">Phone</label><input type="tel" class="form-input" placeholder="+64 21 123 4567"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label class="form-label">Website URL</label><input type="text" class="form-input" placeholder="www.acme.co.nz"></div>
+                    <div class="form-group"><label class="form-label">Status</label><select class="form-input form-select"><option value="noted">Noted</option><option value="demo-complete">Demo Complete</option><option value="demo-sent">Demo Sent</option></select></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label class="form-label">Location</label><input type="text" class="form-input" placeholder="Auckland"></div>
+                    <div class="form-group"><label class="form-label">Business Type</label><input type="text" class="form-input" placeholder="Healthcare"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label class="form-label">GitHub Link</label><input type="url" class="form-input" placeholder="https://github.com/..."></div>
+                    <div class="form-group"><label class="form-label">GitHub Preview URL</label><input type="url" class="form-input" placeholder="https://....github.io/..."></div>
+                </div>
+                <div class="form-group"><label class="form-label">Notes</label><textarea class="form-input form-textarea" placeholder="Initial notes about this lead..."></textarea></div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('new-lead-modal')">Cancel</button><button class="btn btn-primary">Create Lead</button></div>
+        </div>
+    </div>
+    
+    <script src="js/portal.js"></script>
+</body>
+</html>

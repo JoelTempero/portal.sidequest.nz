@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Detail - Sidequest Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/portal.css">
+</head>
+<body>
+    <div class="portal-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header"><a href="dashboard.html" class="sidebar-logo"><span class="sidebar-logo-icon">S</span>Sidequest</a></div>
+            <nav class="sidebar-nav">
+                <div class="nav-section"><div class="nav-section-title">Main</div><a href="dashboard.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/></svg>Dashboard</a></div>
+                <div class="nav-section admin-only"><div class="nav-section-title">Pipeline</div><a href="leads.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/></svg>Leads</a><a href="projects.html" class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Projects</a><a href="archive.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/></svg>Archive</a></div>
+                <div class="nav-section admin-only"><div class="nav-section-title">Support</div><a href="tickets.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>Tickets</a></div>
+                <div class="nav-section client-only"><div class="nav-section-title">My Projects</div><a href="projects.html" class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Projects</a></div>
+            </nav>
+            <div class="sidebar-footer"><div class="user-card" id="logout-btn"><div class="user-avatar" id="user-avatar">J</div><div class="user-info"><div class="user-name" id="user-name">User</div><div class="user-role" id="user-role">Role</div></div></div></div>
+        </aside>
+        
+        <main class="main-content">
+            <header class="header"><div class="header-left"><div class="breadcrumbs"><a href="projects.html">Projects</a><span class="breadcrumbs-separator">/</span><span id="breadcrumb-title">Project</span></div></div></header>
+            <div class="page-content">
+                <div class="detail-header">
+                    <div class="detail-logo" id="detail-logo">GP</div>
+                    <div class="detail-info">
+                        <h1 class="detail-title" id="detail-company">Company</h1>
+                        <p class="detail-subtitle" id="detail-client">Client</p>
+                        <div class="detail-badges"><span class="status-badge" id="detail-status">Status</span><span class="tier-badge" id="detail-tier">Tier</span></div>
+                    </div>
+                    <div class="detail-actions admin-only">
+                        <button class="btn btn-secondary" onclick="returnProjectToLead(AppState.currentItem?.id)">Return to Leads</button>
+                        <button class="btn btn-secondary" onclick="archiveItem('project', AppState.currentItem?.id)">Archive</button>
+                    </div>
+                </div>
+                
+                <div class="card mb-xl">
+                    <div class="project-progress"><div class="progress-header"><span class="progress-label">Progress</span><span class="progress-value" id="detail-progress">0%</span></div><div class="progress-bar" style="height:10px;"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div></div>
+                </div>
+                
+                <div class="tabs">
+                    <button class="tab active" onclick="showTab('overview')">Overview</button>
+                    <button class="tab" onclick="showTab('files')">Files</button>
+                    <button class="tab" onclick="showTab('invoices')">Invoices</button>
+                    <button class="tab" onclick="showTab('messages')">Messages</button>
+                    <button class="tab" onclick="showTab('tickets')">Tickets</button>
+                </div>
+                
+                <div id="tab-overview" class="tab-content">
+                    <div class="detail-grid"><div class="detail-main"><div class="card"><div class="card-header"><h3 class="card-title">Project Info</h3></div><div class="info-grid" id="detail-info"></div></div></div>
+                    <div class="detail-sidebar"><div class="card"><div class="card-header"><h3 class="card-title">Milestones</h3></div><div id="milestones"></div></div></div></div>
+                </div>
+                
+                <div id="tab-files" class="tab-content" style="display:none;"><div class="card"><div class="card-header"><h3 class="card-title">Files</h3><button class="btn btn-primary btn-sm">Upload</button></div><div id="client-files"></div></div></div>
+                
+                <div id="tab-invoices" class="tab-content" style="display:none;"><div class="card"><div class="card-header"><h3 class="card-title">Invoices</h3></div><div id="invoices"></div></div></div>
+                
+                <div id="tab-messages" class="tab-content" style="display:none;"><div class="card"><div class="card-header"><h3 class="card-title">Messages</h3></div><div id="messages-container" style="max-height:400px;overflow-y:auto;margin-bottom:16px;"></div><form id="message-form" class="flex gap-md"><input type="text" id="message-input" class="form-input" placeholder="Type message..." style="flex:1;"><button type="submit" class="btn btn-primary">Send</button></form></div></div>
+                
+                <div id="tab-tickets" class="tab-content" style="display:none;"><div class="card"><div class="card-header"><h3 class="card-title">Tickets</h3><button class="btn btn-primary btn-sm client-only" onclick="openModal('new-ticket-modal')">New Ticket</button></div><div id="project-tickets"></div></div></div>
+            </div>
+        </main>
+    </div>
+    
+    <div class="modal-overlay" id="new-ticket-modal">
+        <div class="modal"><div class="modal-header"><h3 class="modal-title">Submit Ticket</h3><button class="modal-close" onclick="closeModal('new-ticket-modal')">×</button></div>
+        <div class="modal-body"><div class="form-group"><label class="form-label">Title</label><input type="text" id="new-ticket-title" class="form-input" placeholder="Brief description"></div><div class="form-group"><label class="form-label">Description</label><textarea id="new-ticket-desc" class="form-input form-textarea" placeholder="Detailed description..."></textarea></div></div>
+        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('new-ticket-modal')">Cancel</button><button class="btn btn-primary" onclick="submitTicket(AppState.currentItem?.id)">Submit</button></div></div>
+    </div>
+    
+    <script src="js/portal.js"></script>
+    <script>function showTab(t){document.querySelectorAll('.tab-content').forEach(e=>e.style.display='none');document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+t).style.display='block';event.target.classList.add('active');}</script>
+</body>
+</html>
