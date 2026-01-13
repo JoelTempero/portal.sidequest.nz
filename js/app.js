@@ -74,15 +74,19 @@ function renderFilterBar(containerId, items, type) {
         <select class="form-input form-select" id="filter-status" style="width:150px;"><option value="">All Statuses</option>${statuses.map(s => `<option value="${s}" ${filters.status === s ? 'selected' : ''}>${getStatusLabel(s)}</option>`).join('')}</select>
         <button class="btn btn-ghost" onclick="clearFilters()">Clear</button>
     </div>`;
-    document.getElementById('filter-search')?.addEventListener('input', e => { filters.search = e.target.value; renderCurrentPage(); });
-    document.getElementById('filter-location')?.addEventListener('change', e => { filters.location = e.target.value; renderCurrentPage(); });
-    document.getElementById('filter-type')?.addEventListener('change', e => { filters.businessType = e.target.value; renderCurrentPage(); });
-    document.getElementById('filter-status')?.addEventListener('change', e => { filters.status = e.target.value; renderCurrentPage(); });
+    document.getElementById('filter-search')?.addEventListener('input', e => { filters.search = e.target.value; renderGridOnly(); });
+    document.getElementById('filter-location')?.addEventListener('change', e => { filters.location = e.target.value; renderGridOnly(); });
+    document.getElementById('filter-type')?.addEventListener('change', e => { filters.businessType = e.target.value; renderGridOnly(); });
+    document.getElementById('filter-status')?.addEventListener('change', e => { filters.status = e.target.value; renderGridOnly(); });
 }
 
 window.clearFilters = () => { filters = { search: '', location: '', businessType: '', status: '' }; renderCurrentPage(); };
 
 let currentPageType = '';
+function renderGridOnly() {
+    if (currentPageType === 'leads') renderLeads('leads-grid');
+    if (currentPageType === 'projects') renderProjects('projects-grid');
+}
 function renderCurrentPage() {
     if (currentPageType === 'leads') { renderFilterBar('filter-container', AppState.leads, 'lead'); renderLeads('leads-grid'); }
     if (currentPageType === 'projects') { renderFilterBar('filter-container', AppState.projects, 'project'); renderProjects('projects-grid'); }
@@ -134,7 +138,7 @@ function renderClients(containerId) {
             <td><strong>${cl.displayName || '-'}</strong></td>
             <td>${cl.email || '-'}</td>
             <td>${cl.company || '-'}</td>
-            <td><code style="background:#333;padding:2px 6px;border-radius:4px;font-size:11px;">${cl.tempPassword || '-'}</code></td>
+            <td><code style="background:#333;padding:2px 6px;border-radius:4px;font-size:11px;">${cl.tempPassword || '-'}</code> <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:11px;" onclick="openChangePasswordModal('${cl.id}')">Change</button></td>
             <td>${AppState.projects.filter(p => (p.assignedClients || []).includes(cl.id)).length}</td>
             <td><button class="btn btn-ghost btn-sm" onclick="openEditClientModal('${cl.id}')">Edit</button></td>
         </tr>`).join('')}</tbody></table>`;
@@ -220,9 +224,27 @@ function updateUserInfo() {
     const a = document.getElementById('user-avatar');
     if (n) n.textContent = AppState.userProfile?.displayName || 'User';
     if (r) r.textContent = AppState.isAdmin ? 'Administrator' : 'Client';
-    if (a) a.textContent = getInitials(AppState.userProfile?.displayName || 'U');
+    if (a) {
+        if (AppState.userProfile?.avatar) {
+            a.innerHTML = `<img src="${AppState.userProfile.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+        } else {
+            a.textContent = getInitials(AppState.userProfile?.displayName || 'U');
+        }
+    }
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = AppState.isAdmin ? '' : 'none');
     document.querySelectorAll('.client-only').forEach(el => el.style.display = AppState.isAdmin ? 'none' : '');
+    
+    // Populate admin profile modal if exists
+    const adminName = document.getElementById('admin-display-name');
+    const adminAvatar = document.getElementById('admin-avatar-preview');
+    if (adminName) adminName.value = AppState.userProfile?.displayName || '';
+    if (adminAvatar) {
+        if (AppState.userProfile?.avatar) {
+            adminAvatar.innerHTML = `<img src="${AppState.userProfile.avatar}" style="width:100%;height:100%;object-fit:cover;">`;
+        } else {
+            adminAvatar.textContent = getInitials(AppState.userProfile?.displayName || 'U');
+        }
+    }
 }
 
 // ============================================
@@ -409,7 +431,10 @@ window.handleCreateLead = async (e) => {
     e.preventDefault();
     const form = e.target;
     const data = Object.fromEntries(new FormData(form));
+    // Remove empty logo field from form data (it's a file, handled separately)
+    delete data.logo;
     const logoFile = form.querySelector('[name="logo"]')?.files[0];
+    console.log('Creating lead with data:', data, 'Logo file:', logoFile);
     const r = await createLead(data, logoFile);
     if (r.success) { closeAllModals(); form.reset(); }
 };
@@ -418,7 +443,10 @@ window.handleCreateProject = async (e) => {
     e.preventDefault();
     const form = e.target;
     const data = Object.fromEntries(new FormData(form));
+    // Remove empty logo field from form data (it's a file, handled separately)
+    delete data.logo;
     const logoFile = form.querySelector('[name="logo"]')?.files[0];
+    console.log('Creating project with data:', data, 'Logo file:', logoFile);
     const r = await createProject(data, logoFile);
     if (r.success) { closeAllModals(); form.reset(); }
 };
@@ -498,6 +526,37 @@ window.handleUpdateClient = async (e) => {
     renderClients('clients-grid');
 };
 
+window.openChangePasswordModal = (clientId) => {
+    const client = AppState.clients.find(c => c.id === clientId);
+    if (!client) return;
+    AppState.currentItem = client;
+    document.getElementById('new-client-password').value = '';
+    openModal('change-password-modal');
+};
+
+window.handleChangeClientPassword = async () => {
+    const client = AppState.currentItem;
+    if (!client) return;
+    const newPassword = document.getElementById('new-client-password').value;
+    if (!newPassword) { showToast('Please enter a password', 'error'); return; }
+    await updateClient(client.id, { tempPassword: newPassword });
+    closeAllModals();
+    await loadClients();
+    renderClients('clients-grid');
+};
+
+window.handleArchiveClient = () => {
+    const client = AppState.currentItem;
+    if (!client) return;
+    openConfirmModal('Archive this client? They will no longer be able to log in.', async () => {
+        await updateClient(client.id, { status: 'archived', archivedAt: new Date().toISOString() });
+        closeAllModals();
+        await loadClients();
+        renderClients('clients-grid');
+        showToast('Client archived', 'success');
+    });
+};
+
 window.handleSaveTicket = async () => {
     const t = AppState.currentItem;
     if (!t) return;
@@ -544,6 +603,35 @@ window.updateProgress = async (value) => {
     document.getElementById('detail-progress').textContent = value + '%';
     document.getElementById('progress-fill').style.width = value + '%';
     await updateProject(proj.id, { progress: parseInt(value) });
+};
+
+// Admin Profile
+window.handleAdminAvatarUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+        const path = `avatars/${AppState.currentUser.uid}/${Date.now()}_${file.name}`;
+        const url = await uploadFile(file, path);
+        if (url) {
+            await setDoc(doc(db, 'users', AppState.currentUser.uid), { avatar: url }, { merge: true });
+            AppState.userProfile.avatar = url;
+            updateUserInfo();
+            const preview = document.getElementById('admin-avatar-preview');
+            if (preview) preview.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;">`;
+            showToast('Avatar uploaded!', 'success');
+        }
+    } catch (e) { showToast('Upload failed', 'error'); }
+};
+
+window.handleSaveAdminProfile = async () => {
+    const name = document.getElementById('admin-display-name')?.value;
+    if (name) {
+        await setDoc(doc(db, 'users', AppState.currentUser.uid), { displayName: name }, { merge: true });
+        AppState.userProfile.displayName = name;
+        updateUserInfo();
+        showToast('Profile updated!', 'success');
+    }
+    closeAllModals();
 };
 
 window.logout = logout;

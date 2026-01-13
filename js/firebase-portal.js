@@ -55,10 +55,12 @@ async function logout() { AppState.unsubscribers.forEach(u => u()); AppState.uns
 
 async function createClientWithAuth(email, password, displayName, company) {
     try {
+        console.log('Creating client:', { email, displayName, company });
         const ref = await addDoc(collection(db, 'users'), { email, displayName, company: company || '', role: 'client', tempPassword: password, status: 'pending', createdAt: serverTimestamp() });
+        console.log('Client created with ID:', ref.id);
         showToast('Client created!', 'success');
         return { success: true, id: ref.id, email, password };
-    } catch (e) { showToast('Failed to create client', 'error'); return { success: false }; }
+    } catch (e) { console.error('Create client error:', e); showToast('Failed to create client', 'error'); return { success: false }; }
 }
 
 // File Upload
@@ -89,14 +91,16 @@ async function loadLeads() { try { const q = query(collection(db, 'leads'), orde
 function subscribeToLeads(cb) { const q = query(collection(db, 'leads'), orderBy('createdAt', 'desc')); const u = onSnapshot(q, s => { AppState.leads = s.docs.map(d => ({ id: d.id, ...d.data() })); if (cb) cb(AppState.leads); }); AppState.unsubscribers.push(u); return u; }
 async function createLead(data, logoFile = null) {
     try {
+        console.log('Creating lead:', data);
         const ref = await addDoc(collection(db, 'leads'), { ...data, demoFiles: [], createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+        console.log('Lead created with ID:', ref.id);
         if (logoFile) {
             const url = await uploadFile(logoFile, `logos/leads/${ref.id}/${Date.now()}_${logoFile.name}`);
             if (url) await updateDoc(doc(db, 'leads', ref.id), { logo: url });
         }
         showToast('Lead created!', 'success');
         return { success: true, id: ref.id };
-    } catch (e) { showToast('Failed to create lead', 'error'); return { success: false }; }
+    } catch (e) { console.error('Create lead error:', e); showToast('Failed to create lead', 'error'); return { success: false }; }
 }
 async function updateLead(id, updates) { try { await updateDoc(doc(db, 'leads', id), { ...updates, updatedAt: serverTimestamp() }); showToast('Lead updated!', 'success'); return { success: true }; } catch (e) { showToast('Failed to update', 'error'); return { success: false }; } }
 

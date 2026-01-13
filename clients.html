@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="assets/logo.png">
     <title>Clients - Sidequest Portal</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,7 +15,7 @@
 
     <div class="portal-layout">
         <aside class="sidebar">
-            <div class="sidebar-header"><a href="dashboard.html" class="sidebar-logo"><span class="sidebar-logo-icon">S</span>Sidequest</a></div>
+            <div class="sidebar-header"><a href="dashboard.html" class="sidebar-logo"><img src="assets/logo.png" alt="Sidequest" class="sidebar-logo-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span class="sidebar-logo-icon" style="display:none;">S</span>Sidequest</a></div>
             <nav class="sidebar-nav">
                 <div class="nav-section"><div class="nav-section-title">Main</div>
                     <a href="dashboard.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
@@ -74,8 +75,33 @@
                     <div class="form-group"><label class="form-label">Phone</label><input type="tel" name="phone" class="form-input"></div>
                     <div class="form-group"><label class="form-label">Assign to Projects</label><div id="client-projects"></div></div>
                 </div>
-                <div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeAllModals()">Cancel</button><button type="submit" class="btn btn-primary">Save Changes</button></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" style="color:var(--color-error);margin-right:auto;" onclick="handleArchiveClient()">Archive Client</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeAllModals()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
             </form>
+        </div>
+    </div>
+    
+    <!-- Change Password Modal -->
+    <div class="modal-overlay" id="change-password-modal">
+        <div class="modal" style="max-width:400px;">
+            <div class="modal-header"><h3 class="modal-title">Change Client Password</h3><button class="modal-close">×</button></div>
+            <div class="modal-body">
+                <div class="form-group"><label class="form-label">New Password</label><input type="text" id="new-client-password" class="form-input" placeholder="Enter new password"></div>
+                <p class="text-muted" style="font-size:13px;">This will update the stored password. Share with the client.</p>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('change-password-modal')">Cancel</button><button class="btn btn-primary" onclick="handleChangeClientPassword()">Update Password</button></div>
+        </div>
+    </div>
+    
+    <!-- Confirm Modal -->
+    <div class="modal-overlay" id="confirm-modal">
+        <div class="modal" style="max-width:400px;">
+            <div class="modal-header"><h3 class="modal-title">Confirm</h3><button class="modal-close">×</button></div>
+            <div class="modal-body"><p class="confirm-message">Are you sure?</p></div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('confirm-modal')">Cancel</button><button class="btn btn-primary" onclick="handleConfirm()">Confirm</button></div>
         </div>
     </div>
     
