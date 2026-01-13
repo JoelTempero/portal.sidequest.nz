@@ -961,8 +961,6 @@ function renderProjectDetail() {
     if (el('current-task')) el('current-task').textContent = proj.currentTask || 'No current task set.';
     if (el('edit-current-task')) el('edit-current-task').value = proj.currentTask || '';
     
-    document.getElementById('message-form')?.addEventListener('submit', e => { e.preventDefault(); handleSendMessage(proj.id); });
-    
     // Progress slider event
     const progressSlider = document.getElementById('progress-slider');
     if (progressSlider) {
