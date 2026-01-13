@@ -42,7 +42,11 @@ const formatCurrency = n => new Intl.NumberFormat('en-NZ', { style: 'currency', 
 const timeAgo = d => { if (!d) return '-'; const date = d.toDate ? d.toDate() : new Date(d); const s = Math.floor((new Date() - date) / 1000); if (s < 60) return 'Just now'; if (s < 3600) return Math.floor(s/60) + 'm ago'; if (s < 86400) return Math.floor(s/3600) + 'h ago'; return Math.floor(s/86400) + 'd ago'; };
 const getInitials = n => n ? n.split(' ').map(x => x[0]).join('').slice(0,2).toUpperCase() : '??';
 const getTierOrder = t => TIER_ORDER[t] ?? 4;
-const getTierName = t => TIER_NAMES[t] || t;
+const LEGACY_TIER_MAP = { premium: 'watchfuleye', enterprise: 'watchfuleye', professional: 'farmer', starter: 'bugcatcher', basic: 'host' };
+const getTierName = t => {
+    const mapped = LEGACY_TIER_MAP[t] || t;
+    return TIER_NAMES[mapped] || t;
+};
 const getStatusLabel = s => ({ 'noted': 'Noted', 'demo-complete': 'Demo Complete', 'demo-sent': 'Demo Sent', 'active': 'Active', 'paused': 'Paused', 'completed': 'Completed', 'open': 'Open', 'in-progress': 'In Progress', 'resolved': 'Resolved' }[s] || s);
 const showLoading = (show = true) => { const l = document.getElementById('loading-overlay'); if (l) l.style.display = show ? 'flex' : 'none'; };
 const showToast = (msg, type = 'info') => { document.querySelector('.toast')?.remove(); const t = document.createElement('div'); t.className = `toast toast-${type}`; t.textContent = msg; t.style.cssText = `position:fixed;bottom:20px;right:20px;padding:12px 24px;border-radius:8px;color:white;z-index:9999;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.3);background:${type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : '#3b82f6'};`; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); };

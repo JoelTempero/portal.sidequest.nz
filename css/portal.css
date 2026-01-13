@@ -291,3 +291,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* Sidebar Logo Image */
 .sidebar-logo-img { width: 36px; height: 36px; border-radius: var(--radius-md); object-fit: contain; }
 .login-logo-img { width: 40px; height: 40px; border-radius: var(--radius-md); object-fit: contain; }
+
+/* Legacy tier names fallback */
+.tier-badge.premium { background: linear-gradient(135deg, #ffd700, #ffb347); color: #000; }
+.tier-badge.starter { background: linear-gradient(135deg, #cd7f32, #b87333); color: #fff; }
+.tier-badge.basic { background: var(--color-bg-tertiary); color: var(--color-text-muted); }
+.tier-badge.professional { background: linear-gradient(135deg, #c0c0c0, #a8a8a8); color: #000; }
+.tier-badge.enterprise { background: linear-gradient(135deg, #ffd700, #ffb347); color: #000; }
+.ticket-priority.premium, .ticket-priority.enterprise { background: linear-gradient(135deg, #ffd700, #ffb347); }
+.ticket-priority.professional { background: linear-gradient(135deg, #c0c0c0, #a8a8a8); }
+.ticket-priority.starter { background: linear-gradient(135deg, #cd7f32, #b87333); }
+.ticket-priority.basic { background: var(--color-text-muted); }

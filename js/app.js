@@ -117,15 +117,20 @@ function renderProjects(containerId, items = null) {
     let list = items || applyFilters(AppState.projects);
     if (!list.length) { c.innerHTML = `<div class="empty-state"><h3>No projects yet</h3></div>`; return; }
     c.innerHTML = list.map(p => `
-        <div class="item-card" onclick="window.location.href='project-detail.html?id=${p.id}'">
-            ${p.logo ? `<div class="item-card-logo" style="background-image:url('${p.logo}')"></div>` : `<div class="item-card-logo item-card-logo-placeholder">${getInitials(p.companyName)}</div>`}
-            <div class="item-card-body">
-                <div class="item-company">${p.companyName || 'Unnamed'}</div>
-                <div class="item-client">${p.clientName || ''}</div>
-                <div class="item-badges"><span class="status-badge ${p.status || 'active'}">${getStatusLabel(p.status || 'active')}</span><span class="tier-badge ${p.tier || 'farmer'}">${getTierName(p.tier || 'farmer')}</span></div>
-                <div class="item-progress"><div class="progress-header"><span>Progress</span><span>${p.progress || 0}%</span></div><div class="progress-bar"><div class="progress-fill" style="width:${p.progress || 0}%"></div></div></div>
-                <div class="item-tags"><span class="tag">${p.location || '-'}</span><span class="tag">${p.businessType || '-'}</span></div>
+        <div class="item-card">
+            <div onclick="window.location.href='project-detail.html?id=${p.id}'" style="cursor:pointer;">
+                ${p.logo ? `<div class="item-card-logo" style="background-image:url('${p.logo}')"></div>` : `<div class="item-card-logo item-card-logo-placeholder">${getInitials(p.companyName)}</div>`}
+                <div class="item-card-body">
+                    <div class="item-company">${p.companyName || 'Unnamed'}</div>
+                    <div class="item-client">${p.clientName || ''}</div>
+                    <div class="item-badges"><span class="status-badge ${p.status || 'active'}">${getStatusLabel(p.status || 'active')}</span><span class="tier-badge ${p.tier || 'farmer'}">${getTierName(p.tier || 'farmer')}</span></div>
+                    <div class="item-progress"><div class="progress-header"><span>Progress</span><span>${p.progress || 0}%</span></div><div class="progress-bar"><div class="progress-fill" style="width:${p.progress || 0}%"></div></div></div>
+                </div>
             </div>
+            ${AppState.isAdmin ? `<div style="padding:0 16px 16px;border-top:1px solid var(--color-border-subtle);margin-top:8px;padding-top:12px;" onclick="event.stopPropagation();">
+                <label style="font-size:11px;color:var(--color-text-muted);display:block;margin-bottom:4px;">Current Task</label>
+                <div style="display:flex;gap:8px;"><input type="text" id="task-input-${p.id}" class="form-input" value="${(p.currentTask || '').replace(/"/g, '&quot;')}" placeholder="What's being worked on?" style="flex:1;font-size:13px;padding:6px 10px;"><button class="btn btn-primary btn-sm" onclick="handleQuickSaveTask('${p.id}')">Save</button></div>
+            </div>` : `<div style="padding:0 16px 16px;"><span style="font-size:12px;color:var(--color-text-muted);">Task:</span> <span style="font-size:13px;">${p.currentTask || 'None set'}</span></div>`}
         </div>`).join('');
 }
 
@@ -643,6 +648,40 @@ window.handleAddMilestone = async () => {
     }
 };
 
+window.handleSaveCurrentTask = async () => {
+    const proj = AppState.currentItem;
+    if (!proj) return;
+    
+    const task = document.getElementById('edit-current-task')?.value || '';
+    const result = await updateProject(proj.id, { currentTask: task });
+    if (result.success) {
+        proj.currentTask = task;
+        AppState.currentItem = proj;
+        document.getElementById('current-task').textContent = task || 'No current task set.';
+        closeAllModals();
+    }
+};
+
+window.openEditTaskModal = (projectId) => {
+    const proj = projectId ? AppState.projects.find(p => p.id === projectId) : AppState.currentItem;
+    if (!proj) return;
+    AppState.currentItem = proj;
+    document.getElementById('edit-current-task').value = proj.currentTask || '';
+    openModal('edit-task-modal');
+};
+
+window.handleQuickSaveTask = async (projectId) => {
+    const input = document.getElementById(`task-input-${projectId}`);
+    if (!input) return;
+    const result = await updateProject(projectId, { currentTask: input.value });
+    if (result.success) {
+        showToast('Task saved!', 'success');
+        // Update local state
+        const proj = AppState.projects.find(p => p.id === projectId);
+        if (proj) proj.currentTask = input.value;
+    }
+};
+
 window.handleDashboardTicket = async () => {
     const projectId = document.getElementById('dash-ticket-project')?.value;
     const title = document.getElementById('dash-ticket-title')?.value;
@@ -917,6 +956,10 @@ function renderProjectDetail() {
     renderInvoices('invoices', proj.invoices);
     subscribeToMessages(proj.id, msgs => renderMessages('messages-container', msgs));
     renderTickets('project-tickets', AppState.tickets.filter(t => t.projectId === proj.id));
+    
+    // Display current task
+    if (el('current-task')) el('current-task').textContent = proj.currentTask || 'No current task set.';
+    if (el('edit-current-task')) el('edit-current-task').value = proj.currentTask || '';
     
     document.getElementById('message-form')?.addEventListener('submit', e => { e.preventDefault(); handleSendMessage(proj.id); });
     
