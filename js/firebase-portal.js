@@ -160,8 +160,38 @@ async function updateProject(id, updates) {
 }
 
 // CLIENTS
-async function loadClients() { try { const q = query(collection(db, 'users'), where('role', '==', 'client')); const s = await getDocs(q); AppState.clients = s.docs.map(d => ({ id: d.id, ...d.data() })); return AppState.clients; } catch (e) { return []; } }
+async function loadClients() {
+    try {
+        const q = query(collection(db, 'users'), where('role', '==', 'client'));
+        const s = await getDocs(q);
+        // Filter out archived clients
+        AppState.clients = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => c.status !== 'archived');
+        return AppState.clients;
+    } catch (e) { return []; }
+}
 async function updateClient(id, updates) { try { await updateDoc(doc(db, 'users', id), updates); showToast('Client updated!', 'success'); return { success: true }; } catch (e) { showToast('Failed to update', 'error'); return { success: false }; } }
+async function archiveClient(clientId) {
+    try {
+        const snap = await getDoc(doc(db, 'users', clientId));
+        if (!snap.exists()) { showToast('Client not found', 'error'); return { success: false }; }
+        const data = snap.data();
+        // Add to archived collection
+        await addDoc(collection(db, 'archived'), {
+            type: 'client',
+            originalId: clientId,
+            companyName: data.company || '',
+            clientName: data.displayName || '',
+            clientEmail: data.email || '',
+            reason: 'Archived',
+            archivedAt: serverTimestamp(),
+            originalData: data
+        });
+        // Delete from users
+        await deleteDoc(doc(db, 'users', clientId));
+        showToast('Client archived!', 'success');
+        return { success: true };
+    } catch (e) { console.error('Archive client error:', e); showToast('Failed to archive', 'error'); return { success: false }; }
+}
 
 // ARCHIVE
 async function loadArchive() { try { const q = query(collection(db, 'archived'), orderBy('archivedAt', 'desc')); const s = await getDocs(q); AppState.archived = s.docs.map(d => ({ id: d.id, ...d.data() })); return AppState.archived; } catch (e) { return []; } }
@@ -197,7 +227,18 @@ async function updateTicket(id, updates) { try { await updateDoc(doc(db, 'ticket
 
 // MESSAGES
 function subscribeToMessages(projectId, cb) { const q = query(collection(db, 'messages'), where('projectId', '==', projectId), orderBy('timestamp', 'asc')); const u = onSnapshot(q, s => { if (cb) cb(s.docs.map(d => ({ id: d.id, ...d.data() }))); }); AppState.unsubscribers.push(u); return u; }
-async function sendMessage(projectId, text) { try { await addDoc(collection(db, 'messages'), { projectId, senderId: AppState.currentUser.uid, senderName: AppState.userProfile?.displayName || 'User', text, timestamp: serverTimestamp() }); return { success: true }; } catch (e) { return { success: false }; } }
+async function sendMessage(projectId, text) {
+    try {
+        console.log('Sending message:', { projectId, text, sender: AppState.currentUser?.uid });
+        await addDoc(collection(db, 'messages'), { projectId, senderId: AppState.currentUser.uid, senderName: AppState.userProfile?.displayName || 'User', text, timestamp: serverTimestamp() });
+        console.log('Message sent successfully');
+        return { success: true };
+    } catch (e) {
+        console.error('Send message error:', e);
+        showToast('Failed to send message', 'error');
+        return { success: false };
+    }
+}
 
 // MOVE/CONVERT
 async function moveLeadToProject(leadId) {
@@ -242,7 +283,7 @@ export {
     login, logout, createClientWithAuth, uploadFile, uploadLogo,
     loadLeads, subscribeToLeads, createLead, updateLead,
     loadProjects, subscribeToProjects, createProject, updateProject,
-    loadClients, updateClient,
+    loadClients, updateClient, archiveClient,
     loadArchive, archiveItem, restoreFromArchive,
     loadTickets, subscribeToTickets, createTicket, updateTicket,
     subscribeToMessages, sendMessage,

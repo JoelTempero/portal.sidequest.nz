@@ -7,7 +7,7 @@ import {
     login, logout, createClientWithAuth, uploadFile, uploadLogo,
     loadLeads, subscribeToLeads, createLead, updateLead,
     loadProjects, subscribeToProjects, createProject, updateProject,
-    loadClients, updateClient,
+    loadClients, updateClient, archiveClient,
     loadArchive, archiveItem, restoreFromArchive,
     loadTickets, subscribeToTickets, createTicket, updateTicket,
     subscribeToMessages, sendMessage,
@@ -301,14 +301,17 @@ window.openEditProjectModal = () => {
     m.querySelector('[name="githubUrl"]').value = p.githubUrl || '';
     m.querySelector('[name="notes"]').value = p.notes || '';
     
-    // Assigned clients with search
+    // Assigned clients with search (hidden until searched)
     const clientsDiv = m.querySelector('#assign-clients');
     if (clientsDiv) {
+        const assignedIds = p.assignedClients || [];
+        const assignedClients = AppState.clients.filter(cl => assignedIds.includes(cl.id));
         clientsDiv.innerHTML = `
-            <input type="text" class="form-input mb-sm" id="client-search" placeholder="Search projects..." oninput="filterClientCheckboxes(this.value)">
+            <input type="text" class="form-input mb-sm" id="client-search" placeholder="Search clients to assign..." oninput="filterClientCheckboxes(this.value)">
+            ${assignedClients.length ? `<div class="mb-sm" style="font-size:12px;color:var(--color-text-muted);">Currently assigned: ${assignedClients.map(c => c.displayName || c.email).join(', ')}</div>` : '<div class="mb-sm" style="font-size:12px;color:var(--color-text-muted);">No clients assigned</div>'}
             <div id="client-checkboxes" style="max-height:200px;overflow-y:auto;">
-                ${AppState.clients.map(cl => `<label class="checkbox-item" data-name="${(cl.displayName || '').toLowerCase()} ${(cl.company || '').toLowerCase()}">
-                    <input type="checkbox" name="assignedClients" value="${cl.id}" ${(p.assignedClients || []).includes(cl.id) ? 'checked' : ''}>
+                ${AppState.clients.map(cl => `<label class="checkbox-item" data-name="${(cl.displayName || '').toLowerCase()} ${(cl.company || '').toLowerCase()}" style="display:none;">
+                    <input type="checkbox" name="assignedClients" value="${cl.id}" ${assignedIds.includes(cl.id) ? 'checked' : ''}>
                     <span>${cl.displayName || cl.email}</span> <span class="text-muted">(${cl.company || '-'})</span>
                 </label>`).join('') || '<p class="text-muted">No clients yet</p>'}
             </div>`;
@@ -317,9 +320,12 @@ window.openEditProjectModal = () => {
 };
 
 window.filterClientCheckboxes = (search) => {
-    const s = search.toLowerCase();
+    const s = search.toLowerCase().trim();
     document.querySelectorAll('#client-checkboxes .checkbox-item').forEach(el => {
-        el.style.display = el.dataset.name.includes(s) ? '' : 'none';
+        // Show if search matches OR if already checked
+        const matches = s && el.dataset.name.includes(s);
+        const isChecked = el.querySelector('input[type="checkbox"]').checked;
+        el.style.display = (matches || isChecked) ? '' : 'none';
     });
 };
 
@@ -549,11 +555,12 @@ window.handleArchiveClient = () => {
     const client = AppState.currentItem;
     if (!client) return;
     openConfirmModal('Archive this client? They will no longer be able to log in.', async () => {
-        await updateClient(client.id, { status: 'archived', archivedAt: new Date().toISOString() });
-        closeAllModals();
-        await loadClients();
-        renderClients('clients-grid');
-        showToast('Client archived', 'success');
+        const result = await archiveClient(client.id);
+        if (result.success) {
+            closeAllModals();
+            await loadClients();
+            renderClients('clients-grid');
+        }
     });
 };
 
