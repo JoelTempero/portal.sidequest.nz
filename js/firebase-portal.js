@@ -22,11 +22,13 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, setDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js';
+import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
+const functions = getFunctions(app);
 
 const AppState = {
     currentUser: null, userProfile: null, isAdmin: false,
@@ -55,12 +57,33 @@ async function logout() { AppState.unsubscribers.forEach(u => u()); AppState.uns
 
 async function createClientWithAuth(email, password, displayName, company) {
     try {
-        console.log('Creating client:', { email, displayName, company });
-        const ref = await addDoc(collection(db, 'users'), { email, displayName, company: company || '', role: 'client', tempPassword: password, status: 'pending', createdAt: serverTimestamp() });
-        console.log('Client created with ID:', ref.id);
+        console.log('Creating client via Cloud Function:', { email, displayName, company });
+        
+        // Call the Cloud Function to create the Auth user
+        const createClientFn = httpsCallable(functions, 'createClient');
+        const result = await createClientFn({ email, password, displayName });
+        
+        console.log('Cloud Function result:', result.data);
+        
+        // Now create the Firestore document with the same UID
+        await setDoc(doc(db, 'users', result.data.uid), {
+            email,
+            displayName,
+            company: company || '',
+            role: 'client',
+            tempPassword: password,
+            status: 'active',
+            createdAt: serverTimestamp()
+        });
+        
         showToast('Client created!', 'success');
-        return { success: true, id: ref.id, email, password };
-    } catch (e) { console.error('Create client error:', e); showToast('Failed to create client', 'error'); return { success: false }; }
+        return { success: true, id: result.data.uid, email, password };
+    } catch (e) {
+        console.error('Create client error:', e);
+        const message = e.message || 'Failed to create client';
+        showToast(message, 'error');
+        return { success: false, error: message };
+    }
 }
 
 // File Upload
