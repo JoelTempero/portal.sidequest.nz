@@ -71,7 +71,7 @@
                 </div>
                 
                 <div id="tab-overview" class="tab-content"><div class="card"><div class="card-header"><h3 class="card-title">Project Info</h3></div><div class="info-grid" id="detail-info"></div></div></div>
-                <div id="tab-milestones" class="tab-content" style="display:none;"><div class="card"><div class="card-header"><h3 class="card-title">Milestones</h3></div><div id="milestones"></div></div></div>
+                <div id="tab-milestones" class="tab-content" style="display:none;"><div class="card"><div class="card-header"><h3 class="card-title">Milestones</h3><button class="btn btn-primary btn-sm admin-only" onclick="openModal('add-milestone-modal')">Add Milestone</button></div><div id="milestones"></div></div></div>
                 <div id="tab-invoices" class="tab-content" style="display:none;"><div class="card"><div class="card-header"><h3 class="card-title">Invoices</h3></div><div id="invoices"></div></div></div>
                 <div id="tab-messages" class="tab-content" style="display:none;"><div class="card"><div class="card-header"><h3 class="card-title">Messages</h3></div><div id="messages-container" style="max-height:400px;overflow-y:auto;margin-bottom:16px;"></div><form id="message-form" style="display:flex;gap:12px;"><input type="text" id="message-input" class="form-input" placeholder="Type message..." style="flex:1;"><button type="submit" class="btn btn-primary">Send</button></form></div></div>
                 <div id="tab-tickets" class="tab-content" style="display:none;"><div class="card"><div class="card-header"><h3 class="card-title">Tickets</h3><button class="btn btn-primary btn-sm" onclick="openModal('new-ticket-modal')">New Ticket</button></div><div id="project-tickets"></div></div></div>
@@ -90,7 +90,8 @@
                     <div class="form-row"><div class="form-group"><label class="form-label">Website</label><input type="text" name="websiteUrl" class="form-input"></div><div class="form-group"><label class="form-label">Location</label><input type="text" name="location" class="form-input"></div></div>
                     <div class="form-row"><div class="form-group"><label class="form-label">Business Type</label><input type="text" name="businessType" class="form-input"></div><div class="form-group"><label class="form-label">Status</label><select name="status" class="form-input form-select"><option value="active">Active</option><option value="paused">Paused</option><option value="completed">Completed</option></select></div></div>
                     <div class="form-row"><div class="form-group"><label class="form-label">Tier</label><select name="tier" class="form-input form-select"><option value="host">Host</option><option value="bugcatcher">Bug Catcher</option><option value="farmer">Farmer</option><option value="watchfuleye">Watchful Eye</option></select></div><div class="form-group"><label class="form-label">Progress: <span id="progress-value">0%</span></label><input type="range" name="progress" min="0" max="100" value="0" class="form-input" style="padding:0;"></div></div>
-                    <div class="form-row"><div class="form-group"><label class="form-label">GitHub Link</label><input type="url" name="githubLink" class="form-input"></div><div class="form-group"><label class="form-label">GitHub Preview</label><input type="url" name="githubUrl" class="form-input"></div></div>
+                    <div class="form-group"><label class="form-label">GitHub Code</label><input type="url" name="githubLink" class="form-input" placeholder="https://github.com/..."></div>
+                    <div class="form-group"><label class="form-label">Preview Links (one per line)</label><textarea name="previewLinks" class="form-input form-textarea" style="min-height:80px;" placeholder="https://preview1.github.io&#10;https://preview2.github.io"></textarea></div>
                     <div class="form-group"><label class="form-label">Notes</label><textarea name="notes" class="form-input form-textarea"></textarea></div>
                     <div class="form-group"><label class="form-label">Assigned Clients</label><div id="assign-clients"></div></div>
                 </div>
@@ -103,10 +104,30 @@
     <div class="modal-overlay" id="new-ticket-modal">
         <div class="modal"><div class="modal-header"><h3 class="modal-title">Submit Ticket</h3><button class="modal-close">×</button></div>
         <div class="modal-body">
-            <div class="form-group"><label class="form-label">Title</label><input type="text" id="new-ticket-title" class="form-input"></div>
-            <div class="form-group"><label class="form-label">Description</label><textarea id="new-ticket-desc" class="form-input form-textarea"></textarea></div>
+            <div class="form-group"><label class="form-label">Title</label><input type="text" id="new-ticket-title" class="form-input" placeholder="Brief summary of the issue"></div>
+            <div class="form-group"><label class="form-label">Urgency</label>
+                <select id="new-ticket-urgency" class="form-input form-select">
+                    <option value="asap">ASAP - Urgent</option>
+                    <option value="days">Within the next few days</option>
+                    <option value="week" selected>Within the next week</option>
+                    <option value="month">Next month</option>
+                </select>
+            </div>
+            <div class="form-group"><label class="form-label">Description</label><textarea id="new-ticket-desc" class="form-input form-textarea" placeholder="Describe the issue in detail..."></textarea></div>
         </div>
-        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button><button class="btn btn-primary" onclick="handleSubmitTicket(new URLSearchParams(location.search).get('id'))">Submit</button></div></div>
+        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button><button class="btn btn-primary" onclick="handleSubmitTicket(new URLSearchParams(location.search).get('id'))">Submit Ticket</button></div></div>
+    </div>
+    
+    <!-- Add Milestone Modal -->
+    <div class="modal-overlay" id="add-milestone-modal">
+        <div class="modal" style="max-width:400px;">
+            <div class="modal-header"><h3 class="modal-title">Add Milestone</h3><button class="modal-close">×</button></div>
+            <div class="modal-body">
+                <div class="form-group"><label class="form-label">Title</label><input type="text" id="new-milestone-title" class="form-input" placeholder="e.g. Design Complete"></div>
+                <div class="form-group"><label class="form-label">Target Date</label><input type="date" id="new-milestone-date" class="form-input"></div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button><button class="btn btn-primary" onclick="handleAddMilestone()">Add Milestone</button></div>
+        </div>
     </div>
     
     <!-- Confirm Modal -->

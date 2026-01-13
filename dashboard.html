@@ -43,10 +43,31 @@
                 <div class="stats-grid" id="stats-grid"></div>
                 <div style="display:grid;grid-template-columns:1fr;gap:24px;">
                     <div class="card"><div class="card-header"><h3 class="card-title admin-only">Active Projects</h3><h3 class="card-title client-only">My Projects</h3><a href="projects.html" class="card-action">View all</a></div><div class="item-grid" id="projects-grid"></div></div>
-                    <div class="card client-only"><div class="card-header"><h3 class="card-title">My Tickets</h3></div><div id="tickets-grid"></div></div>
+                    <div class="card client-only"><div class="card-header"><h3 class="card-title">My Tickets</h3><button class="btn btn-primary btn-sm" onclick="openModal('dashboard-ticket-modal')">New Ticket</button></div><div id="tickets-grid"></div></div>
                 </div>
             </div>
         </main>
+    </div>
+    
+    <!-- Dashboard Ticket Modal (for clients) -->
+    <div class="modal-overlay" id="dashboard-ticket-modal">
+        <div class="modal"><div class="modal-header"><h3 class="modal-title">Submit Ticket</h3><button class="modal-close">×</button></div>
+        <div class="modal-body">
+            <div class="form-group"><label class="form-label">Project</label>
+                <select id="dash-ticket-project" class="form-input form-select"></select>
+            </div>
+            <div class="form-group"><label class="form-label">Title</label><input type="text" id="dash-ticket-title" class="form-input" placeholder="Brief summary of the issue"></div>
+            <div class="form-group"><label class="form-label">Urgency</label>
+                <select id="dash-ticket-urgency" class="form-input form-select">
+                    <option value="asap">ASAP - Urgent</option>
+                    <option value="days">Within the next few days</option>
+                    <option value="week" selected>Within the next week</option>
+                    <option value="month">Next month</option>
+                </select>
+            </div>
+            <div class="form-group"><label class="form-label">Description</label><textarea id="dash-ticket-desc" class="form-input form-textarea" placeholder="Describe the issue in detail..."></textarea></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button><button class="btn btn-primary" onclick="handleDashboardTicket()">Submit Ticket</button></div></div>
     </div>
     
     <!-- Admin Profile Modal -->

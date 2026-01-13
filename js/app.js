@@ -301,7 +301,7 @@ window.openEditProjectModal = () => {
     if (progressValue) progressValue.textContent = (p.progress || 0) + '%';
     
     m.querySelector('[name="githubLink"]').value = p.githubLink || '';
-    m.querySelector('[name="githubUrl"]').value = p.githubUrl || '';
+    m.querySelector('[name="previewLinks"]').value = (p.previewLinks || []).join('\n');
     m.querySelector('[name="notes"]').value = p.notes || '';
     
     // Assigned clients with search (hidden until searched)
@@ -492,6 +492,13 @@ window.handleUpdateProject = async (e) => {
     const data = Object.fromEntries(new FormData(form));
     data.progress = parseInt(data.progress) || 0;
     
+    // Parse preview links from textarea (one per line)
+    if (data.previewLinks) {
+        data.previewLinks = data.previewLinks.split('\n').map(l => l.trim()).filter(l => l);
+    } else {
+        data.previewLinks = [];
+    }
+    
     // Get assigned clients
     const checkboxes = form.querySelectorAll('[name="assignedClients"]:checked');
     data.assignedClients = Array.from(checkboxes).map(cb => cb.value);
@@ -582,6 +589,96 @@ window.handleSaveTicket = async () => {
     renderTickets('tickets-list');
 };
 
+window.handleSubmitTicket = async (projectId) => {
+    const title = document.getElementById('new-ticket-title')?.value;
+    const desc = document.getElementById('new-ticket-desc')?.value;
+    const urgency = document.getElementById('new-ticket-urgency')?.value || 'week';
+    
+    if (!title) { showToast('Please enter a title', 'error'); return; }
+    
+    const proj = AppState.projects.find(p => p.id === projectId);
+    const result = await createTicket({
+        projectId,
+        projectName: proj?.companyName || 'Unknown',
+        title,
+        description: desc || '',
+        urgency,
+        tier: proj?.tier || 'farmer',
+        submittedById: AppState.currentUser?.uid,
+        submittedBy: AppState.userProfile?.displayName || 'Client'
+    });
+    
+    if (result.success) {
+        closeAllModals();
+        document.getElementById('new-ticket-title').value = '';
+        document.getElementById('new-ticket-desc').value = '';
+        await loadTickets();
+        renderTickets('project-tickets', AppState.tickets.filter(t => t.projectId === projectId));
+    }
+};
+
+window.handleAddMilestone = async () => {
+    const proj = AppState.currentItem;
+    if (!proj) return;
+    
+    const title = document.getElementById('new-milestone-title')?.value;
+    const date = document.getElementById('new-milestone-date')?.value;
+    
+    if (!title) { showToast('Please enter a title', 'error'); return; }
+    
+    const milestones = [...(proj.milestones || [])];
+    milestones.push({
+        id: 'm' + Date.now(),
+        title,
+        date: date || new Date().toISOString().split('T')[0],
+        status: 'pending'
+    });
+    
+    const result = await updateProject(proj.id, { milestones });
+    if (result.success) {
+        proj.milestones = milestones;
+        AppState.currentItem = proj;
+        closeAllModals();
+        renderMilestones('milestones', milestones, AppState.isAdmin);
+    }
+};
+
+window.handleDashboardTicket = async () => {
+    const projectId = document.getElementById('dash-ticket-project')?.value;
+    const title = document.getElementById('dash-ticket-title')?.value;
+    const urgency = document.getElementById('dash-ticket-urgency')?.value || 'week';
+    const desc = document.getElementById('dash-ticket-desc')?.value;
+    
+    if (!projectId) { showToast('Please select a project', 'error'); return; }
+    if (!title) { showToast('Please enter a title', 'error'); return; }
+    
+    const proj = AppState.projects.find(p => p.id === projectId);
+    const result = await createTicket({
+        projectId,
+        projectName: proj?.companyName || 'Unknown',
+        title,
+        description: desc || '',
+        urgency,
+        tier: proj?.tier || 'farmer',
+        submittedById: AppState.currentUser?.uid,
+        submittedBy: AppState.userProfile?.displayName || 'Client'
+    });
+    
+    if (result.success) {
+        closeAllModals();
+        document.getElementById('dash-ticket-title').value = '';
+        document.getElementById('dash-ticket-desc').value = '';
+        await loadTickets();
+        renderClientTickets('tickets-grid');
+    }
+};
+
+function populateDashboardTicketProjects() {
+    const select = document.getElementById('dash-ticket-project');
+    if (!select || AppState.isAdmin) return;
+    select.innerHTML = AppState.projects.map(p => `<option value="${p.id}">${p.companyName || 'Unnamed'}</option>`).join('');
+}
+
 window.handleLogoUpload = async (e, itemId, type) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -590,10 +687,13 @@ window.handleLogoUpload = async (e, itemId, type) => {
 };
 
 window.handleSendMessage = async (projectId) => {
+    console.log('handleSendMessage called with projectId:', projectId);
     const input = document.getElementById('message-input');
-    if (!input?.value.trim()) return;
-    await sendMessage(projectId, input.value.trim());
-    input.value = '';
+    console.log('Message input value:', input?.value);
+    if (!input?.value.trim()) { console.log('Empty message, returning'); return; }
+    const result = await sendMessage(projectId, input.value.trim());
+    console.log('Send result:', result);
+    if (result.success) input.value = '';
 };
 
 window.updateMilestoneStatus = async (index, newStatus) => {
@@ -701,6 +801,7 @@ function renderPage(page) {
                 // Client dashboard - show their projects and tickets
                 renderProjects('projects-grid', AppState.projects);
                 renderClientTickets('tickets-grid');
+                populateDashboardTicketProjects();
             }
             break;
         case 'leads.html': currentPageType = 'leads'; renderFilterBar('filter-container', AppState.leads, 'lead'); renderLeads('leads-grid'); subscribeToLeads(() => renderLeads('leads-grid')); break;
@@ -798,13 +899,18 @@ function renderProjectDetail() {
     }
     
     if (el('detail-info')) {
+        let previewsHtml = '';
+        if (proj.previewLinks && proj.previewLinks.length) {
+            previewsHtml = `<div class="info-item"><label>Previews</label><span>${proj.previewLinks.map((link, i) => `<a href="${link}" target="_blank">Preview ${i + 1}</a>`).join(' • ')}</span></div>`;
+        }
         el('detail-info').innerHTML = `
             <div class="info-item"><label>Email</label><span><a href="mailto:${proj.clientEmail || ''}">${proj.clientEmail || '-'}</a></span></div>
             <div class="info-item"><label>Phone</label><span>${proj.clientPhone || '-'}</span></div>
             <div class="info-item"><label>Website</label><span>${proj.websiteUrl ? `<a href="https://${proj.websiteUrl}" target="_blank">${proj.websiteUrl}</a>` : '-'}</span></div>
             <div class="info-item"><label>Location</label><span>${proj.location || '-'}</span></div>
             <div class="info-item"><label>Type</label><span>${proj.businessType || '-'}</span></div>
-            ${proj.githubLink ? `<div class="info-item"><label>GitHub</label><span><a href="${proj.githubLink}" target="_blank">Code</a></span></div>` : ''}`;
+            ${proj.githubLink ? `<div class="info-item"><label>GitHub Code</label><span><a href="${proj.githubLink}" target="_blank">View Repository</a></span></div>` : ''}
+            ${previewsHtml}`;
     }
     
     renderMilestones('milestones', proj.milestones, AppState.isAdmin);
