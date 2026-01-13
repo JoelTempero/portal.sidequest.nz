@@ -8,7 +8,7 @@ import {
     loadLeads, subscribeToLeads, createLead, updateLead,
     loadProjects, subscribeToProjects, createProject, updateProject,
     loadClients, updateClient, archiveClient,
-    loadArchive, archiveItem, restoreFromArchive,
+    loadArchive, archiveItem, restoreFromArchive, deletePermanent,
     loadTickets, subscribeToTickets, createTicket, updateTicket,
     subscribeToMessages, sendMessage,
     moveLeadToProject, returnProjectToLead,
@@ -150,13 +150,16 @@ function renderArchive(containerId) {
     if (!AppState.archived.length) { c.innerHTML = '<div class="empty-state"><h3>Archive empty</h3></div>'; return; }
     c.innerHTML = AppState.archived.map(a => `
         <div class="item-card" onclick="openArchiveDetailModal('${a.id}')">
-            <div class="item-card-logo item-card-logo-placeholder" style="opacity:0.5">${getInitials(a.companyName)}</div>
+            <div class="item-card-logo item-card-logo-placeholder" style="opacity:0.5">${getInitials(a.companyName || a.clientName)}</div>
             <div class="item-card-body">
-                <div class="item-company">${a.companyName || 'Unnamed'}</div>
-                <div class="item-client">${a.clientName || ''}</div>
-                <span class="badge badge-secondary">${a.type}</span>
+                <div class="item-company">${a.companyName || a.clientName || 'Unnamed'}</div>
+                <div class="item-client">${a.clientEmail || ''}</div>
+                <span class="badge badge-secondary">${a.type === 'client' ? 'Client' : a.type === 'lead' ? 'Lead' : 'Project'}</span>
                 <div class="item-meta"><span>Archived ${formatDate(a.archivedAt)}</span></div>
-                <button class="btn btn-secondary btn-sm mt-sm" onclick="event.stopPropagation(); handleRestore('${a.id}')">Restore</button>
+                <div class="flex gap-sm mt-sm">
+                    <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); handleRestore('${a.id}', '${a.type}')">Restore</button>
+                    <button class="btn btn-ghost btn-sm" style="color:var(--color-error);" onclick="event.stopPropagation(); handleDeletePermanent('${a.id}')">Delete</button>
+                </div>
             </div>
         </div>`).join('');
 }
@@ -423,7 +426,8 @@ window.handleConfirm = () => { const m = document.getElementById('confirm-modal'
 // ============================================
 
 window.handleArchive = (type, id) => openConfirmModal('Archive this item?', async () => { const r = await archiveItem(type, id); if (r.success) window.location.href = type === 'lead' ? 'leads.html' : 'projects.html'; });
-window.handleRestore = (id) => openConfirmModal('Restore this item?', async () => { await restoreFromArchive(id); await loadArchive(); renderArchive('archive-grid'); closeAllModals(); });
+window.handleRestore = (id, type) => openConfirmModal(`Restore this ${type || 'item'}?`, async () => { await restoreFromArchive(id); await loadArchive(); renderArchive('archive-grid'); closeAllModals(); });
+window.handleDeletePermanent = (id) => openConfirmModal('Permanently delete this item? This cannot be undone.', async () => { await deletePermanent(id); await loadArchive(); renderArchive('archive-grid'); closeAllModals(); });
 window.handleMoveToProject = (leadId) => openConfirmModal('Convert this lead to a project?', async () => { const r = await moveLeadToProject(leadId); if (r.success) window.location.href = 'projects.html'; });
 window.handleReturnToLead = (projectId) => openConfirmModal('Return this project to leads?', async () => { const r = await returnProjectToLead(projectId); if (r.success) window.location.href = 'leads.html'; });
 
@@ -689,15 +693,44 @@ async function loadPageData(page) {
 
 function renderPage(page) {
     switch (page) {
-        case 'dashboard.html': renderStats(); renderProjects('projects-grid', AppState.projects.filter(p => p.status === 'active').slice(0, 4)); break;
+        case 'dashboard.html':
+            renderStats();
+            if (AppState.isAdmin) {
+                renderProjects('projects-grid', AppState.projects.filter(p => p.status === 'active').slice(0, 4));
+            } else {
+                // Client dashboard - show their projects and tickets
+                renderProjects('projects-grid', AppState.projects);
+                renderClientTickets('tickets-grid');
+            }
+            break;
         case 'leads.html': currentPageType = 'leads'; renderFilterBar('filter-container', AppState.leads, 'lead'); renderLeads('leads-grid'); subscribeToLeads(() => renderLeads('leads-grid')); break;
-        case 'projects.html': currentPageType = 'projects'; renderFilterBar('filter-container', AppState.projects, 'project'); renderProjects('projects-grid'); subscribeToProjects(() => renderProjects('projects-grid')); break;
+        case 'projects.html':
+            currentPageType = 'projects';
+            if (AppState.isAdmin) {
+                renderFilterBar('filter-container', AppState.projects, 'project');
+            }
+            renderProjects('projects-grid');
+            subscribeToProjects(() => renderProjects('projects-grid'));
+            break;
         case 'clients.html': renderClients('clients-grid'); break;
         case 'archive.html': renderArchive('archive-grid'); break;
         case 'tickets.html': renderTickets('tickets-list'); subscribeToTickets(() => renderTickets('tickets-list')); break;
         case 'lead-detail.html': renderLeadDetail(); break;
         case 'project-detail.html': renderProjectDetail(); break;
     }
+}
+
+function renderClientTickets(containerId) {
+    const c = document.getElementById(containerId);
+    if (!c) return;
+    const myTickets = AppState.tickets.filter(t => t.submittedById === AppState.currentUser?.uid);
+    if (!myTickets.length) { c.innerHTML = '<p class="text-muted">No tickets submitted yet.</p>'; return; }
+    c.innerHTML = myTickets.map(t => `
+        <div class="ticket-row">
+            <div class="ticket-priority ${t.tier || 'host'}"></div>
+            <div class="ticket-info"><div class="ticket-title">${t.title || 'Untitled'}</div><div class="ticket-meta">${t.projectName || '-'} • ${timeAgo(t.submittedAt)}</div></div>
+            <span class="status-badge ${t.status || 'open'}">${getStatusLabel(t.status || 'open')}</span>
+        </div>`).join('');
 }
 
 function renderLeadDetail() {

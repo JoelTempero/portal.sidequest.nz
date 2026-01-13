@@ -128,7 +128,20 @@ async function createLead(data, logoFile = null) {
 async function updateLead(id, updates) { try { await updateDoc(doc(db, 'leads', id), { ...updates, updatedAt: serverTimestamp() }); showToast('Lead updated!', 'success'); return { success: true }; } catch (e) { showToast('Failed to update', 'error'); return { success: false }; } }
 
 // PROJECTS
-async function loadProjects() { try { const q = query(collection(db, 'projects'), orderBy('createdAt', 'desc')); const s = await getDocs(q); AppState.projects = s.docs.map(d => ({ id: d.id, ...d.data() })); return AppState.projects; } catch (e) { return []; } }
+async function loadProjects() {
+    try {
+        let q;
+        if (AppState.isAdmin) {
+            q = query(collection(db, 'projects'), orderBy('createdAt', 'desc'));
+        } else {
+            // For clients, only load projects they're assigned to
+            q = query(collection(db, 'projects'), where('assignedClients', 'array-contains', AppState.currentUser?.uid || ''));
+        }
+        const s = await getDocs(q);
+        AppState.projects = s.docs.map(d => ({ id: d.id, ...d.data() }));
+        return AppState.projects;
+    } catch (e) { console.error('Load projects error:', e); return []; }
+}
 function subscribeToProjects(cb) {
     const q = AppState.isAdmin ? query(collection(db, 'projects'), orderBy('createdAt', 'desc')) : query(collection(db, 'projects'), where('assignedClients', 'array-contains', AppState.currentUser?.uid || ''));
     const u = onSnapshot(q, s => { AppState.projects = s.docs.map(d => ({ id: d.id, ...d.data() })); if (cb) cb(AppState.projects); });
@@ -212,11 +225,26 @@ async function restoreFromArchive(archiveId) {
         const snap = await getDoc(doc(db, 'archived', archiveId));
         if (!snap.exists()) { showToast('Not found', 'error'); return { success: false }; }
         const data = snap.data();
-        await addDoc(collection(db, data.type === 'lead' ? 'leads' : 'projects'), { ...data.originalData, restoredAt: serverTimestamp(), updatedAt: serverTimestamp() });
+        
+        // Determine which collection to restore to
+        let targetCollection;
+        if (data.type === 'lead') targetCollection = 'leads';
+        else if (data.type === 'client') targetCollection = 'users';
+        else targetCollection = 'projects';
+        
+        await addDoc(collection(db, targetCollection), { ...data.originalData, restoredAt: serverTimestamp(), updatedAt: serverTimestamp() });
         await deleteDoc(doc(db, 'archived', archiveId));
         showToast('Restored!', 'success');
         return { success: true };
-    } catch (e) { showToast('Failed to restore', 'error'); return { success: false }; }
+    } catch (e) { console.error('Restore error:', e); showToast('Failed to restore', 'error'); return { success: false }; }
+}
+
+async function deletePermanent(archiveId) {
+    try {
+        await deleteDoc(doc(db, 'archived', archiveId));
+        showToast('Permanently deleted', 'success');
+        return { success: true };
+    } catch (e) { console.error('Delete error:', e); showToast('Failed to delete', 'error'); return { success: false }; }
 }
 
 // TICKETS
@@ -284,7 +312,7 @@ export {
     loadLeads, subscribeToLeads, createLead, updateLead,
     loadProjects, subscribeToProjects, createProject, updateProject,
     loadClients, updateClient, archiveClient,
-    loadArchive, archiveItem, restoreFromArchive,
+    loadArchive, archiveItem, restoreFromArchive, deletePermanent,
     loadTickets, subscribeToTickets, createTicket, updateTicket,
     subscribeToMessages, sendMessage,
     moveLeadToProject, returnProjectToLead,
