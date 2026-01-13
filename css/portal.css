@@ -627,3 +627,315 @@ img { max-width: 100%; display: block; }
 .w-full { width: 100%; }
 .hidden { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+
+/* Logo fixes for different aspect ratios */
+.item-logo.has-logo,
+.detail-logo.has-logo {
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: var(--color-bg-tertiary);
+}
+
+/* Filter bar styling */
+.filter-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.filter-bar .form-input {
+    background: var(--color-bg-tertiary);
+}
+
+/* Detail badges inline */
+.detail-badges {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.item-badges {
+    display: flex;
+    gap: 8px;
+    margin: 8px 0;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+}
+
+/* Ticket row improvements */
+.ticket-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border-bottom: 1px solid var(--color-border);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.ticket-row:hover {
+    background: var(--color-bg-tertiary);
+}
+
+.ticket-priority {
+    width: 4px;
+    height: 40px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.ticket-priority.premium { background: linear-gradient(135deg, #ffd700, #ffb347); }
+.ticket-priority.growth { background: linear-gradient(135deg, #c0c0c0, #a8a8a8); }
+.ticket-priority.bugcatcher { background: linear-gradient(135deg, #cd7f32, #b87333); }
+.ticket-priority.host { background: var(--color-text-muted); }
+
+.ticket-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.ticket-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.ticket-meta {
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.ticket-badges {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Message styling */
+.message {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.message.sent {
+    flex-direction: row-reverse;
+}
+
+.message-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.message-bubble {
+    max-width: 70%;
+    padding: 12px 16px;
+    border-radius: 16px;
+    background: var(--color-bg-tertiary);
+}
+
+.message.sent .message-bubble {
+    background: var(--color-primary);
+}
+
+.message-sender {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--color-text-secondary);
+}
+
+.message.sent .message-sender {
+    color: rgba(255,255,255,0.8);
+}
+
+.message-text {
+    line-height: 1.5;
+}
+
+.message-time {
+    font-size: 11px;
+    color: var(--color-text-muted);
+    margin-top: 4px;
+}
+
+.message.sent .message-time {
+    color: rgba(255,255,255,0.6);
+}
+
+/* Invoice item */
+.invoice-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.invoice-item:last-child {
+    border-bottom: none;
+}
+
+.invoice-info {
+    flex: 1;
+}
+
+.invoice-amount {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+/* Table styling */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.table th {
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table tr:hover td {
+    background: var(--color-bg-tertiary);
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0;
+}
+
+.tab {
+    padding: 12px 20px;
+    background: transparent;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.2s;
+}
+
+.tab:hover {
+    color: var(--color-text-primary);
+}
+
+.tab.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+}
+
+/* Progress in projects */
+.project-progress {
+    padding: 8px 0;
+}
+
+.project-progress .progress-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+/* Confirm modal message */
+.confirm-message {
+    font-size: 16px;
+    text-align: center;
+    padding: 12px 0;
+}
+
+/* Timeline for milestones */
+.timeline {
+    position: relative;
+    padding-left: 24px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--color-border);
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 24px;
+}
+
+.timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-dot {
+    position: absolute;
+    left: -24px;
+    top: 4px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--color-bg-tertiary);
+    border: 2px solid var(--color-border);
+}
+
+.timeline-item.completed .timeline-dot {
+    background: var(--color-success);
+    border-color: var(--color-success);
+}
+
+.timeline-item.current .timeline-dot {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.timeline-content h4 {
+    margin: 0 0 4px 0;
+    font-size: 15px;
+}
+
+.timeline-content p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.timeline-date {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    margin-top: 4px;
+}
+
+/* Toast animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}

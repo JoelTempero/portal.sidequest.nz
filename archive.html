@@ -26,7 +26,7 @@
                     <a href="archive.html" class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/></svg>Archive</a>
                 </div>
                 <div class="nav-section admin-only"><div class="nav-section-title">Support</div>
-                    <a href="tickets.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 8v4M12 16h.01"/></svg>Tickets</a>
+                    <a href="tickets.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Tickets</a>
                 </div>
             </nav>
             <div class="sidebar-footer"><div class="user-card" id="logout-btn" style="cursor:pointer;"><div class="user-avatar" id="user-avatar">J</div><div class="user-info"><div class="user-name" id="user-name">Joel</div><div class="user-role" id="user-role">Admin</div></div></div></div>
@@ -35,11 +35,30 @@
         <main class="main-content">
             <header class="header"><div class="header-left"><h1 class="header-title">Archive</h1></div></header>
             <div class="page-content">
-                <div class="page-header"><h1>Archived Items</h1><p>Leads and projects that have been archived. Can be restored.</p></div>
+                <div class="page-header"><h1>Archived Items</h1><p>View and restore archived leads and projects.</p></div>
                 <div class="item-grid" id="archive-grid"></div>
             </div>
         </main>
     </div>
+    
+    <!-- Archive Detail Modal -->
+    <div class="modal-overlay" id="archive-detail-modal">
+        <div class="modal large">
+            <div class="modal-header"><h3 class="modal-title">Archived Item</h3><button class="modal-close">×</button></div>
+            <div class="modal-body"></div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeAllModals()">Close</button><button class="btn btn-primary" onclick="handleRestore(AppState.currentItem?.id)">Restore</button></div>
+        </div>
+    </div>
+    
+    <!-- Confirm Modal -->
+    <div class="modal-overlay" id="confirm-modal">
+        <div class="modal" style="max-width:400px;">
+            <div class="modal-header"><h3 class="modal-title">Confirm</h3><button class="modal-close">×</button></div>
+            <div class="modal-body"><p class="confirm-message">Are you sure?</p></div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('confirm-modal')">Cancel</button><button class="btn btn-primary" onclick="handleConfirm()">Confirm</button></div>
+        </div>
+    </div>
+    
     <script type="module" src="js/app.js"></script>
 </body>
 </html>
