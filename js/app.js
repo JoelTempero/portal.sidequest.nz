@@ -975,6 +975,8 @@ function renderProjectDetail() {
 
 // Setup
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOMContentLoaded fired - app.js loaded successfully');
+    
     document.getElementById('login-form')?.addEventListener('submit', handleLogin);
     document.getElementById('logout-btn')?.addEventListener('click', logout);
     document.querySelectorAll('.modal-close').forEach(b => b.addEventListener('click', closeAllModals));
@@ -985,6 +987,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('edit-lead-form')?.addEventListener('submit', handleUpdateLead);
     document.getElementById('edit-project-form')?.addEventListener('submit', handleUpdateProject);
     document.getElementById('edit-client-form')?.addEventListener('submit', handleUpdateClient);
+    
+    // Message send button
+    document.getElementById('send-message-btn')?.addEventListener('click', () => {
+        console.log('Send button clicked!');
+        const projectId = new URLSearchParams(location.search).get('id');
+        handleSendMessage(projectId);
+    });
     
     // Progress slider in edit modal
     document.querySelector('[name="progress"]')?.addEventListener('input', e => {
