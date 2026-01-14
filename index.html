@@ -11,7 +11,7 @@
 </head>
 <body>
     <!-- Loading Overlay -->
-    <div id="loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(18,19,26,0.9);z-index:9999;align-items:center;justify-content:center;">
+    <div id="loading-overlay" style="position:fixed;inset:0;background:rgba(18,19,26,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;">
         <div style="text-align:center;color:white;">
             <div style="width:40px;height:40px;border:3px solid #333;border-top-color:#7c3aed;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px;"></div>
             <p>Loading...</p>
@@ -41,8 +41,83 @@
                         <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required>
                     </div>
                     
-                    <button type="submit" class="btn btn-primary w-full" style="width:100%;padding:14px;">Sign In</button>
+                    <button type="submit" class="btn btn-primary w-full" id="login-btn" style="width:100%;padding:14px;">Sign In</button>
                 </form>
             </div>
             
-            <p class="login-footer">Need access? Contact <a href="/cdn-cgi/l/email-protection#a1c9c4cdcdcee1d2c8c5c4d0d4c4d2d58fcfdb"><span class="__cf_email__" data-cfemail="2f474a4343406f5c464b4a5e5a4a5c5b014155">[ema
+            <p class="login-footer">Need access? Contact <a href="mailto:joel@tempero.nz" style="color:#7c3aed;">joel@tempero.nz</a></p>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyCHBw5_1925Bno5CHVEMUpdBgqQR_UHbAk",
+            authDomain: "sidequest-digital.firebaseapp.com",
+            projectId: "sidequest-digital",
+            storageBucket: "sidequest-digital.firebasestorage.app",
+            messagingSenderId: "576711179044",
+            appId: "1:576711179044:web:bef810a231f00c0b9c11b1"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loginForm = document.getElementById('login-form');
+        const loginError = document.getElementById('login-error');
+        const loginBtn = document.getElementById('login-btn');
+        
+        // Check if already logged in
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // User is signed in, redirect to dashboard
+                window.location.href = 'dashboard.html';
+            } else {
+                // No user, show login form
+                loadingOverlay.style.display = 'none';
+            }
+        });
+        
+        // Handle login form submission
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            
+            // Hide previous errors
+            loginError.style.display = 'none';
+            
+            // Disable button
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Signing in...';
+            
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                // onAuthStateChanged will handle redirect
+            } catch (error) {
+                console.error('Login error:', error);
+                
+                let message = 'An error occurred. Please try again.';
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                    message = 'Invalid email or password.';
+                } else if (error.code === 'auth/too-many-requests') {
+                    message = 'Too many attempts. Please try again later.';
+                } else if (error.code === 'auth/invalid-email') {
+                    message = 'Please enter a valid email address.';
+                }
+                
+                loginError.textContent = message;
+                loginError.style.display = 'block';
+                
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Sign In';
+            }
+        });
+    </script>
+</body>
+</html>
