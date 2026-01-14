@@ -339,6 +339,7 @@ function subscribeToPosts(cb) {
 
 async function createPost(data, featuredImageFile = null, galleryFiles = []) {
     try {
+        console.log('createPost called with:', data);
         // Create the post first
         const postData = {
             title: data.title || '',
@@ -356,16 +357,23 @@ async function createPost(data, featuredImageFile = null, galleryFiles = []) {
             updatedAt: serverTimestamp()
         };
         
+        console.log('postData to save:', postData);
         const ref = await addDoc(collection(db, 'posts'), postData);
+        console.log('Post created with ID:', ref.id);
         
         // Upload featured image if provided
         if (featuredImageFile) {
+            console.log('Uploading featured image...');
             const url = await uploadFile(featuredImageFile, `posts/${ref.id}/featured_${Date.now()}_${featuredImageFile.name}`);
-            if (url) await updateDoc(doc(db, 'posts', ref.id), { featuredImage: url });
+            if (url) {
+                await updateDoc(doc(db, 'posts', ref.id), { featuredImage: url });
+                console.log('Featured image uploaded:', url);
+            }
         }
         
         // Upload gallery images if provided
         if (galleryFiles.length > 0) {
+            console.log('Uploading gallery images...');
             const galleryUrls = [];
             for (const file of galleryFiles) {
                 const url = await uploadFile(file, `posts/${ref.id}/gallery_${Date.now()}_${file.name}`);
@@ -373,6 +381,7 @@ async function createPost(data, featuredImageFile = null, galleryFiles = []) {
             }
             if (galleryUrls.length > 0) {
                 await updateDoc(doc(db, 'posts', ref.id), { galleryImages: galleryUrls });
+                console.log('Gallery images uploaded:', galleryUrls);
             }
         }
         
@@ -380,6 +389,8 @@ async function createPost(data, featuredImageFile = null, galleryFiles = []) {
         return { success: true, id: ref.id };
     } catch (e) {
         console.error('Create post error:', e);
+        console.error('Error code:', e.code);
+        console.error('Error message:', e.message);
         showToast('Failed to create post', 'error');
         return { success: false };
     }
@@ -438,13 +449,16 @@ async function deletePost(id) {
 
 async function createPostFromProject(projectId) {
     try {
+        console.log('createPostFromProject called with projectId:', projectId);
         const snap = await getDoc(doc(db, 'projects', projectId));
         if (!snap.exists()) {
+            console.error('Project not found:', projectId);
             showToast('Project not found', 'error');
             return { success: false };
         }
         
         const project = snap.data();
+        console.log('Project data:', project);
         
         // Create draft post pre-populated with project data
         const postData = {
@@ -463,11 +477,15 @@ async function createPostFromProject(projectId) {
             updatedAt: serverTimestamp()
         };
         
+        console.log('Creating post with data:', postData);
         const ref = await addDoc(collection(db, 'posts'), postData);
+        console.log('Post created with ID:', ref.id);
         showToast('Draft post created! Opening editor...', 'success');
         return { success: true, id: ref.id };
     } catch (e) {
         console.error('Create post from project error:', e);
+        console.error('Error code:', e.code);
+        console.error('Error message:', e.message);
         showToast('Failed to create post', 'error');
         return { success: false };
     }
