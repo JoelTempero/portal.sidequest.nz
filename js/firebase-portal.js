@@ -337,7 +337,7 @@ function subscribeToPosts(cb) {
     return u;
 }
 
-async function createPost(data, featuredImageFile = null, galleryFiles = []) {
+async function createPost(data, featuredImageFile = null, galleryFiles = [], logoFile = null) {
     try {
         console.log('createPost called with:', data);
         // Create the post first
@@ -347,6 +347,8 @@ async function createPost(data, featuredImageFile = null, galleryFiles = []) {
             summary: data.summary || '',
             description: data.description || '',
             featuredImage: data.featuredImage || null,
+            logo: data.logo || null,
+            websiteUrl: data.websiteUrl || '',
             galleryImages: data.galleryImages || [],
             tags: data.tags || [],
             projectId: data.projectId || null,
@@ -368,6 +370,16 @@ async function createPost(data, featuredImageFile = null, galleryFiles = []) {
             if (url) {
                 await updateDoc(doc(db, 'posts', ref.id), { featuredImage: url });
                 console.log('Featured image uploaded:', url);
+            }
+        }
+        
+        // Upload logo if provided
+        if (logoFile) {
+            console.log('Uploading logo...');
+            const url = await uploadFile(logoFile, `posts/${ref.id}/logo_${Date.now()}_${logoFile.name}`);
+            if (url) {
+                await updateDoc(doc(db, 'posts', ref.id), { logo: url });
+                console.log('Logo uploaded:', url);
             }
         }
         
@@ -396,7 +408,7 @@ async function createPost(data, featuredImageFile = null, galleryFiles = []) {
     }
 }
 
-async function updatePost(id, updates, featuredImageFile = null, newGalleryFiles = []) {
+async function updatePost(id, updates, featuredImageFile = null, newGalleryFiles = [], logoFile = null) {
     try {
         const updateData = {
             ...updates,
@@ -412,6 +424,12 @@ async function updatePost(id, updates, featuredImageFile = null, newGalleryFiles
         if (featuredImageFile) {
             const url = await uploadFile(featuredImageFile, `posts/${id}/featured_${Date.now()}_${featuredImageFile.name}`);
             if (url) updateData.featuredImage = url;
+        }
+        
+        // Upload new logo if provided
+        if (logoFile) {
+            const url = await uploadFile(logoFile, `posts/${id}/logo_${Date.now()}_${logoFile.name}`);
+            if (url) updateData.logo = url;
         }
         
         // Upload new gallery images if provided

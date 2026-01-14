@@ -796,6 +796,9 @@ let postEditorState = {
     quill: null,
     featuredImageFile: null,
     featuredImageUrl: null,
+    logoFile: null,
+    logoUrl: null,
+    websiteUrl: '',
     galleryFiles: [],
     galleryUrls: [],
     published: false,
@@ -892,6 +895,9 @@ function resetPostEditor() {
         quill: postEditorState.quill,
         featuredImageFile: null,
         featuredImageUrl: null,
+        logoFile: null,
+        logoUrl: null,
+        websiteUrl: '',
         galleryFiles: [],
         galleryUrls: [],
         published: false,
@@ -906,6 +912,7 @@ function resetPostEditor() {
     const postSlug = document.getElementById('post-slug');
     const postSummary = document.getElementById('post-summary');
     const postTags = document.getElementById('post-tags');
+    const postWebsiteUrl = document.getElementById('post-website-url');
     
     if (postId) postId.value = '';
     if (postProjectId) postProjectId.value = '';
@@ -913,6 +920,7 @@ function resetPostEditor() {
     if (postSlug) postSlug.value = '';
     if (postSummary) postSummary.value = '';
     if (postTags) postTags.value = '';
+    if (postWebsiteUrl) postWebsiteUrl.value = '';
     
     // Reset quill
     if (postEditorState.quill) {
@@ -924,6 +932,13 @@ function resetPostEditor() {
     if (featuredArea) {
         featuredArea.innerHTML = `<div class="placeholder"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>Click to upload featured image</div>`;
         featuredArea.classList.remove('has-image');
+    }
+    
+    // Reset logo image
+    const logoArea = document.getElementById('logo-image-area');
+    if (logoArea) {
+        logoArea.innerHTML = `<div class="placeholder"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>Upload logo (optional)</div>`;
+        logoArea.classList.remove('has-image');
     }
     
     // Reset gallery
@@ -965,12 +980,29 @@ window.openEditPostModal = (postId) => {
     document.getElementById('post-summary').value = post.summary || '';
     document.getElementById('post-tags').value = (post.tags || []).join(', ');
     
+    // Set website URL
+    const websiteUrlInput = document.getElementById('post-website-url');
+    if (websiteUrlInput) {
+        websiteUrlInput.value = post.websiteUrl || '';
+        postEditorState.websiteUrl = post.websiteUrl || '';
+    }
+    
     // Set featured image
     if (post.featuredImage) {
         postEditorState.featuredImageUrl = post.featuredImage;
         const featuredArea = document.getElementById('featured-image-area');
         featuredArea.innerHTML = `<img src="${post.featuredImage}" alt="Featured">`;
         featuredArea.classList.add('has-image');
+    }
+    
+    // Set logo image
+    if (post.logo) {
+        postEditorState.logoUrl = post.logo;
+        const logoArea = document.getElementById('logo-image-area');
+        if (logoArea) {
+            logoArea.innerHTML = `<img src="${post.logo}" alt="Logo">`;
+            logoArea.classList.add('has-image');
+        }
     }
     
     // Set gallery images
@@ -1029,6 +1061,21 @@ window.handleFeaturedImageSelect = (event) => {
     reader.readAsDataURL(file);
 };
 
+window.handleLogoImageSelect = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    postEditorState.logoFile = file;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const logoArea = document.getElementById('logo-image-area');
+        logoArea.innerHTML = `<img src="${e.target.result}" alt="Logo">`;
+        logoArea.classList.add('has-image');
+    };
+    reader.readAsDataURL(file);
+};
+
 window.handleGalleryImagesSelect = (event) => {
     const files = Array.from(event.target.files);
     if (!files.length) return;
@@ -1079,6 +1126,7 @@ window.handleSavePost = async () => {
     const tagsRaw = document.getElementById('post-tags').value;
     const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
     const projectId = document.getElementById('post-project-id').value || null;
+    const websiteUrl = document.getElementById('post-website-url')?.value.trim() || '';
     
     if (!title) {
         showToast('Title is required', 'error');
@@ -1092,9 +1140,11 @@ window.handleSavePost = async () => {
         description,
         tags,
         projectId,
+        websiteUrl,
         published: postEditorState.published,
         featured: postEditorState.featured,
         featuredImage: postEditorState.featuredImageUrl,
+        logo: postEditorState.logoUrl,
         galleryImages: postEditorState.galleryUrls.filter(url => !url.startsWith('data:'))
     };
     
@@ -1107,14 +1157,16 @@ window.handleSavePost = async () => {
             postEditorState.editingId, 
             postData, 
             postEditorState.featuredImageFile,
-            postEditorState.galleryFiles
+            postEditorState.galleryFiles,
+            postEditorState.logoFile
         );
     } else {
         // Create new post
         result = await createPost(
             postData,
             postEditorState.featuredImageFile,
-            postEditorState.galleryFiles
+            postEditorState.galleryFiles,
+            postEditorState.logoFile
         );
     }
     
