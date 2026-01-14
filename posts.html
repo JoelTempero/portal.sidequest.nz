@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <title>Posts - Sidequest Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/portal.css">
+    <!-- Quill Rich Text Editor -->
+    <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+    <style>
+        .post-card {
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .post-card:hover {
+            border-color: var(--color-primary);
+            transform: translateY(-2px);
+        }
+        .post-card-image {
+            width: 100%;
+            height: 160px;
+            background: var(--color-bg-tertiary);
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-text-muted);
+            font-size: 14px;
+        }
+        .post-card-body {
+            padding: 16px;
+        }
+        .post-card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--color-text);
+        }
+        .post-card-summary {
+            font-size: 13px;
+            color: var(--color-text-muted);
+            line-height: 1.5;
+            margin-bottom: 12px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .post-card-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .post-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        .post-status.draft {
+            background: rgba(251, 191, 36, 0.1);
+            color: #fbbf24;
+        }
+        .post-status.published {
+            background: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+        }
+        .post-status.featured {
+            background: rgba(124, 58, 237, 0.1);
+            color: #7c3aed;
+        }
+        .post-tags {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        .post-tag {
+            padding: 2px 6px;
+            background: var(--color-bg-tertiary);
+            border-radius: 4px;
+            font-size: 11px;
+            color: var(--color-text-muted);
+        }
+        
+        /* Quill Editor Styles */
+        .ql-container {
+            min-height: 200px;
+            font-size: 14px;
+        }
+        .ql-editor {
+            min-height: 200px;
+        }
+        .ql-toolbar.ql-snow {
+            border-color: var(--color-border);
+            background: var(--color-bg-tertiary);
+            border-radius: 8px 8px 0 0;
+        }
+        .ql-container.ql-snow {
+            border-color: var(--color-border);
+            border-radius: 0 0 8px 8px;
+            background: var(--color-bg-primary);
+        }
+        .ql-editor.ql-blank::before {
+            color: var(--color-text-muted);
+            font-style: normal;
+        }
+        .ql-snow .ql-stroke {
+            stroke: var(--color-text-muted);
+        }
+        .ql-snow .ql-fill {
+            fill: var(--color-text-muted);
+        }
+        .ql-snow .ql-picker {
+            color: var(--color-text-muted);
+        }
+        
+        /* Image Upload Area */
+        .image-upload-area {
+            border: 2px dashed var(--color-border);
+            border-radius: 8px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--color-bg-tertiary);
+        }
+        .image-upload-area:hover {
+            border-color: var(--color-primary);
+            background: rgba(124, 58, 237, 0.05);
+        }
+        .image-upload-area.has-image {
+            padding: 0;
+            border-style: solid;
+        }
+        .image-upload-area img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+        .image-upload-area .placeholder {
+            color: var(--color-text-muted);
+            font-size: 14px;
+        }
+        .image-upload-area .placeholder svg {
+            display: block;
+            margin: 0 auto 8px;
+            opacity: 0.5;
+        }
+        
+        /* Gallery Grid */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .gallery-item {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 6px;
+            overflow: hidden;
+            background: var(--color-bg-tertiary);
+        }
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .gallery-item .remove-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 20px;
+            height: 20px;
+            background: rgba(239, 68, 68, 0.9);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .gallery-item:hover .remove-btn {
+            opacity: 1;
+        }
+        
+        /* Toggle Switch */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .toggle-row:last-child {
+            border-bottom: none;
+        }
+        .toggle-label {
+            font-size: 14px;
+            color: var(--color-text);
+        }
+        .toggle-desc {
+            font-size: 12px;
+            color: var(--color-text-muted);
+            margin-top: 2px;
+        }
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: var(--color-bg-tertiary);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .toggle-switch.active {
+            background: var(--color-primary);
+        }
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+        .toggle-switch.active::after {
+            transform: translateX(20px);
+        }
+        
+        /* Slug Input */
+        .slug-preview {
+            font-size: 12px;
+            color: var(--color-text-muted);
+            margin-top: 4px;
+        }
+        .slug-preview code {
+            background: var(--color-bg-tertiary);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-overlay" style="position:fixed;inset:0;background:rgba(18,19,26,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;"><div style="text-align:center;color:white;"><div style="width:40px;height:40px;border:3px solid #333;border-top-color:#7c3aed;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px;"></div><p>Loading...</p></div></div>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+    <div class="portal-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header"><a href="dashboard.html" class="sidebar-logo"><img src="assets/logo.png" alt="Sidequest" class="sidebar-logo-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span class="sidebar-logo-icon" style="display:none;">S</span>Sidequest</a></div>
+            <nav class="sidebar-nav">
+                <div class="nav-section"><div class="nav-section-title">Main</div>
+                    <a href="dashboard.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
+                </div>
+                <div class="nav-section admin-only"><div class="nav-section-title">Pipeline</div>
+                    <a href="leads.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Leads</a>
+                    <a href="projects.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Projects</a>
+                    <a href="clients.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Clients</a>
+                    <a href="archive.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/></svg>Archive</a>
+                </div>
+                <div class="nav-section admin-only"><div class="nav-section-title">Content</div>
+                    <a href="posts.html" class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>Posts</a>
+                </div>
+                <div class="nav-section admin-only"><div class="nav-section-title">Support</div>
+                    <a href="tickets.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Tickets</a>
+                </div>
+            </nav>
+            <div class="sidebar-footer"><div class="user-card" id="logout-btn" style="cursor:pointer;"><div class="user-avatar" id="user-avatar">J</div><div class="user-info"><div class="user-name" id="user-name">Joel</div><div class="user-role" id="user-role">Admin</div></div></div></div>
+        </aside>
+        
+        <main class="main-content">
+            <header class="header">
+                <div class="header-left"><h1 class="header-title">Posts</h1></div>
+                <div class="header-right">
+                    <button class="btn btn-primary" onclick="openNewPostModal()">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        New Post
+                    </button>
+                </div>
+            </header>
+            <div class="page-content">
+                <div class="page-header">
+                    <h1>Case Studies & Portfolio</h1>
+                    <p>Manage posts that appear on the marketing website.</p>
+                </div>
+                
+                <!-- Filter Tabs -->
+                <div class="filter-tabs" style="display:flex;gap:8px;margin-bottom:24px;">
+                    <button class="btn btn-secondary active" id="filter-all" onclick="filterPosts('all')">All</button>
+                    <button class="btn btn-ghost" id="filter-published" onclick="filterPosts('published')">Published</button>
+                    <button class="btn btn-ghost" id="filter-draft" onclick="filterPosts('draft')">Drafts</button>
+                    <button class="btn btn-ghost" id="filter-featured" onclick="filterPosts('featured')">Featured</button>
+                </div>
+                
+                <div class="item-grid" id="posts-grid">
+                    <!-- Posts will be rendered here -->
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Post Editor Modal -->
+    <div class="modal-overlay" id="post-editor-modal">
+        <div class="modal" style="max-width:900px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="post-modal-title">New Post</h3>
+                <button class="modal-close">×</button>
+            </div>
+            <div class="modal-body" style="overflow-y:auto;flex:1;">
+                <input type="hidden" id="post-id">
+                <input type="hidden" id="post-project-id">
+                
+                <div class="form-row">
+                    <div class="form-group" style="flex:2;">
+                        <label class="form-label required">Title</label>
+                        <input type="text" id="post-title" class="form-input" placeholder="Project title" required>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label class="form-label">Slug</label>
+                        <input type="text" id="post-slug" class="form-input" placeholder="auto-generated">
+                        <div class="slug-preview">URL: <code>sidequest.nz/work/<span id="slug-preview-text">...</span></code></div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label required">Summary</label>
+                    <textarea id="post-summary" class="form-input form-textarea" rows="2" placeholder="Brief description for card previews (1-2 sentences)"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Featured Image</label>
+                    <div class="image-upload-area" id="featured-image-area" onclick="document.getElementById('featured-image-input').click()">
+                        <div class="placeholder">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                            Click to upload featured image
+                        </div>
+                    </div>
+                    <input type="file" id="featured-image-input" accept="image/*" style="display:none;" onchange="handleFeaturedImageSelect(event)">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <div id="post-description-editor"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Tags</label>
+                    <input type="text" id="post-tags" class="form-input" placeholder="website, e-commerce, retail (comma separated)">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Gallery Images</label>
+                    <div class="image-upload-area" onclick="document.getElementById('gallery-image-input').click()" style="padding:16px;">
+                        <div class="placeholder">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Add gallery images
+                        </div>
+                    </div>
+                    <input type="file" id="gallery-image-input" accept="image/*" multiple style="display:none;" onchange="handleGalleryImagesSelect(event)">
+                    <div class="gallery-grid" id="gallery-preview"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Settings</label>
+                    <div style="background:var(--color-bg-tertiary);border-radius:8px;padding:4px 16px;">
+                        <div class="toggle-row">
+                            <div>
+                                <div class="toggle-label">Published</div>
+                                <div class="toggle-desc">Make this post visible on the website</div>
+                            </div>
+                            <div class="toggle-switch" id="toggle-published" onclick="toggleSwitch('published')"></div>
+                        </div>
+                        <div class="toggle-row">
+                            <div>
+                                <div class="toggle-label">Featured</div>
+                                <div class="toggle-desc">Highlight on homepage</div>
+                            </div>
+                            <div class="toggle-switch" id="toggle-featured" onclick="toggleSwitch('featured')"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" style="color:var(--color-error);margin-right:auto;" id="delete-post-btn" onclick="handleDeletePost()" style="display:none;">Delete</button>
+                <button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button>
+                <button class="btn btn-primary" onclick="handleSavePost()">Save Post</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Confirm Modal -->
+    <div class="modal-overlay" id="confirm-modal">
+        <div class="modal" style="max-width:400px;">
+            <div class="modal-header"><h3 class="modal-title">Confirm</h3><button class="modal-close">×</button></div>
+            <div class="modal-body"><p class="confirm-message">Are you sure?</p></div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('confirm-modal')">Cancel</button><button class="btn btn-primary" onclick="handleConfirm()">Confirm</button></div>
+        </div>
+    </div>
+
+    <!-- Quill JS -->
+    <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
