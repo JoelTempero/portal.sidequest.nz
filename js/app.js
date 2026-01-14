@@ -1224,14 +1224,14 @@ onAuthStateChanged(auth, async (user) => {
             AppState.userProfile = profile;
         }
         
-        if (page === 'login.html' || page === 'index.html') { window.location.href = 'dashboard.html'; return; }
+        if (page === 'index.html') { window.location.href = 'dashboard.html'; return; }
         
         await loadPageData(page);
         renderPage(page);
         updateUserInfo();
         showLoading(false);
     } else {
-        if (page !== 'login.html' && page !== 'index.html') window.location.href = 'login.html';
+        if (page !== 'index.html') window.location.href = 'index.html';
         showLoading(false);
     }
 });

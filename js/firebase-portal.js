@@ -58,7 +58,7 @@ async function login(email, password) {
     catch (e) { return { success: false, error: e.code === 'auth/invalid-credential' ? 'Invalid email or password.' : 'Login failed.' }; }
     finally { showLoading(false); }
 }
-async function logout() { AppState.unsubscribers.forEach(u => u()); AppState.unsubscribers = []; await signOut(auth); window.location.href = 'login.html'; }
+async function logout() { AppState.unsubscribers.forEach(u => u()); AppState.unsubscribers = []; await signOut(auth); window.location.href = 'index.html'; }
 
 async function createClientWithAuth(email, password, displayName, company) {
     try {
