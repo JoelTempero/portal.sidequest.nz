@@ -302,3 +302,66 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .ticket-priority.professional { background: linear-gradient(135deg, #c0c0c0, #a8a8a8); }
 .ticket-priority.starter { background: linear-gradient(135deg, #cd7f32, #b87333); }
 .ticket-priority.basic { background: var(--color-text-muted); }
+
+/* ============================================
+   LIGHT THEME SUPPORT
+   ============================================ */
+
+[data-theme="light"] {
+    --color-bg-primary: #f8fafc;
+    --color-bg-secondary: #ffffff;
+    --color-bg-tertiary: #f1f5f9;
+    --color-bg-hover: #e2e8f0;
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #475569;
+    --color-text-muted: #94a3b8;
+    --color-border: #e2e8f0;
+    --color-border-subtle: #f1f5f9;
+}
+
+[data-theme="light"] .sidebar {
+    background: #ffffff;
+    border-right-color: #e2e8f0;
+}
+
+[data-theme="light"] .login-page {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border-subtle);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.theme-toggle:hover {
+    background: var(--color-bg-hover);
+    border-color: var(--color-primary);
+}
+
+.theme-toggle svg {
+    width: 20px;
+    height: 20px;
+    color: var(--color-text-secondary);
+}
+
+.theme-toggle .icon-sun { display: none; }
+.theme-toggle .icon-moon { display: block; }
+
+[data-theme="light"] .theme-toggle .icon-sun { display: block; }
+[data-theme="light"] .theme-toggle .icon-moon { display: none; }
+
+/* Header Right Section */
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
