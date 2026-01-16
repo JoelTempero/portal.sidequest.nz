@@ -724,8 +724,10 @@ export function calculateSLAStatus(ticket) {
     // Try to get due date from slaDueDate or calculate from createdAt + urgency
     let dueDate = ticket.slaDueDate ? new Date(ticket.slaDueDate) : null;
 
-    if (!dueDate && ticket.createdAt) {
-        const createdAt = ticket.createdAt?.toDate ? ticket.createdAt.toDate() : new Date(ticket.createdAt);
+    // Use submittedAt or createdAt for backwards compatibility
+    if (!dueDate && (ticket.submittedAt || ticket.createdAt)) {
+        const timestamp = ticket.submittedAt || ticket.createdAt;
+        const createdAt = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
         const urgency = ticket.urgency || ticket.priority || 'week';
         const slaHours = SLA_HOURS[urgency] || 168; // Default to 1 week
         dueDate = new Date(createdAt.getTime() + slaHours * 60 * 60 * 1000);
@@ -1000,9 +1002,10 @@ export function getCannedResponses() {
  */
 export function subscribeToAllTickets(callback = null) {
     // Always get all tickets for admin view
+    // Use submittedAt for backwards compatibility with existing tickets
     const q = query(
         collection(db, COLLECTIONS.TICKETS),
-        orderBy('createdAt', 'desc')
+        orderBy('submittedAt', 'desc')
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {

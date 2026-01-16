@@ -405,7 +405,7 @@
                                 '<span style="color:var(--color-text-muted);">Unassigned</span>'
                             }
                         </td>
-                        <td style="white-space:nowrap;color:var(--color-text-muted);">${timeAgo(ticket.updatedAt || ticket.createdAt)}</td>
+                        <td style="white-space:nowrap;color:var(--color-text-muted);">${timeAgo(ticket.updatedAt || ticket.submittedAt || ticket.createdAt)}</td>
                     </tr>
                 `;
             }).join('');
