@@ -712,45 +712,61 @@ function calculateSLADueDate(urgency) {
 /**
  * Calculate SLA status for a ticket
  * @param {Object} ticket - Ticket object
- * @returns {Object} SLA status info
+ * @returns {Object} SLA status info with text for display
  */
 export function calculateSLAStatus(ticket) {
-    if (!ticket || ticket.status === TICKET_STATUSES.RESOLVED) {
-        return { status: 'resolved', breached: false };
+    if (!ticket || ticket.status === TICKET_STATUSES.RESOLVED || ticket.status === 'closed') {
+        return { status: 'resolved', breached: false, text: 'Resolved' };
     }
 
     const now = new Date();
-    const dueDate = ticket.slaDueDate ? new Date(ticket.slaDueDate) : null;
+
+    // Try to get due date from slaDueDate or calculate from createdAt + urgency
+    let dueDate = ticket.slaDueDate ? new Date(ticket.slaDueDate) : null;
+
+    if (!dueDate && ticket.createdAt) {
+        const createdAt = ticket.createdAt?.toDate ? ticket.createdAt.toDate() : new Date(ticket.createdAt);
+        const urgency = ticket.urgency || ticket.priority || 'week';
+        const slaHours = SLA_HOURS[urgency] || 168; // Default to 1 week
+        dueDate = new Date(createdAt.getTime() + slaHours * 60 * 60 * 1000);
+    }
 
     if (!dueDate) {
-        return { status: 'unknown', breached: false };
+        return { status: 'on-track', breached: false, text: 'No SLA' };
     }
 
     const hoursRemaining = (dueDate - now) / (1000 * 60 * 60);
 
     if (hoursRemaining < 0) {
+        const hoursOverdue = Math.abs(Math.round(hoursRemaining));
         return {
             status: 'breached',
             breached: true,
-            hoursOverdue: Math.abs(Math.round(hoursRemaining))
+            hoursOverdue,
+            text: `${hoursOverdue}h overdue`
         };
     } else if (hoursRemaining < 2) {
         return {
-            status: 'critical',
+            status: 'at-risk',
             breached: false,
-            hoursRemaining: Math.round(hoursRemaining)
+            hoursRemaining: Math.round(hoursRemaining),
+            text: `${Math.round(hoursRemaining)}h left`
         };
     } else if (hoursRemaining < 8) {
         return {
-            status: 'warning',
+            status: 'at-risk',
             breached: false,
-            hoursRemaining: Math.round(hoursRemaining)
+            hoursRemaining: Math.round(hoursRemaining),
+            text: `${Math.round(hoursRemaining)}h left`
         };
     } else {
+        const hours = Math.round(hoursRemaining);
+        const days = Math.floor(hours / 24);
         return {
-            status: 'ok',
+            status: 'on-track',
             breached: false,
-            hoursRemaining: Math.round(hoursRemaining)
+            hoursRemaining: hours,
+            text: days > 0 ? `${days}d ${hours % 24}h left` : `${hours}h left`
         };
     }
 }
@@ -971,3 +987,42 @@ export const CANNED_RESPONSES = {
 export function getCannedResponses() {
     return Object.values(CANNED_RESPONSES);
 }
+
+// ============================================
+// ALIAS EXPORTS & ADMIN FUNCTIONS
+// ============================================
+
+/**
+ * Subscribe to all tickets (admin only)
+ * Alias for subscribeToTickets when admin
+ * @param {Function} callback - Callback when tickets update
+ * @returns {Function} Unsubscribe function
+ */
+export function subscribeToAllTickets(callback = null) {
+    // Always get all tickets for admin view
+    const q = query(
+        collection(db, COLLECTIONS.TICKETS),
+        orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const tickets = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            slaStatus: calculateSLAStatus({ id: doc.id, ...doc.data() })
+        }));
+
+        setTickets(tickets);
+        if (callback) callback(tickets);
+    }, (error) => {
+        logger.error('Tickets subscription error', error);
+    });
+
+    addUnsubscriber(unsubscribe);
+    return unsubscribe;
+}
+
+/**
+ * Bulk assign tickets - alias for bulkAssign
+ */
+export const bulkAssignTickets = bulkAssign;
