@@ -194,6 +194,7 @@
     grid-template-columns: 1fr 320px;
     gap: 24px;
     align-items: start;
+    margin-top: 20px;
 }
 
 @media (max-width: 1024px) {
@@ -202,7 +203,89 @@
     }
 }
 
-/* Ticket Header */
+.ticket-main-column {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.ticket-sidebar-column {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Ticket Detail Header */
+.ticket-detail-header {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+}
+
+.ticket-header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.ticket-header-badges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.ticket-title-large {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin: 0 0 12px 0;
+    line-height: 1.4;
+}
+
+.ticket-header-meta {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.ticket-header-meta span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ticket-header-meta svg {
+    opacity: 0.7;
+}
+
+.category-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    border-radius: var(--radius-full);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.sla-badge.breached {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Ticket Header (old style - keeping for compatibility) */
 .ticket-header {
     display: flex;
     flex-direction: column;
@@ -256,21 +339,364 @@
 
 /* Ticket Description */
 .ticket-description {
-    padding: 20px 0;
+    padding: 16px;
 }
 
-.ticket-description h3 {
+.description-content {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--color-text-secondary);
+}
+
+/* Ticket Attachments */
+.ticket-attachments {
+    padding: 16px;
+}
+
+.attachment-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-md);
+    margin-bottom: 8px;
+}
+
+.attachment-item:last-child {
+    margin-bottom: 0;
+}
+
+.attachment-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-md);
+}
+
+.attachment-icon svg {
+    width: 20px;
+    height: 20px;
+    color: var(--color-primary);
+}
+
+.attachment-info {
+    flex: 1;
+}
+
+.attachment-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.attachment-name:hover {
+    text-decoration: underline;
+}
+
+.attachment-meta {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.attachment-download {
+    padding: 8px;
+    color: var(--color-text-muted);
+    transition: color 0.15s;
+}
+
+.attachment-download:hover {
+    color: var(--color-primary);
+}
+
+/* Ticket Comments */
+.ticket-comments {
+    padding: 16px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.comment {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-md);
+    margin-bottom: 12px;
+}
+
+.comment:last-child {
+    margin-bottom: 0;
+}
+
+.comment.internal {
+    background: rgba(245, 158, 11, 0.1);
+    border-left: 3px solid #f59e0b;
+}
+
+.comment-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.comment-avatar.admin {
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+}
+
+.comment-avatar.client {
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+}
+
+.comment-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.comment-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+}
+
+.comment-author {
     font-size: 14px;
     font-weight: 600;
     color: var(--color-text-primary);
-    margin: 0 0 12px 0;
 }
 
-.ticket-description-content {
+.comment-badge {
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.comment-badge.admin {
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+}
+
+.comment-badge.internal {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+}
+
+.comment-time {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    margin-left: auto;
+}
+
+.comment-text {
     font-size: 14px;
     line-height: 1.6;
     color: var(--color-text-secondary);
-    white-space: pre-wrap;
+}
+
+/* Reply Box */
+.ticket-reply-box {
+    padding: 16px;
+    border-top: 1px solid var(--color-border-subtle);
+    background: var(--color-bg-tertiary);
+}
+
+.reply-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.reply-tab {
+    padding: 6px 12px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    transition: all 0.15s ease;
+}
+
+.reply-tab:hover {
+    color: var(--color-text-primary);
+}
+
+.reply-tab.active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: white;
+}
+
+.reply-canned {
+    margin-bottom: 12px;
+}
+
+.reply-canned select {
+    width: 100%;
+}
+
+.reply-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    gap: 16px;
+}
+
+.reply-options {
+    display: flex;
+    align-items: center;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+}
+
+/* Ticket Details List */
+.ticket-details-list {
+    padding: 4px 0;
+}
+
+.ticket-detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.ticket-detail-item:last-child {
+    border-bottom: none;
+}
+
+.ticket-detail-item label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ticket-detail-item span,
+.ticket-detail-item a {
+    font-size: 14px;
+    color: var(--color-text-primary);
+}
+
+.detail-link {
+    color: var(--color-primary);
+}
+
+.detail-link:hover {
+    text-decoration: underline;
+}
+
+/* Ticket Status Section */
+.ticket-status-section {
+    padding: 12px;
+    text-align: center;
+}
+
+.ticket-status-large .status-badge {
+    font-size: 14px;
+    padding: 8px 16px;
+}
+
+.ticket-status-section select {
+    margin-top: 12px;
+    width: 100%;
+}
+
+/* SLA Section */
+.ticket-sla-section {
+    padding: 12px;
+}
+
+.sla-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-md);
+}
+
+.sla-status .sla-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.sla-status.ok .sla-indicator { background: #22c55e; }
+.sla-status.warning .sla-indicator { background: #f59e0b; }
+.sla-status.critical .sla-indicator { background: #f97316; }
+.sla-status.breached .sla-indicator { background: #ef4444; animation: pulse 1.5s infinite; }
+
+.sla-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.sla-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.sla-time {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.sla-due {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.sla-resolved {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px;
+    color: #22c55e;
+    font-weight: 600;
+}
+
+/* Small empty state */
+.empty-state.small {
+    padding: 24px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.empty-state.small svg {
+    width: 32px;
+    height: 32px;
+    margin-bottom: 8px;
 }
 
 /* ============================================

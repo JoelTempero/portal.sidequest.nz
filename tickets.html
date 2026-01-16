@@ -169,11 +169,9 @@
                                 <tr>
                                     <th style="width:40px;"><input type="checkbox" id="select-all" onclick="toggleSelectAll()"></th>
                                     <th>Ticket</th>
-                                    <th>Client</th>
+                                    <th>Project / Tier</th>
                                     <th>Status</th>
-                                    <th>Priority</th>
                                     <th>SLA</th>
-                                    <th>Assigned</th>
                                     <th>Updated</th>
                                 </tr>
                             </thead>
@@ -343,7 +341,20 @@
                 );
             }
 
+            // Sort by tier (premium first)
+            const tierOrder = { 'premium': 0, 'enterprise': 0, 'professional': 1, 'starter': 2, 'host': 3, 'basic': 3 };
+            filtered.sort((a, b) => {
+                const tierA = tierOrder[a.tier] ?? 4;
+                const tierB = tierOrder[b.tier] ?? 4;
+                return tierA - tierB;
+            });
+
             return filtered;
+        }
+
+        function getTierName(tier) {
+            const names = { 'premium': 'Premium', 'enterprise': 'Enterprise', 'professional': 'Professional', 'starter': 'Starter', 'host': 'Host', 'basic': 'Basic' };
+            return names[tier] || tier || 'Host';
         }
 
         function renderTickets(tickets) {
@@ -359,10 +370,9 @@
             emptyState.style.display = 'none';
 
             tbody.innerHTML = tickets.map(ticket => {
-                const statusClass = ticket.status.replace('-', '');
-                const priorityClass = ticket.priority || 'medium';
+                const statusClass = (ticket.status || 'open').replace('-', '');
                 const sla = calculateSLAStatus(ticket);
-                const assignee = teamMembers.find(m => m.id === ticket.assignedTo);
+                const tier = ticket.tier || 'host';
 
                 return `
                     <tr onclick="viewTicket('${ticket.id}')" class="${selectedTickets.has(ticket.id) ? 'selected' : ''}">
@@ -374,36 +384,23 @@
                         <td>
                             <div class="ticket-title-cell">
                                 <span class="ticket-title-link">${escapeHtml(ticket.title)}</span>
-                                <div style="font-size:12px;color:var(--color-text-muted);margin-top:2px;">
-                                    ${escapeHtml(ticket.projectName || 'No Project')} &bull; ${TICKET_CATEGORY_LABELS[ticket.category] || ticket.category || 'Support'}
+                                <div style="font-size:12px;color:var(--color-text-muted);margin-top:4px;">
+                                    ${escapeHtml(ticket.submittedBy || 'Unknown')} &bull; ${TICKET_CATEGORY_LABELS[ticket.category] || ticket.category || 'Support'}
                                 </div>
                             </div>
                         </td>
                         <td>
-                            <div class="ticket-client-cell">
-                                <div class="client-avatar-small">${(ticket.clientName || 'U')[0].toUpperCase()}</div>
-                                <div>
-                                    <div style="font-weight:500;">${escapeHtml(ticket.clientName || 'Unknown')}</div>
-                                    <div style="font-size:12px;color:var(--color-text-muted);">${escapeHtml(ticket.clientEmail || '')}</div>
-                                </div>
+                            <div style="display:flex;flex-direction:column;gap:4px;">
+                                <span style="font-weight:500;">${escapeHtml(ticket.projectName || 'No Project')}</span>
+                                <span class="tier-badge ${tier}">${getTierName(tier)}</span>
                             </div>
                         </td>
-                        <td><span class="status-badge ${statusClass}">${TICKET_STATUS_LABELS[ticket.status] || ticket.status}</span></td>
-                        <td><span class="priority-badge small ${priorityClass}">${TICKET_PRIORITY_LABELS[ticket.priority] || 'Medium'}</span></td>
+                        <td><span class="status-badge ${statusClass}">${TICKET_STATUS_LABELS[ticket.status] || ticket.status || 'Open'}</span></td>
                         <td>
                             <div class="sla-display">
                                 <div class="sla-indicator ${sla.status}"></div>
                                 <span class="sla-text ${sla.status}">${sla.text}</span>
                             </div>
-                        </td>
-                        <td>
-                            ${assignee ?
-                                `<div class="assignee-display">
-                                    <div class="assignee-avatar">${(assignee.displayName || 'U')[0].toUpperCase()}</div>
-                                    <span class="assignee-name">${escapeHtml(assignee.displayName || assignee.email)}</span>
-                                </div>` :
-                                '<span style="color:var(--color-text-muted);">Unassigned</span>'
-                            }
                         </td>
                         <td style="white-space:nowrap;color:var(--color-text-muted);">${timeAgo(ticket.updatedAt || ticket.submittedAt || ticket.createdAt)}</td>
                     </tr>
