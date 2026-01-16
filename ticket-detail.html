@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket Details - Sidequest Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/portal.css">
+    <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/tickets.css">
+</head>
+<body>
+    <div class="portal-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="dashboard.html" class="sidebar-logo">
+                    <img src="assets/logo.png" alt="Sidequest" class="sidebar-logo-img">
+                    <span>Sidequest</span>
+                </a>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Menu</div>
+                    <a href="dashboard.html" class="nav-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        Dashboard
+                    </a>
+                    <a href="leads.html" class="nav-item admin-only">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        Leads
+                    </a>
+                    <a href="projects.html" class="nav-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                        <span class="admin-only">Projects</span>
+                        <span class="client-only">My Projects</span>
+                    </a>
+                    <a href="my-tickets.html" class="nav-item client-only">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        My Tickets
+                    </a>
+                    <a href="tickets.html" class="nav-item admin-only">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        All Tickets
+                    </a>
+                    <a href="clients.html" class="nav-item admin-only">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        Clients
+                    </a>
+                    <a href="posts.html" class="nav-item admin-only">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                        Posts
+                    </a>
+                    <a href="archive.html" class="nav-item admin-only">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+                        Archive
+                    </a>
+                </div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-card" onclick="openModal('settings-modal')">
+                    <div class="user-avatar" id="user-avatar">?</div>
+                    <div class="user-info">
+                        <div class="user-name" id="user-name">Loading...</div>
+                        <div class="user-role" id="user-role">...</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="header">
+                <div class="header-left">
+                    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    </button>
+                    <nav class="breadcrumbs">
+                        <a href="dashboard.html">Dashboard</a>
+                        <span>/</span>
+                        <a href="tickets.html" class="admin-only">Tickets</a>
+                        <a href="my-tickets.html" class="client-only">My Tickets</a>
+                        <span>/</span>
+                        <span id="ticket-breadcrumb">Loading...</span>
+                    </nav>
+                </div>
+                <div class="header-right">
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                    </button>
+                </div>
+            </header>
+
+            <div class="page-content">
+                <!-- Ticket Header -->
+                <div id="ticket-header" class="ticket-detail-header">
+                    <!-- Dynamically populated -->
+                </div>
+
+                <!-- Ticket Content Grid -->
+                <div class="ticket-detail-grid">
+                    <!-- Main Column -->
+                    <div class="ticket-main">
+                        <!-- Description Card -->
+                        <div class="card" id="ticket-description-card">
+                            <div class="card-header">
+                                <h3 class="card-title">Description</h3>
+                            </div>
+                            <div id="ticket-description" class="ticket-description">
+                                <!-- Dynamically populated -->
+                            </div>
+                        </div>
+
+                        <!-- Attachments Card -->
+                        <div class="card" id="ticket-attachments-card">
+                            <div class="card-header">
+                                <h3 class="card-title">Attachments</h3>
+                                <button class="btn btn-sm btn-secondary" onclick="openAttachmentUpload()">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                    Add
+                                </button>
+                            </div>
+                            <div id="ticket-attachments" class="ticket-attachments">
+                                <!-- Dynamically populated -->
+                            </div>
+                        </div>
+
+                        <!-- Comments / Conversation Card -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Conversation</h3>
+                            </div>
+                            <div id="ticket-comments" class="ticket-comments">
+                                <!-- Dynamically populated -->
+                            </div>
+
+                            <!-- Reply Box -->
+                            <div class="ticket-reply-box">
+                                <div class="reply-tabs admin-only">
+                                    <button class="reply-tab active" data-tab="public" onclick="switchReplyTab('public')">Public Reply</button>
+                                    <button class="reply-tab" data-tab="internal" onclick="switchReplyTab('internal')">Internal Note</button>
+                                </div>
+                                <div class="reply-canned admin-only">
+                                    <select id="canned-response-select" onchange="insertCannedResponse(this.value)">
+                                        <option value="">Insert canned response...</option>
+                                    </select>
+                                </div>
+                                <textarea id="reply-text" class="form-input form-textarea" placeholder="Type your reply..." rows="4"></textarea>
+                                <div class="reply-actions">
+                                    <div class="reply-options admin-only">
+                                        <label class="checkbox-item">
+                                            <input type="checkbox" id="reply-resolve" onchange="toggleResolveOnReply()">
+                                            <span>Mark as resolved</span>
+                                        </label>
+                                    </div>
+                                    <button class="btn btn-primary" onclick="submitReply()">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                                        Send Reply
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar Column -->
+                    <div class="ticket-sidebar">
+                        <!-- Status Card -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Status</h3>
+                            </div>
+                            <div class="ticket-status-section">
+                                <div id="ticket-status-badge" class="ticket-status-large"></div>
+                                <div class="admin-only">
+                                    <select id="status-select" class="form-input form-select" onchange="changeTicketStatus(this.value)">
+                                        <option value="open">Open</option>
+                                        <option value="in-progress">In Progress</option>
+                                        <option value="resolved">Resolved</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SLA Card -->
+                        <div class="card" id="sla-card">
+                            <div class="card-header">
+                                <h3 class="card-title">SLA Status</h3>
+                            </div>
+                            <div id="ticket-sla" class="ticket-sla-section">
+                                <!-- Dynamically populated -->
+                            </div>
+                        </div>
+
+                        <!-- Details Card -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Details</h3>
+                            </div>
+                            <div class="ticket-details-list">
+                                <div class="ticket-detail-item">
+                                    <label>Ticket ID</label>
+                                    <span id="detail-ticket-id">-</span>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <label>Project</label>
+                                    <a href="#" id="detail-project" class="detail-link">-</a>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <label>Category</label>
+                                    <span id="detail-category">-</span>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <label>Priority</label>
+                                    <span id="detail-priority">-</span>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <label>Urgency</label>
+                                    <span id="detail-urgency">-</span>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <label>Submitted By</label>
+                                    <span id="detail-submitter">-</span>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <label>Submitted</label>
+                                    <span id="detail-submitted">-</span>
+                                </div>
+                                <div class="ticket-detail-item admin-only">
+                                    <label>Assigned To</label>
+                                    <div id="detail-assignee">
+                                        <select id="assignee-select" class="form-input form-select" onchange="changeTicketAssignee(this.value)">
+                                            <option value="">Unassigned</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Activity Timeline Card -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Activity</h3>
+                            </div>
+                            <div id="ticket-timeline" class="ticket-timeline">
+                                <!-- Dynamically populated -->
+                            </div>
+                        </div>
+
+                        <!-- Internal Notes Card (Admin Only) -->
+                        <div class="card admin-only">
+                            <div class="card-header">
+                                <h3 class="card-title">Internal Notes</h3>
+                            </div>
+                            <textarea id="internal-notes" class="form-input form-textarea" placeholder="Private notes (not visible to client)..." rows="3" onblur="saveInternalNotes()"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" onclick="toggleMobileMenu()"></div>
+
+    <!-- Attachment Upload Modal -->
+    <div class="modal-overlay" id="attachment-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Upload Attachment</h3>
+                <button class="modal-close" onclick="closeModal('attachment-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Select File</label>
+                    <input type="file" id="attachment-file" class="form-input" accept="image/*,.pdf,.doc,.docx,.txt,.zip">
+                    <p class="form-help">Max file size: 10MB. Supported: Images, PDF, Word, Text, ZIP</p>
+                </div>
+                <div id="attachment-preview" class="attachment-preview"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeModal('attachment-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="uploadAttachment()">Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal (reused) -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Settings</h3>
+                <button class="modal-close" onclick="closeModal('settings-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Display Name</label>
+                    <input type="text" id="settings-name" class="form-input" placeholder="Your name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Company</label>
+                    <input type="text" id="settings-company" class="form-input" placeholder="Company name">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeModal('settings-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+                <button class="btn btn-secondary" onclick="handleLogout()">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/ticket-detail.js"></script>
+</body>
+</html>

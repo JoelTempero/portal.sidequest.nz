@@ -294,23 +294,24 @@ exports.onTicketCreated = onDocumentCreated("tickets/{ticketId}", async (event) 
 
   console.log(`New ticket created: ${ticketId}`, ticket.title);
 
-  // Create notification for admins
-  const adminsSnapshot = await db.collection('users')
+  // Create notification for admins/support staff
+  const staffSnapshot = await db.collection('users')
     .where('role', 'in', ['admin', 'manager', 'support'])
     .get();
 
   const batch = db.batch();
 
-  adminsSnapshot.docs.forEach(doc => {
+  staffSnapshot.docs.forEach(doc => {
     const notificationRef = db.collection('notifications').doc();
     batch.set(notificationRef, {
       userId: doc.id,
       type: 'new_ticket',
       title: 'New Support Ticket',
-      body: `${ticket.submittedBy} submitted: ${ticket.title}`,
+      body: `${ticket.clientName || ticket.submittedBy || 'A client'} submitted: ${ticket.title}`,
       data: {
         ticketId: ticketId,
-        projectId: ticket.projectId
+        projectId: ticket.projectId,
+        priority: ticket.priority
       },
       read: false,
       createdAt: FieldValue.serverTimestamp()
@@ -318,10 +319,23 @@ exports.onTicketCreated = onDocumentCreated("tickets/{ticketId}", async (event) 
   });
 
   await batch.commit();
+
+  // Log activity
+  await db.collection('activity').add({
+    type: 'ticket_created',
+    data: {
+      ticketId: ticketId,
+      title: ticket.title,
+      clientName: ticket.clientName,
+      projectName: ticket.projectName,
+      priority: ticket.priority
+    },
+    timestamp: FieldValue.serverTimestamp()
+  });
 });
 
 // ============================================
-// FIRESTORE TRIGGERS - Ticket Resolved Notification
+// FIRESTORE TRIGGERS - Ticket Updated
 // ============================================
 
 exports.onTicketUpdated = onDocumentUpdated("tickets/{ticketId}", async (event) => {
@@ -330,30 +344,158 @@ exports.onTicketUpdated = onDocumentUpdated("tickets/{ticketId}", async (event) 
 
   if (!before || !after) return;
 
-  // Check if status changed to resolved
-  if (before.status !== 'resolved' && after.status === 'resolved') {
-    console.log(`Ticket resolved: ${event.params.ticketId}`);
+  const ticketId = event.params.ticketId;
 
-    // Find the submitter
-    const usersSnapshot = await db.collection('users')
-      .where('displayName', '==', after.submittedBy)
-      .limit(1)
-      .get();
+  // Check for status change
+  if (before.status !== after.status) {
+    console.log(`Ticket ${ticketId} status changed: ${before.status} -> ${after.status}`);
 
-    if (!usersSnapshot.empty) {
-      const userId = usersSnapshot.docs[0].id;
-
+    // Notify the client about status change
+    if (after.clientId) {
       await db.collection('notifications').add({
-        userId: userId,
-        type: 'ticket_resolved',
-        title: 'Ticket Resolved',
-        body: `Your ticket "${after.title}" has been resolved`,
+        userId: after.clientId,
+        type: 'ticket_status_changed',
+        title: `Ticket ${after.status === 'resolved' ? 'Resolved' : 'Updated'}`,
+        body: `Your ticket "${after.title}" is now ${after.status.replace('-', ' ')}`,
         data: {
-          ticketId: event.params.ticketId
+          ticketId: ticketId,
+          oldStatus: before.status,
+          newStatus: after.status
         },
         read: false,
         createdAt: FieldValue.serverTimestamp()
       });
     }
+
+    // Log activity
+    await db.collection('activity').add({
+      type: 'ticket_status_changed',
+      data: {
+        ticketId: ticketId,
+        title: after.title,
+        oldStatus: before.status,
+        newStatus: after.status,
+        changedBy: after.lastUpdatedBy
+      },
+      timestamp: FieldValue.serverTimestamp()
+    });
   }
+
+  // Check for assignment change
+  if (before.assignedTo !== after.assignedTo && after.assignedTo) {
+    console.log(`Ticket ${ticketId} assigned to: ${after.assignedTo}`);
+
+    // Notify the assigned person
+    await db.collection('notifications').add({
+      userId: after.assignedTo,
+      type: 'ticket_assigned',
+      title: 'Ticket Assigned to You',
+      body: `You have been assigned to: "${after.title}"`,
+      data: {
+        ticketId: ticketId,
+        priority: after.priority,
+        clientName: after.clientName
+      },
+      read: false,
+      createdAt: FieldValue.serverTimestamp()
+    });
+  }
+
+  // Check for new comments (compare comment count)
+  const beforeCommentCount = (before.comments || []).length;
+  const afterCommentCount = (after.comments || []).length;
+
+  if (afterCommentCount > beforeCommentCount) {
+    const newComment = after.comments[afterCommentCount - 1];
+
+    // If comment is from staff, notify client
+    if (newComment && !newComment.isInternal && newComment.authorRole !== 'client') {
+      if (after.clientId) {
+        await db.collection('notifications').add({
+          userId: after.clientId,
+          type: 'ticket_reply',
+          title: 'New Reply on Your Ticket',
+          body: `${newComment.authorName || 'Support'} replied to "${after.title}"`,
+          data: {
+            ticketId: ticketId,
+            commentId: newComment.id
+          },
+          read: false,
+          createdAt: FieldValue.serverTimestamp()
+        });
+      }
+    }
+
+    // If comment is from client, notify assigned staff or all staff
+    if (newComment && newComment.authorRole === 'client') {
+      const notifyUserId = after.assignedTo;
+      if (notifyUserId) {
+        await db.collection('notifications').add({
+          userId: notifyUserId,
+          type: 'ticket_client_reply',
+          title: 'Client Replied to Ticket',
+          body: `${after.clientName || 'Client'} replied to "${after.title}"`,
+          data: {
+            ticketId: ticketId,
+            commentId: newComment.id
+          },
+          read: false,
+          createdAt: FieldValue.serverTimestamp()
+        });
+      }
+    }
+  }
+});
+
+// ============================================
+// CALLABLE - Get SLA Breached Tickets
+// ============================================
+
+exports.getSLABreachedTickets = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Authentication required");
+  }
+
+  const authorized = await isAdminOrManager(request.auth.uid);
+  if (!authorized) {
+    throw new HttpsError("permission-denied", "Only admins and managers can view SLA data");
+  }
+
+  // SLA hours by priority
+  const SLA_HOURS = {
+    'asap': 4,
+    'day': 24,
+    'week': 168,
+    'medium': 48,
+    'high': 24,
+    'low': 72
+  };
+
+  const openStatuses = ['open', 'in-progress'];
+  const ticketsSnapshot = await db.collection('tickets')
+    .where('status', 'in', openStatuses)
+    .get();
+
+  const now = new Date();
+  const breachedTickets = [];
+
+  ticketsSnapshot.docs.forEach(doc => {
+    const ticket = doc.data();
+    const priority = ticket.priority || ticket.urgency || 'medium';
+    const slaHours = SLA_HOURS[priority] || 48;
+
+    const createdAt = ticket.createdAt?.toDate() || new Date();
+    const deadline = new Date(createdAt.getTime() + slaHours * 60 * 60 * 1000);
+
+    if (now > deadline) {
+      breachedTickets.push({
+        id: doc.id,
+        ...ticket,
+        slaDeadline: deadline.toISOString(),
+        hoursOverdue: Math.round((now - deadline) / (1000 * 60 * 60))
+      });
+    }
+  });
+
+  return { tickets: breachedTickets, count: breachedTickets.length };
 });

@@ -140,24 +140,29 @@ service cloud.firestore {
 
     match /tickets/{ticketId} {
       // Support+ can read all tickets
-      // Clients can read tickets for their assigned projects
+      // Clients can read tickets they created (by clientId) or for their assigned projects
       allow read: if isSupport() ||
-                    (isClient() && isAssignedToProject(resource.data.projectId));
+                    (isClient() && (
+                      resource.data.clientId == request.auth.uid ||
+                      isAssignedToProject(resource.data.projectId)
+                    ));
 
       // Clients can create tickets for their assigned projects
       // Support+ can create any tickets
       allow create: if isSupport() ||
                       (isClient() &&
-                       isAssignedToProject(request.resource.data.projectId) &&
-                       hasRequiredFields(['projectId', 'title', 'description', 'submittedAt']));
+                       request.resource.data.clientId == request.auth.uid &&
+                       (request.resource.data.projectId == null ||
+                        isAssignedToProject(request.resource.data.projectId)) &&
+                       hasRequiredFields(['title', 'description', 'createdAt']));
 
-      // Support+ can update any ticket
-      // Clients can only update their own tickets (limited fields)
+      // Support+ can update any ticket (status, assignment, comments, etc.)
+      // Clients can update their own tickets (add comments, update description)
       allow update: if isSupport() ||
                       (isClient() &&
-                       resource.data.submittedBy == getUserData().displayName &&
+                       resource.data.clientId == request.auth.uid &&
                        request.resource.data.diff(resource.data).affectedKeys()
-                         .hasOnly(['description', 'updatedAt']));
+                         .hasOnly(['description', 'comments', 'attachments', 'updatedAt']));
 
       // Only managers+ can delete tickets
       allow delete: if isManager();
