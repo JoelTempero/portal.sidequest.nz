@@ -4,50 +4,528 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="assets/logo.png">
-    <title>Tickets - Sidequest Digital</title>
+    <title>Support Tickets - Sidequest Digital</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/portal.css">
+    <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/tickets.css">
 </head>
 <body>
-    <div id="loading-overlay" style="position:fixed;inset:0;background:rgba(18,19,26,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;"><div style="text-align:center;color:white;"><div style="width:40px;height:40px;border:3px solid #333;border-top-color:#7c3aed;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px;"></div><p>Loading...</p></div></div>
-    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-
     <div class="portal-layout">
+        <!-- Sidebar -->
         <aside class="sidebar">
-            <div class="sidebar-header"><a href="dashboard.html" class="sidebar-logo"><img src="assets/logo.png" alt="Sidequest Digital" class="sidebar-logo-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span class="sidebar-logo-icon" style="display:none;">S</span>Sidequest Digital</a></div>
+            <div class="sidebar-header">
+                <a href="dashboard.html" class="sidebar-logo">
+                    <img src="assets/logo.png" alt="Sidequest Digital" class="sidebar-logo-img">
+                    <span>Sidequest Digital</span>
+                </a>
+            </div>
             <nav class="sidebar-nav">
-                <div class="nav-section"><div class="nav-section-title">Main</div>
-                    <a href="dashboard.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
+                <div class="nav-section">
+                    <div class="nav-section-title">Main</div>
+                    <a href="dashboard.html" class="nav-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        Dashboard
+                    </a>
                 </div>
-                <div class="nav-section admin-only"><div class="nav-section-title">Pipeline</div>
-                    <a href="leads.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Leads</a>
-                    <a href="projects.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Projects</a>
-                    <a href="clients.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Clients</a>
-                    <a href="archive.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/></svg>Archive</a>
+                <div class="nav-section admin-only">
+                    <div class="nav-section-title">Pipeline</div>
+                    <a href="leads.html" class="nav-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        Leads
+                    </a>
+                    <a href="projects.html" class="nav-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                        Projects
+                    </a>
+                    <a href="clients.html" class="nav-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        Clients
+                    </a>
+                    <a href="archive.html" class="nav-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/></svg>
+                        Archive
+                    </a>
                 </div>
-                <div class="nav-section admin-only"><div class="nav-section-title">Support</div>
-                    <a href="tickets.html" class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 8v4M12 16h.01"/></svg>Tickets</a>
+                <div class="nav-section admin-only">
+                    <div class="nav-section-title">Support</div>
+                    <a href="tickets.html" class="nav-item active">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 8v4M12 16h.01"/></svg>
+                        Tickets
+                    </a>
                 </div>
             </nav>
-            <div class="sidebar-footer"><div class="user-card" id="logout-btn" style="cursor:pointer;"><div class="user-avatar" id="user-avatar">J</div><div class="user-info"><div class="user-name" id="user-name">Joel</div><div class="user-role" id="user-role">Admin</div></div></div></div>
+            <div class="sidebar-footer">
+                <div class="user-card" onclick="openModal('settings-modal')">
+                    <div class="user-avatar" id="user-avatar">?</div>
+                    <div class="user-info">
+                        <div class="user-name" id="user-name">Loading...</div>
+                        <div class="user-role" id="user-role">Admin</div>
+                    </div>
+                </div>
+            </div>
         </aside>
-        
+
+        <!-- Main Content -->
         <main class="main-content">
-            <header class="header"><div class="header-left"><h1 class="header-title">Support Tickets</h1></div></header>
+            <header class="header">
+                <div class="header-left">
+                    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    </button>
+                    <h1 class="header-title">Support Tickets</h1>
+                </div>
+                <div class="header-right">
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                    </button>
+                </div>
+            </header>
+
             <div class="page-content">
-                <div class="page-header"><h1>All Tickets</h1><p>Support requests prioritized by tier (Premium first).</p></div>
-                <div class="card"><div id="tickets-list"></div></div>
+                <!-- Stats Cards -->
+                <div class="stats-grid" id="ticket-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        </div>
+                        <div>
+                            <div class="stat-label">Total Tickets</div>
+                            <div class="stat-value" id="stat-total">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        </div>
+                        <div>
+                            <div class="stat-label">Open</div>
+                            <div class="stat-value" id="stat-open">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon yellow">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                        </div>
+                        <div>
+                            <div class="stat-label">In Progress</div>
+                            <div class="stat-value" id="stat-progress">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon red">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        </div>
+                        <div>
+                            <div class="stat-label">SLA Breached</div>
+                            <div class="stat-value" id="stat-breached">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="filter-bar">
+                    <div class="search-bar">
+                        <svg class="search-bar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input type="text" id="search-input" placeholder="Search tickets..." oninput="handleSearch(this.value)">
+                        <button class="search-bar-clear" onclick="clearSearch()">&times;</button>
+                    </div>
+                    <div class="filter-buttons">
+                        <button class="btn btn-secondary filter-btn active" data-filter="all" onclick="filterByStatus('all')">All</button>
+                        <button class="btn btn-secondary filter-btn" data-filter="open" onclick="filterByStatus('open')">Open</button>
+                        <button class="btn btn-secondary filter-btn" data-filter="in-progress" onclick="filterByStatus('in-progress')">In Progress</button>
+                        <button class="btn btn-secondary filter-btn" data-filter="resolved" onclick="filterByStatus('resolved')">Resolved</button>
+                        <button class="btn btn-secondary filter-btn" data-filter="breached" onclick="filterByStatus('breached')">SLA Breached</button>
+                    </div>
+                </div>
+
+                <!-- Bulk Actions Bar -->
+                <div class="bulk-actions-bar" id="bulk-actions">
+                    <span class="bulk-selected-count"><span id="selected-count">0</span> tickets selected</span>
+                    <div class="bulk-actions">
+                        <select id="bulk-status" class="form-select" style="width:auto;">
+                            <option value="">Change Status...</option>
+                            <option value="open">Open</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                        <select id="bulk-assignee" class="form-select" style="width:auto;">
+                            <option value="">Assign to...</option>
+                        </select>
+                        <button class="btn btn-primary btn-sm" onclick="applyBulkAction()">Apply</button>
+                        <button class="btn btn-ghost btn-sm" onclick="clearSelection()">Cancel</button>
+                    </div>
+                </div>
+
+                <!-- Tickets Table -->
+                <div class="card">
+                    <div class="table-responsive">
+                        <table class="ticket-table" id="tickets-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:40px;"><input type="checkbox" id="select-all" onclick="toggleSelectAll()"></th>
+                                    <th>Ticket</th>
+                                    <th>Client</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th>SLA</th>
+                                    <th>Assigned</th>
+                                    <th>Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tickets-list">
+                                <!-- Dynamically populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="tickets-empty" class="empty-state" style="display:none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                        <h3>No tickets found</h3>
+                        <p>There are no tickets matching your filters.</p>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
-    
-    <div class="modal-overlay" id="ticket-modal">
-        <div class="modal large"><div class="modal-header"><h3 class="modal-title">Ticket</h3><button class="modal-close">x</button></div>
-        <div class="modal-body"></div>
-        <div class="modal-footer admin-only"><button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button><button class="btn btn-primary" onclick="saveTicketChanges()">Save</button></div></div>
+
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" onclick="toggleMobileMenu()"></div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Settings</h3>
+                <button class="modal-close" onclick="closeModal('settings-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Display Name</label>
+                    <input type="text" id="settings-name" class="form-input" placeholder="Your name">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeModal('settings-modal')">Cancel</button>
+                <button class="btn btn-secondary" onclick="handleLogout()">Logout</button>
+            </div>
+        </div>
     </div>
-    
-    <script type="module" src="js/app.js"></script>
+
+    <script type="module">
+        import { initAuthListener, logout, getCurrentUser } from './js/services/auth.js';
+        import { getState, setTheme, getTheme, initializeTheme } from './js/services/state.js';
+        import { subscribeToAllTickets, bulkUpdateStatus, bulkAssignTickets, calculateSLAStatus, TICKET_PRIORITY_LABELS, TICKET_CATEGORY_LABELS } from './js/services/tickets.js';
+        import { showToast } from './js/components/toast.js';
+        import { showLoading, showSkeleton } from './js/components/loaders.js';
+        import { openModal, closeModal } from './js/components/modal.js';
+        import { escapeHtml } from './js/utils/sanitize.js';
+        import { timeAgo } from './js/utils/helpers.js';
+        import { TICKET_STATUSES, TICKET_STATUS_LABELS } from './js/config/constants.js';
+
+        let allTickets = [];
+        let selectedTickets = new Set();
+        let currentFilter = 'all';
+        let currentSearch = '';
+        let teamMembers = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeTheme();
+            initAuthListener(onAuthStateChanged);
+        });
+
+        function onAuthStateChanged(user) {
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // Check if admin/support
+            const profile = getState('userProfile');
+            if (profile && !['admin', 'manager', 'support'].includes(profile.role)) {
+                window.location.href = 'dashboard.html';
+                return;
+            }
+
+            updateUserInfo();
+            loadTickets();
+            loadTeamMembers();
+        }
+
+        function updateUserInfo() {
+            const profile = getState('userProfile');
+            if (profile) {
+                document.getElementById('user-name').textContent = profile.displayName || 'User';
+                document.getElementById('user-avatar').textContent = (profile.displayName || 'U')[0].toUpperCase();
+                document.getElementById('user-role').textContent = profile.role || 'Admin';
+            }
+        }
+
+        async function loadTickets() {
+            showLoading(true);
+
+            subscribeToAllTickets((tickets) => {
+                allTickets = tickets;
+                updateStats(tickets);
+                renderTickets(filterTickets(tickets));
+                showLoading(false);
+            });
+        }
+
+        async function loadTeamMembers() {
+            // Load team members for assignment dropdown
+            try {
+                const { collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
+                const { db } = await import('./js/services/firebase-init.js');
+
+                const q = query(collection(db, 'users'), where('role', 'in', ['admin', 'manager', 'support']));
+                const snapshot = await getDocs(q);
+
+                teamMembers = [];
+                snapshot.forEach(doc => {
+                    teamMembers.push({ id: doc.id, ...doc.data() });
+                });
+
+                // Populate assignee dropdown
+                const select = document.getElementById('bulk-assignee');
+                teamMembers.forEach(member => {
+                    const option = document.createElement('option');
+                    option.value = member.id;
+                    option.textContent = member.displayName || member.email;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading team members:', error);
+            }
+        }
+
+        function updateStats(tickets) {
+            const now = new Date();
+            let breachedCount = 0;
+
+            tickets.forEach(t => {
+                const sla = calculateSLAStatus(t);
+                if (sla.status === 'breached') breachedCount++;
+            });
+
+            document.getElementById('stat-total').textContent = tickets.length;
+            document.getElementById('stat-open').textContent = tickets.filter(t => t.status === 'open').length;
+            document.getElementById('stat-progress').textContent = tickets.filter(t => t.status === 'in-progress').length;
+            document.getElementById('stat-breached').textContent = breachedCount;
+        }
+
+        function filterTickets(tickets) {
+            let filtered = tickets;
+
+            // Filter by status
+            if (currentFilter === 'breached') {
+                filtered = filtered.filter(t => {
+                    const sla = calculateSLAStatus(t);
+                    return sla.status === 'breached';
+                });
+            } else if (currentFilter !== 'all') {
+                filtered = filtered.filter(t => t.status === currentFilter);
+            }
+
+            // Filter by search
+            if (currentSearch) {
+                const term = currentSearch.toLowerCase();
+                filtered = filtered.filter(t =>
+                    t.title?.toLowerCase().includes(term) ||
+                    t.description?.toLowerCase().includes(term) ||
+                    t.projectName?.toLowerCase().includes(term) ||
+                    t.clientName?.toLowerCase().includes(term) ||
+                    t.clientEmail?.toLowerCase().includes(term)
+                );
+            }
+
+            return filtered;
+        }
+
+        function renderTickets(tickets) {
+            const tbody = document.getElementById('tickets-list');
+            const emptyState = document.getElementById('tickets-empty');
+
+            if (tickets.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'flex';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+
+            tbody.innerHTML = tickets.map(ticket => {
+                const statusClass = ticket.status.replace('-', '');
+                const priorityClass = ticket.priority || 'medium';
+                const sla = calculateSLAStatus(ticket);
+                const assignee = teamMembers.find(m => m.id === ticket.assignedTo);
+
+                return `
+                    <tr onclick="viewTicket('${ticket.id}')" class="${selectedTickets.has(ticket.id) ? 'selected' : ''}">
+                        <td onclick="event.stopPropagation()">
+                            <input type="checkbox" class="ticket-checkbox" data-id="${ticket.id}"
+                                ${selectedTickets.has(ticket.id) ? 'checked' : ''}
+                                onchange="toggleTicketSelection('${ticket.id}')">
+                        </td>
+                        <td>
+                            <div class="ticket-title-cell">
+                                <span class="ticket-title-link">${escapeHtml(ticket.title)}</span>
+                                <div style="font-size:12px;color:var(--color-text-muted);margin-top:2px;">
+                                    ${escapeHtml(ticket.projectName || 'No Project')} &bull; ${TICKET_CATEGORY_LABELS[ticket.category] || ticket.category || 'Support'}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="ticket-client-cell">
+                                <div class="client-avatar-small">${(ticket.clientName || 'U')[0].toUpperCase()}</div>
+                                <div>
+                                    <div style="font-weight:500;">${escapeHtml(ticket.clientName || 'Unknown')}</div>
+                                    <div style="font-size:12px;color:var(--color-text-muted);">${escapeHtml(ticket.clientEmail || '')}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="status-badge ${statusClass}">${TICKET_STATUS_LABELS[ticket.status] || ticket.status}</span></td>
+                        <td><span class="priority-badge small ${priorityClass}">${TICKET_PRIORITY_LABELS[ticket.priority] || 'Medium'}</span></td>
+                        <td>
+                            <div class="sla-display">
+                                <div class="sla-indicator ${sla.status}"></div>
+                                <span class="sla-text ${sla.status}">${sla.text}</span>
+                            </div>
+                        </td>
+                        <td>
+                            ${assignee ?
+                                `<div class="assignee-display">
+                                    <div class="assignee-avatar">${(assignee.displayName || 'U')[0].toUpperCase()}</div>
+                                    <span class="assignee-name">${escapeHtml(assignee.displayName || assignee.email)}</span>
+                                </div>` :
+                                '<span style="color:var(--color-text-muted);">Unassigned</span>'
+                            }
+                        </td>
+                        <td style="white-space:nowrap;color:var(--color-text-muted);">${timeAgo(ticket.updatedAt || ticket.createdAt)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Selection functions
+        window.toggleTicketSelection = function(ticketId) {
+            if (selectedTickets.has(ticketId)) {
+                selectedTickets.delete(ticketId);
+            } else {
+                selectedTickets.add(ticketId);
+            }
+            updateBulkActionsBar();
+            renderTickets(filterTickets(allTickets));
+        };
+
+        window.toggleSelectAll = function() {
+            const selectAll = document.getElementById('select-all');
+            const visibleTickets = filterTickets(allTickets);
+
+            if (selectAll.checked) {
+                visibleTickets.forEach(t => selectedTickets.add(t.id));
+            } else {
+                selectedTickets.clear();
+            }
+
+            updateBulkActionsBar();
+            renderTickets(visibleTickets);
+        };
+
+        window.clearSelection = function() {
+            selectedTickets.clear();
+            document.getElementById('select-all').checked = false;
+            updateBulkActionsBar();
+            renderTickets(filterTickets(allTickets));
+        };
+
+        function updateBulkActionsBar() {
+            const bar = document.getElementById('bulk-actions');
+            const count = document.getElementById('selected-count');
+
+            if (selectedTickets.size > 0) {
+                bar.classList.add('active');
+                count.textContent = selectedTickets.size;
+            } else {
+                bar.classList.remove('active');
+            }
+        }
+
+        window.applyBulkAction = async function() {
+            const statusSelect = document.getElementById('bulk-status');
+            const assigneeSelect = document.getElementById('bulk-assignee');
+            const ticketIds = Array.from(selectedTickets);
+
+            if (ticketIds.length === 0) {
+                showToast('No tickets selected', 'warning');
+                return;
+            }
+
+            try {
+                if (statusSelect.value) {
+                    await bulkUpdateStatus(ticketIds, statusSelect.value);
+                    showToast(`Updated ${ticketIds.length} tickets`, 'success');
+                }
+
+                if (assigneeSelect.value) {
+                    await bulkAssignTickets(ticketIds, assigneeSelect.value);
+                    showToast(`Assigned ${ticketIds.length} tickets`, 'success');
+                }
+
+                // Reset
+                statusSelect.value = '';
+                assigneeSelect.value = '';
+                clearSelection();
+            } catch (error) {
+                console.error('Bulk action error:', error);
+                showToast('Error applying bulk action', 'error');
+            }
+        };
+
+        // Filter and search functions
+        window.filterByStatus = function(status) {
+            currentFilter = status;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.filter === status);
+            });
+            clearSelection();
+            renderTickets(filterTickets(allTickets));
+        };
+
+        window.handleSearch = function(value) {
+            currentSearch = value;
+            renderTickets(filterTickets(allTickets));
+        };
+
+        window.clearSearch = function() {
+            document.getElementById('search-input').value = '';
+            currentSearch = '';
+            renderTickets(filterTickets(allTickets));
+        };
+
+        // Navigation
+        window.viewTicket = function(ticketId) {
+            window.location.href = `ticket-detail.html?id=${ticketId}`;
+        };
+
+        // Modal and UI functions
+        window.openModal = openModal;
+        window.closeModal = closeModal;
+        window.handleLogout = logout;
+
+        window.toggleTheme = function() {
+            const newTheme = getTheme() === 'dark' ? 'light' : 'dark';
+            setTheme(newTheme);
+        };
+
+        window.toggleMobileMenu = function() {
+            document.querySelector('.sidebar').classList.toggle('mobile-open');
+            document.querySelector('.mobile-overlay').classList.toggle('active');
+        };
+    </script>
 </body>
 </html>

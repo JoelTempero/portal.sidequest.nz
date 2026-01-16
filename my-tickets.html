@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Tickets - Sidequest Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/portal.css">
+    <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/tickets.css">
+</head>
+<body>
+    <div class="portal-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="dashboard.html" class="sidebar-logo">
+                    <img src="assets/logo.png" alt="Sidequest" class="sidebar-logo-img">
+                    <span>Sidequest</span>
+                </a>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Menu</div>
+                    <a href="dashboard.html" class="nav-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        Dashboard
+                    </a>
+                    <a href="projects.html" class="nav-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                        My Projects
+                    </a>
+                    <a href="my-tickets.html" class="nav-item active">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        My Tickets
+                    </a>
+                </div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-card" onclick="openModal('settings-modal')">
+                    <div class="user-avatar" id="user-avatar">?</div>
+                    <div class="user-info">
+                        <div class="user-name" id="user-name">Loading...</div>
+                        <div class="user-role" id="user-role">Client</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="header">
+                <div class="header-left">
+                    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    </button>
+                    <h1 class="header-title">My Tickets</h1>
+                </div>
+                <div class="header-right">
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                    </button>
+                </div>
+            </header>
+
+            <div class="page-content">
+                <!-- Stats Cards -->
+                <div class="stats-grid" id="ticket-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        </div>
+                        <div>
+                            <div class="stat-label">Total Tickets</div>
+                            <div class="stat-value" id="stat-total">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        </div>
+                        <div>
+                            <div class="stat-label">Open</div>
+                            <div class="stat-value" id="stat-open">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon yellow">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                        </div>
+                        <div>
+                            <div class="stat-label">In Progress</div>
+                            <div class="stat-value" id="stat-progress">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        </div>
+                        <div>
+                            <div class="stat-label">Resolved</div>
+                            <div class="stat-value" id="stat-resolved">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="filter-bar">
+                    <div class="search-bar">
+                        <svg class="search-bar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input type="text" id="search-input" placeholder="Search tickets..." oninput="handleSearch(this.value)">
+                        <button class="search-bar-clear" onclick="clearSearch()">&times;</button>
+                    </div>
+                    <div class="filter-buttons">
+                        <button class="btn btn-secondary filter-btn active" data-filter="all" onclick="filterByStatus('all')">All</button>
+                        <button class="btn btn-secondary filter-btn" data-filter="open" onclick="filterByStatus('open')">Open</button>
+                        <button class="btn btn-secondary filter-btn" data-filter="in-progress" onclick="filterByStatus('in-progress')">In Progress</button>
+                        <button class="btn btn-secondary filter-btn" data-filter="resolved" onclick="filterByStatus('resolved')">Resolved</button>
+                    </div>
+                </div>
+
+                <!-- Tickets List -->
+                <div class="card">
+                    <div id="tickets-list" class="tickets-list">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" onclick="toggleMobileMenu()"></div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Settings</h3>
+                <button class="modal-close" onclick="closeModal('settings-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Display Name</label>
+                    <input type="text" id="settings-name" class="form-input" placeholder="Your name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Company</label>
+                    <input type="text" id="settings-company" class="form-input" placeholder="Company name">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeModal('settings-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+                <button class="btn btn-secondary" onclick="handleLogout()">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initAuthListener, logout } from './js/services/auth.js';
+        import { getState, setTheme, getTheme, initializeTheme } from './js/services/state.js';
+        import { loadTickets, subscribeToTickets, searchTickets, getTicketStats } from './js/services/tickets.js';
+        import { showToast } from './js/components/toast.js';
+        import { showLoading, showSkeleton } from './js/components/loaders.js';
+        import { openModal, closeModal } from './js/components/modal.js';
+        import { escapeHtml } from './js/utils/sanitize.js';
+        import { timeAgo } from './js/utils/helpers.js';
+        import { TICKET_STATUSES, TICKET_STATUS_LABELS } from './js/config/constants.js';
+        import { TICKET_CATEGORY_LABELS, TICKET_PRIORITY_LABELS } from './js/services/tickets.js';
+
+        let allTickets = [];
+        let currentFilter = 'all';
+        let currentSearch = '';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeTheme();
+            initAuthListener(onAuthStateChanged);
+        });
+
+        function onAuthStateChanged(user) {
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            updateUserInfo();
+            loadUserTickets();
+        }
+
+        function updateUserInfo() {
+            const profile = getState('userProfile');
+            if (profile) {
+                document.getElementById('user-name').textContent = profile.displayName || 'User';
+                document.getElementById('user-avatar').textContent = (profile.displayName || 'U')[0].toUpperCase();
+            }
+        }
+
+        async function loadUserTickets() {
+            showLoading(true);
+            showSkeleton('tickets-list', 'tickets', { count: 5 });
+
+            subscribeToTickets((tickets) => {
+                allTickets = tickets;
+                updateStats(tickets);
+                renderTickets(filterTickets(tickets));
+                showLoading(false);
+            });
+        }
+
+        function updateStats(tickets) {
+            document.getElementById('stat-total').textContent = tickets.length;
+            document.getElementById('stat-open').textContent = tickets.filter(t => t.status === 'open').length;
+            document.getElementById('stat-progress').textContent = tickets.filter(t => t.status === 'in-progress').length;
+            document.getElementById('stat-resolved').textContent = tickets.filter(t => t.status === 'resolved').length;
+        }
+
+        function filterTickets(tickets) {
+            let filtered = tickets;
+
+            // Filter by status
+            if (currentFilter !== 'all') {
+                filtered = filtered.filter(t => t.status === currentFilter);
+            }
+
+            // Filter by search
+            if (currentSearch) {
+                const term = currentSearch.toLowerCase();
+                filtered = filtered.filter(t =>
+                    t.title?.toLowerCase().includes(term) ||
+                    t.description?.toLowerCase().includes(term) ||
+                    t.projectName?.toLowerCase().includes(term)
+                );
+            }
+
+            return filtered;
+        }
+
+        function renderTickets(tickets) {
+            const container = document.getElementById('tickets-list');
+
+            if (tickets.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No tickets found</h3>
+                        <p>You haven't submitted any tickets yet, or none match your filters.</p>
+                        <a href="projects.html" class="btn btn-primary">View Projects to Submit Tickets</a>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = tickets.map(ticket => {
+                const statusClass = ticket.status.replace('-', '');
+                const priorityClass = ticket.priority || 'medium';
+                const hasNewActivity = ticket.updates?.length > 1 &&
+                    new Date(ticket.updates[ticket.updates.length - 1]?.timestamp) > new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+                return `
+                    <div class="ticket-card" onclick="window.location.href='ticket-detail.html?id=${ticket.id}'">
+                        <div class="ticket-card-header">
+                            <div class="ticket-card-badges">
+                                <span class="status-badge ${statusClass}">${TICKET_STATUS_LABELS[ticket.status] || ticket.status}</span>
+                                <span class="priority-badge small ${priorityClass}">${TICKET_PRIORITY_LABELS[ticket.priority] || 'Medium'}</span>
+                                ${hasNewActivity ? '<span class="badge-new">New Activity</span>' : ''}
+                            </div>
+                            <span class="ticket-card-time">${timeAgo(ticket.createdAt)}</span>
+                        </div>
+                        <h3 class="ticket-card-title">${escapeHtml(ticket.title)}</h3>
+                        <p class="ticket-card-description">${escapeHtml((ticket.description || '').slice(0, 100))}${(ticket.description?.length > 100) ? '...' : ''}</p>
+                        <div class="ticket-card-footer">
+                            <span class="ticket-card-project">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                                ${escapeHtml(ticket.projectName || 'No Project')}
+                            </span>
+                            <span class="ticket-card-comments">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                ${(ticket.comments || []).filter(c => !c.isInternal).length} comments
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Global functions
+        window.filterByStatus = function(status) {
+            currentFilter = status;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.filter === status);
+            });
+            renderTickets(filterTickets(allTickets));
+        };
+
+        window.handleSearch = function(value) {
+            currentSearch = value;
+            renderTickets(filterTickets(allTickets));
+        };
+
+        window.clearSearch = function() {
+            document.getElementById('search-input').value = '';
+            currentSearch = '';
+            renderTickets(filterTickets(allTickets));
+        };
+
+        window.openModal = openModal;
+        window.closeModal = closeModal;
+        window.handleLogout = logout;
+
+        window.toggleTheme = function() {
+            const newTheme = getTheme() === 'dark' ? 'light' : 'dark';
+            setTheme(newTheme);
+        };
+
+        window.toggleMobileMenu = function() {
+            document.querySelector('.sidebar').classList.toggle('mobile-open');
+            document.querySelector('.mobile-overlay').classList.toggle('active');
+        };
+
+        window.saveSettings = function() {
+            closeModal('settings-modal');
+        };
+    </script>
+</body>
+</html>
