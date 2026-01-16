@@ -61,25 +61,33 @@ export const TICKET_CATEGORY_LABELS = {
     [TICKET_CATEGORIES.OTHER]: 'Other'
 };
 
-export const TICKET_PRIORITIES = {
-    CRITICAL: 'critical',
-    HIGH: 'high',
-    MEDIUM: 'medium',
-    LOW: 'low'
+// Urgency labels (consolidated - no separate priority)
+export const TICKET_URGENCY_LABELS = {
+    'asap': 'ASAP',
+    'day': 'Within a Day',
+    'week': 'Within a Week'
 };
 
-export const TICKET_PRIORITY_LABELS = {
-    [TICKET_PRIORITIES.CRITICAL]: 'Critical',
-    [TICKET_PRIORITIES.HIGH]: 'High',
-    [TICKET_PRIORITIES.MEDIUM]: 'Medium',
-    [TICKET_PRIORITIES.LOW]: 'Low'
+// SLA hours matrix: Tier + Urgency
+// Higher tier = faster SLA, higher urgency = faster SLA
+export const SLA_MATRIX = {
+    // Premium/Enterprise tier - fastest response
+    'premium': { 'asap': 2, 'day': 8, 'week': 48 },
+    'enterprise': { 'asap': 2, 'day': 8, 'week': 48 },
+    // Professional tier - standard fast response
+    'professional': { 'asap': 4, 'day': 16, 'week': 72 },
+    // Starter tier - moderate response
+    'starter': { 'asap': 8, 'day': 24, 'week': 120 },
+    // Host/Basic tier - standard response
+    'host': { 'asap': 12, 'day': 48, 'week': 168 },
+    'basic': { 'asap': 12, 'day': 48, 'week': 168 }
 };
 
-// SLA hours by urgency
+// Legacy fallback
 export const SLA_HOURS = {
-    [TICKET_URGENCIES.ASAP]: 4,
-    [TICKET_URGENCIES.DAY]: 24,
-    [TICKET_URGENCIES.WEEK]: 168
+    'asap': 4,
+    'day': 24,
+    'week': 168
 };
 
 // ============================================
@@ -710,6 +718,20 @@ function calculateSLADueDate(urgency) {
 }
 
 /**
+ * Get SLA hours based on tier and urgency
+ * @param {string} tier - Project tier (premium, professional, starter, host, basic)
+ * @param {string} urgency - Ticket urgency (asap, day, week)
+ * @returns {number} SLA hours
+ */
+export function getSLAHours(tier, urgency) {
+    const normalizedTier = (tier || 'host').toLowerCase();
+    const normalizedUrgency = (urgency || 'week').toLowerCase();
+
+    const tierMatrix = SLA_MATRIX[normalizedTier] || SLA_MATRIX['host'];
+    return tierMatrix[normalizedUrgency] || tierMatrix['week'] || 168;
+}
+
+/**
  * Calculate SLA status for a ticket
  * @param {Object} ticket - Ticket object
  * @returns {Object} SLA status info with text for display
@@ -721,15 +743,19 @@ export function calculateSLAStatus(ticket) {
 
     const now = new Date();
 
-    // Try to get due date from slaDueDate or calculate from createdAt + urgency
+    // Try to get due date from slaDueDate or calculate from tier + urgency
     let dueDate = ticket.slaDueDate ? new Date(ticket.slaDueDate) : null;
 
-    // Use submittedAt or createdAt for backwards compatibility
+    // Calculate SLA based on tier + urgency
     if (!dueDate && (ticket.submittedAt || ticket.createdAt)) {
         const timestamp = ticket.submittedAt || ticket.createdAt;
         const createdAt = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
-        const urgency = ticket.urgency || ticket.priority || 'week';
-        const slaHours = SLA_HOURS[urgency] || 168; // Default to 1 week
+
+        // Get SLA hours from tier + urgency matrix
+        const tier = ticket.tier || 'host';
+        const urgency = ticket.urgency || 'week';
+        const slaHours = getSLAHours(tier, urgency);
+
         dueDate = new Date(createdAt.getTime() + slaHours * 60 * 60 * 1000);
     }
 
