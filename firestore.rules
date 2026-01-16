@@ -1,0 +1,274 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if user is the owner of the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Get user document
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Check if user has admin role
+    function isAdmin() {
+      return isAuthenticated() && getUserData().role == 'admin';
+    }
+
+    // Check if user has manager role (includes admin)
+    function isManager() {
+      return isAuthenticated() && getUserData().role in ['admin', 'manager'];
+    }
+
+    // Check if user has support role (includes admin, manager)
+    function isSupport() {
+      return isAuthenticated() && getUserData().role in ['admin', 'manager', 'support'];
+    }
+
+    // Check if user is a client
+    function isClient() {
+      return isAuthenticated() && getUserData().role == 'client';
+    }
+
+    // Check if user is assigned to a project
+    function isAssignedToProject(projectId) {
+      let project = get(/databases/$(database)/documents/projects/$(projectId)).data;
+      return request.auth.uid in project.assignedClients;
+    }
+
+    // Validate required fields exist
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // Validate string field length
+    function validStringLength(field, min, max) {
+      return request.resource.data[field] is string &&
+             request.resource.data[field].size() >= min &&
+             request.resource.data[field].size() <= max;
+    }
+
+    // Validate email format (basic)
+    function validEmail(field) {
+      return request.resource.data[field] is string &&
+             request.resource.data[field].matches('^[^@]+@[^@]+\\.[^@]+$');
+    }
+
+
+    // ============================================
+    // USERS COLLECTION
+    // ============================================
+
+    match /users/{userId} {
+      // Users can read their own profile
+      // Admins can read all profiles
+      allow read: if isOwner(userId) || isAdmin();
+
+      // Only admins can create users (done via Cloud Function)
+      allow create: if isAdmin();
+
+      // Users can update their own profile (limited fields)
+      // Admins can update any profile
+      allow update: if isAdmin() ||
+                      (isOwner(userId) &&
+                       // Clients can only update these fields
+                       request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['displayName', 'company', 'avatar', 'preferences', 'updatedAt']));
+
+      // Only admins can delete users
+      allow delete: if isAdmin();
+    }
+
+
+    // ============================================
+    // LEADS COLLECTION (Admin/Manager only)
+    // ============================================
+
+    match /leads/{leadId} {
+      // Only managers+ can read leads
+      allow read: if isManager();
+
+      // Only managers+ can create leads
+      allow create: if isManager() &&
+                      hasRequiredFields(['companyName', 'clientName', 'createdAt']);
+
+      // Only managers+ can update leads
+      allow update: if isManager();
+
+      // Only managers+ can delete leads (prefer archiving)
+      allow delete: if isManager();
+    }
+
+
+    // ============================================
+    // PROJECTS COLLECTION
+    // ============================================
+
+    match /projects/{projectId} {
+      // Admins can read all projects
+      // Clients can only read projects they're assigned to
+      allow read: if isManager() ||
+                    (isClient() && request.auth.uid in resource.data.assignedClients);
+
+      // Only managers+ can create projects
+      allow create: if isManager() &&
+                      hasRequiredFields(['companyName', 'status', 'tier', 'createdAt']);
+
+      // Managers can update all fields
+      // Assigned clients can only add messages/tickets (handled separately)
+      allow update: if isManager();
+
+      // Only managers+ can delete projects
+      allow delete: if isManager();
+    }
+
+
+    // ============================================
+    // TICKETS COLLECTION
+    // ============================================
+
+    match /tickets/{ticketId} {
+      // Support+ can read all tickets
+      // Clients can read tickets for their assigned projects
+      allow read: if isSupport() ||
+                    (isClient() && isAssignedToProject(resource.data.projectId));
+
+      // Clients can create tickets for their assigned projects
+      // Support+ can create any tickets
+      allow create: if isSupport() ||
+                      (isClient() &&
+                       isAssignedToProject(request.resource.data.projectId) &&
+                       hasRequiredFields(['projectId', 'title', 'description', 'submittedAt']));
+
+      // Support+ can update any ticket
+      // Clients can only update their own tickets (limited fields)
+      allow update: if isSupport() ||
+                      (isClient() &&
+                       resource.data.submittedBy == getUserData().displayName &&
+                       request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['description', 'updatedAt']));
+
+      // Only managers+ can delete tickets
+      allow delete: if isManager();
+    }
+
+
+    // ============================================
+    // MESSAGES COLLECTION
+    // ============================================
+
+    match /messages/{messageId} {
+      // Can read messages for projects user has access to
+      allow read: if isManager() ||
+                    (isClient() && isAssignedToProject(resource.data.projectId));
+
+      // Can create messages for assigned projects
+      allow create: if isAuthenticated() &&
+                      (isManager() || isAssignedToProject(request.resource.data.projectId)) &&
+                      hasRequiredFields(['projectId', 'senderId', 'text', 'timestamp']) &&
+                      request.resource.data.senderId == request.auth.uid;
+
+      // Messages cannot be edited
+      allow update: if false;
+
+      // Only managers+ can delete messages
+      allow delete: if isManager();
+    }
+
+
+    // ============================================
+    // POSTS COLLECTION (Admin/Manager only)
+    // ============================================
+
+    match /posts/{postId} {
+      // Anyone can read published posts
+      // Managers+ can read all posts
+      allow read: if isManager() || resource.data.published == true;
+
+      // Only managers+ can create posts
+      allow create: if isManager() &&
+                      hasRequiredFields(['title', 'createdAt']);
+
+      // Only managers+ can update posts
+      allow update: if isManager();
+
+      // Only managers+ can delete posts
+      allow delete: if isManager();
+    }
+
+
+    // ============================================
+    // ARCHIVED COLLECTION (Admin/Manager only)
+    // ============================================
+
+    match /archived/{archivedId} {
+      // Only managers+ can access archived items
+      allow read: if isManager();
+      allow create: if isManager();
+      allow update: if isManager();
+      allow delete: if isAdmin(); // Permanent deletion requires admin
+    }
+
+
+    // ============================================
+    // ACTIVITY COLLECTION
+    // ============================================
+
+    match /activity/{activityId} {
+      // Managers+ can read activity
+      allow read: if isManager();
+
+      // System can create activity (any authenticated user)
+      allow create: if isAuthenticated() &&
+                      hasRequiredFields(['type', 'timestamp']);
+
+      // Activity cannot be modified
+      allow update: if false;
+
+      // Only admins can delete activity
+      allow delete: if isAdmin();
+    }
+
+
+    // ============================================
+    // NOTIFICATIONS COLLECTION
+    // ============================================
+
+    match /notifications/{notificationId} {
+      // Users can read their own notifications
+      allow read: if isOwner(resource.data.userId);
+
+      // System can create notifications
+      allow create: if isAuthenticated();
+
+      // Users can mark their notifications as read
+      allow update: if isOwner(resource.data.userId) &&
+                      request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['read', 'readAt']);
+
+      // Users can delete their own notifications
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+
+    // ============================================
+    // DEFAULT DENY
+    // ============================================
+
+    // Deny access to any other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
