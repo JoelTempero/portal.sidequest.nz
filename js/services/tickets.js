@@ -68,6 +68,20 @@ export const TICKET_URGENCY_LABELS = {
     'week': 'Within a Week'
 };
 
+// Priority constants (internal use and backward compatibility)
+export const TICKET_PRIORITIES = {
+    HIGH: 'high',
+    MEDIUM: 'medium',
+    LOW: 'low'
+};
+
+// Priority labels (backward compatibility)
+export const TICKET_PRIORITY_LABELS = {
+    'high': 'High',
+    'medium': 'Medium',
+    'low': 'Low'
+};
+
 // SLA hours matrix: Tier + Urgency
 // Higher tier = faster SLA, higher urgency = faster SLA
 export const SLA_MATRIX = {
@@ -354,6 +368,7 @@ export async function createTicket(data, attachments = []) {
             watchers: [userId],
 
             // Timestamps
+            submittedAt: new Date().toISOString(),
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         };
