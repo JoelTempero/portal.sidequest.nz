@@ -597,14 +597,29 @@ window.handleSaveTicket = async () => {
 };
 
 window.handleSubmitTicket = async (projectId) => {
+    console.log('handleSubmitTicket called with projectId:', projectId);
     const title = document.getElementById('new-ticket-title')?.value;
     const desc = document.getElementById('new-ticket-desc')?.value;
     const urgency = document.getElementById('new-ticket-urgency')?.value || 'week';
-    
-    if (!title) { showToast('Please enter a title', 'error'); return; }
-    
+
+    console.log('Ticket form values:', { title, desc, urgency });
+
+    if (!title) {
+        console.log('Validation failed: no title');
+        showToast('Please enter a title', 'error');
+        return;
+    }
+
+    if (!projectId) {
+        console.error('Validation failed: no projectId');
+        showToast('Project ID is missing', 'error');
+        return;
+    }
+
     const proj = AppState.projects.find(p => p.id === projectId);
-    const result = await createTicket({
+    console.log('Found project:', proj?.companyName || 'NOT FOUND');
+
+    const ticketData = {
         projectId,
         projectName: proj?.companyName || 'Unknown',
         title,
@@ -613,8 +628,12 @@ window.handleSubmitTicket = async (projectId) => {
         tier: proj?.tier || 'farmer',
         submittedById: AppState.currentUser?.uid,
         submittedBy: AppState.userProfile?.displayName || 'Client'
-    });
-    
+    };
+    console.log('Submitting ticket with data:', ticketData);
+
+    const result = await createTicket(ticketData);
+    console.log('createTicket result:', result);
+
     if (result.success) {
         closeAllModals();
         document.getElementById('new-ticket-title').value = '';
@@ -685,16 +704,29 @@ window.handleQuickSaveTask = async (projectId) => {
 };
 
 window.handleDashboardTicket = async () => {
+    console.log('handleDashboardTicket called');
     const projectId = document.getElementById('dash-ticket-project')?.value;
     const title = document.getElementById('dash-ticket-title')?.value;
     const urgency = document.getElementById('dash-ticket-urgency')?.value || 'week';
     const desc = document.getElementById('dash-ticket-desc')?.value;
-    
-    if (!projectId) { showToast('Please select a project', 'error'); return; }
-    if (!title) { showToast('Please enter a title', 'error'); return; }
-    
+
+    console.log('Dashboard ticket form values:', { projectId, title, urgency, desc });
+
+    if (!projectId) {
+        console.log('Validation failed: no project selected');
+        showToast('Please select a project', 'error');
+        return;
+    }
+    if (!title) {
+        console.log('Validation failed: no title');
+        showToast('Please enter a title', 'error');
+        return;
+    }
+
     const proj = AppState.projects.find(p => p.id === projectId);
-    const result = await createTicket({
+    console.log('Found project:', proj?.companyName || 'NOT FOUND');
+
+    const ticketData = {
         projectId,
         projectName: proj?.companyName || 'Unknown',
         title,
@@ -703,8 +735,12 @@ window.handleDashboardTicket = async () => {
         tier: proj?.tier || 'farmer',
         submittedById: AppState.currentUser?.uid,
         submittedBy: AppState.userProfile?.displayName || 'Client'
-    });
-    
+    };
+    console.log('Submitting dashboard ticket with data:', ticketData);
+
+    const result = await createTicket(ticketData);
+    console.log('createTicket result:', result);
+
     if (result.success) {
         closeAllModals();
         document.getElementById('dash-ticket-title').value = '';
