@@ -101,10 +101,11 @@
 
                 <!-- Filter Bar -->
                 <div class="filter-bar">
-                    <div class="search-bar">
+                    <div class="search-bar" role="search">
+                        <label for="search-input" class="sr-only">Search tickets</label>
                         <svg class="search-bar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input type="text" id="search-input" placeholder="Search tickets..." oninput="handleSearch(this.value)">
-                        <button class="search-bar-clear" onclick="clearSearch()">&times;</button>
+                        <input type="search" id="search-input" placeholder="Search tickets..." oninput="handleSearch(this.value)" aria-describedby="search-help">
+                        <button class="search-bar-clear" onclick="clearSearch()" aria-label="Clear search">&times;</button>
                     </div>
                     <div class="filter-buttons">
                         <button class="btn btn-secondary filter-btn active" data-filter="all" onclick="filterByStatus('all')">All</button>
@@ -144,7 +145,7 @@
                         <table class="ticket-table" id="tickets-table">
                             <thead>
                                 <tr>
-                                    <th style="width:40px;"><input type="checkbox" id="select-all" onclick="toggleSelectAll()"></th>
+                                    <th style="width:40px;"><label class="sr-only" for="select-all">Select all tickets</label><input type="checkbox" id="select-all" onclick="toggleSelectAll()" aria-label="Select all tickets"></th>
                                     <th>Ticket</th>
                                     <th>Project</th>
                                     <th>Urgency</th>

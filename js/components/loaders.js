@@ -10,6 +10,40 @@ import { setLoading as setStateLoading } from '../services/state.js';
 let loadingOverlay = null;
 
 /**
+ * Aria-live region for screen reader announcements
+ */
+let ariaLiveRegion = null;
+
+/**
+ * Get or create aria-live region for announcements
+ * @returns {HTMLElement} Aria-live region
+ */
+function getAriaLiveRegion() {
+    if (!ariaLiveRegion) {
+        ariaLiveRegion = document.createElement('div');
+        ariaLiveRegion.id = 'aria-live-region';
+        ariaLiveRegion.setAttribute('role', 'status');
+        ariaLiveRegion.setAttribute('aria-live', 'polite');
+        ariaLiveRegion.setAttribute('aria-atomic', 'true');
+        ariaLiveRegion.className = 'sr-only';
+        ariaLiveRegion.style.cssText = 'position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;';
+        document.body.appendChild(ariaLiveRegion);
+    }
+    return ariaLiveRegion;
+}
+
+/**
+ * Announce message to screen readers
+ * @param {string} message - Message to announce
+ */
+export function announceToScreenReader(message) {
+    const region = getAriaLiveRegion();
+    // Clear and set to trigger announcement
+    region.textContent = '';
+    setTimeout(() => { region.textContent = message; }, 100);
+}
+
+/**
  * Get or create loading overlay
  * @returns {HTMLElement} Loading overlay
  */
@@ -18,8 +52,10 @@ function getLoadingOverlay() {
         loadingOverlay = document.createElement('div');
         loadingOverlay.id = 'loading-overlay';
         loadingOverlay.className = 'loading-overlay';
+        loadingOverlay.setAttribute('role', 'alert');
+        loadingOverlay.setAttribute('aria-busy', 'true');
         loadingOverlay.innerHTML = `
-            <div class="loading-spinner">
+            <div class="loading-spinner" aria-hidden="true">
                 <div class="spinner-ring"></div>
                 <div class="spinner-ring"></div>
                 <div class="spinner-ring"></div>
@@ -39,9 +75,13 @@ function getLoadingOverlay() {
 export function showLoading(show = true, text = 'Loading...') {
     const overlay = getLoadingOverlay();
     overlay.style.display = show ? 'flex' : 'none';
+    overlay.setAttribute('aria-busy', show ? 'true' : 'false');
 
     const textEl = overlay.querySelector('.loading-text');
     if (textEl) textEl.textContent = text;
+
+    // Announce loading state to screen readers
+    announceToScreenReader(show ? text : 'Loading complete');
 
     setStateLoading(show);
 }
