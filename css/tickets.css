@@ -175,6 +175,7 @@
     flex-shrink: 0;
 }
 
+.tier-dot.guardian { background: linear-gradient(135deg, #a855f7, #7c3aed); }
 .tier-dot.watchfuleye { background: linear-gradient(135deg, #f59e0b, #eab308); }
 .tier-dot.farmer { background: linear-gradient(135deg, #22c55e, #16a34a); }
 .tier-dot.bugcatcher { background: linear-gradient(135deg, #3b82f6, #2563eb); }

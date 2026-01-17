@@ -14,9 +14,9 @@ const firebaseConfig = {
 
 const ADMIN_UIDS = ['XQINsp8rRqh9xmgQBrBjI4M2Z7e2'];
 
-// Tier names: Host, Bug Catcher, Farmer, Watchful Eye
-const TIER_NAMES = { host: 'Host', bugcatcher: 'Bug Catcher', farmer: 'Farmer', watchfuleye: 'Watchful Eye' };
-const TIER_ORDER = { watchfuleye: 0, farmer: 1, bugcatcher: 2, host: 3 };
+// Tier names: Host, Bug Catcher, Farmer, Watchful Eye, Guardian
+const TIER_NAMES = { host: 'Host', bugcatcher: 'Bug Catcher', farmer: 'Farmer', watchfuleye: 'Watchful Eye', guardian: 'Guardian' };
+const TIER_ORDER = { guardian: 0, watchfuleye: 1, farmer: 2, bugcatcher: 3, host: 4 };
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
@@ -42,7 +42,7 @@ const formatDate = d => { if (!d) return '-'; const date = d.toDate ? d.toDate()
 const formatCurrency = n => new Intl.NumberFormat('en-NZ', { style: 'currency', currency: 'NZD' }).format(n || 0);
 const timeAgo = d => { if (!d) return '-'; const date = d.toDate ? d.toDate() : new Date(d); const s = Math.floor((new Date() - date) / 1000); if (s < 60) return 'Just now'; if (s < 3600) return Math.floor(s/60) + 'm ago'; if (s < 86400) return Math.floor(s/3600) + 'h ago'; return Math.floor(s/86400) + 'd ago'; };
 const getInitials = n => n ? n.split(' ').map(x => x[0]).join('').slice(0,2).toUpperCase() : '??';
-const getTierOrder = t => TIER_ORDER[t] ?? 4;
+const getTierOrder = t => TIER_ORDER[t] ?? 5;
 const LEGACY_TIER_MAP = { premium: 'watchfuleye', enterprise: 'watchfuleye', professional: 'farmer', starter: 'bugcatcher', basic: 'host' };
 const getTierName = t => {
     const mapped = LEGACY_TIER_MAP[t] || t;

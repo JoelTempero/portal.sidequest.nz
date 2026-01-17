@@ -85,19 +85,22 @@ export const TICKET_PRIORITY_LABELS = {
 
 // SLA hours matrix: Tier + Urgency
 // Higher tier = faster SLA, higher urgency = faster SLA
+// Values now better aligned with urgency labels (week = 3-7 days, month = 14-30 days)
 export const SLA_MATRIX = {
-    // Premium/Enterprise tier - fastest response
-    'premium': { 'asap': 2, 'day': 8, 'week': 48, 'month': 336 },
-    'enterprise': { 'asap': 2, 'day': 8, 'week': 48, 'month': 336 },
-    'watchfuleye': { 'asap': 2, 'day': 8, 'week': 48, 'month': 336 },
-    // Professional tier - standard fast response
-    'professional': { 'asap': 4, 'day': 16, 'week': 72, 'month': 336 },
-    'farmer': { 'asap': 4, 'day': 16, 'week': 72, 'month': 336 },
-    // Starter tier - moderate response
-    'starter': { 'asap': 8, 'day': 24, 'week': 120, 'month': 504 },
-    'bugcatcher': { 'asap': 8, 'day': 24, 'week': 120, 'month': 504 },
+    // Guardian tier - highest priority, fastest response
+    'guardian': { 'asap': 1, 'day': 4, 'week': 72, 'month': 336 },      // 1h, 4h, 3d, 14d
+    // Premium/Enterprise tier (Watchful Eye)
+    'premium': { 'asap': 2, 'day': 8, 'week': 120, 'month': 504 },      // 2h, 8h, 5d, 21d
+    'enterprise': { 'asap': 2, 'day': 8, 'week': 120, 'month': 504 },
+    'watchfuleye': { 'asap': 2, 'day': 8, 'week': 120, 'month': 504 },
+    // Professional tier (Farmer) - standard fast response
+    'professional': { 'asap': 4, 'day': 16, 'week': 168, 'month': 504 }, // 4h, 16h, 7d, 21d
+    'farmer': { 'asap': 4, 'day': 16, 'week': 168, 'month': 504 },
+    // Starter tier (Bug Catcher) - moderate response
+    'starter': { 'asap': 8, 'day': 24, 'week': 168, 'month': 720 },      // 8h, 24h, 7d, 30d
+    'bugcatcher': { 'asap': 8, 'day': 24, 'week': 168, 'month': 720 },
     // Host/Basic tier - standard response
-    'host': { 'asap': 12, 'day': 48, 'week': 168, 'month': 720 },
+    'host': { 'asap': 12, 'day': 48, 'week': 168, 'month': 720 },        // 12h, 48h, 7d, 30d
     'basic': { 'asap': 12, 'day': 48, 'week': 168, 'month': 720 }
 };
 
@@ -788,6 +791,7 @@ export function getSLAHours(tier, urgency) {
 
 /**
  * Calculate SLA status for a ticket
+ * Always recalculates based on tier + urgency to ensure consistency
  * @param {Object} ticket - Ticket object
  * @returns {Object} SLA status info with text for display
  */
@@ -797,12 +801,10 @@ export function calculateSLAStatus(ticket) {
     }
 
     const now = new Date();
+    let dueDate = null;
 
-    // Try to get due date from slaDueDate or calculate from tier + urgency
-    let dueDate = ticket.slaDueDate ? new Date(ticket.slaDueDate) : null;
-
-    // Calculate SLA based on tier + urgency
-    if (!dueDate && (ticket.submittedAt || ticket.createdAt)) {
+    // Always calculate SLA based on tier + urgency for consistency
+    if (ticket.submittedAt || ticket.createdAt) {
         const timestamp = ticket.submittedAt || ticket.createdAt;
         const createdAt = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
 

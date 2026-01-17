@@ -16,7 +16,6 @@ import {
     subscribeToTicket,
     updateTicket,
     updateTicketStatus,
-    assignTicket,
     addTicketComment,
     addTicketResponse,
     addInternalNote,
@@ -80,9 +79,8 @@ function onAuthStateChanged(user) {
     // Load ticket
     loadTicketDetail(ticketId);
 
-    // Load admin users for assignment dropdown
+    // Load admin helpers
     if (checkIsAdmin()) {
-        loadAdminUsers();
         populateCannedResponses();
     }
 
@@ -327,11 +325,6 @@ function renderSidebar(ticket) {
     document.getElementById('detail-submitter').textContent = ticket.submittedBy || 'Unknown';
     document.getElementById('detail-submitted').textContent = formatDateTime(ticket.createdAt);
 
-    // Assignee
-    if (checkIsAdmin()) {
-        document.getElementById('assignee-select').value = ticket.assignedTo || '';
-    }
-
     // Internal notes
     const internalNotesEl = document.getElementById('internal-notes');
     if (internalNotesEl) {
@@ -421,19 +414,6 @@ window.changeTicketStatus = async function(status) {
     if (!result.success) {
         // Revert select
         document.getElementById('status-select').value = currentTicket.status;
-    }
-};
-
-window.changeTicketAssignee = async function(userId) {
-    if (!currentTicket) return;
-
-    if (userId) {
-        // Get user name from select option
-        const select = document.getElementById('assignee-select');
-        const userName = select.options[select.selectedIndex].text;
-        await assignTicket(currentTicket.id, userId, userName);
-    } else {
-        await updateTicket(currentTicket.id, { assignedTo: null, assignedToName: null });
     }
 };
 
@@ -528,27 +508,6 @@ window.uploadAttachment = async function() {
 // ============================================
 // HELPERS
 // ============================================
-
-async function loadAdminUsers() {
-    try {
-        const q = query(
-            collection(db, 'users'),
-            where('role', 'in', ['admin', 'manager', 'support'])
-        );
-        const snapshot = await getDocs(q);
-
-        const select = document.getElementById('assignee-select');
-        snapshot.docs.forEach(doc => {
-            const user = doc.data();
-            const option = document.createElement('option');
-            option.value = doc.id;
-            option.textContent = user.displayName || user.email;
-            select.appendChild(option);
-        });
-    } catch (error) {
-        console.error('Failed to load admin users', error);
-    }
-}
 
 function populateCannedResponses() {
     const select = document.getElementById('canned-response-select');

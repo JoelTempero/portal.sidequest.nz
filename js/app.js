@@ -1427,16 +1427,6 @@ function renderProjectDetail() {
     if (el('current-task')) el('current-task').textContent = proj.currentTask || 'No current task set.';
     if (el('edit-current-task')) el('edit-current-task').value = proj.currentTask || '';
     
-    // Message send button
-    const sendBtn = document.getElementById('send-message-btn');
-    if (sendBtn) {
-        console.log('Attaching message button listener');
-        sendBtn.addEventListener('click', () => {
-            console.log('Send button clicked!');
-            handleSendMessage(proj.id);
-        });
-    }
-    
     // Progress slider event
     const progressSlider = document.getElementById('progress-slider');
     if (progressSlider) {

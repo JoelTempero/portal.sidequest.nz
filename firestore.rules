@@ -157,12 +157,12 @@ service cloud.firestore {
                        hasRequiredFields(['title', 'description', 'createdAt']));
 
       // Support+ can update any ticket (status, assignment, comments, etc.)
-      // Clients can update their own tickets (add comments, update description)
+      // Clients can update their own tickets (add comments, update description, add to timeline)
       allow update: if isSupport() ||
                       (isClient() &&
                        resource.data.clientId == request.auth.uid &&
                        request.resource.data.diff(resource.data).affectedKeys()
-                         .hasOnly(['description', 'comments', 'attachments', 'updatedAt']));
+                         .hasOnly(['description', 'comments', 'attachments', 'updates', 'updatedAt']));
 
       // Only managers+ can delete tickets
       allow delete: if isManager();
