@@ -67,6 +67,56 @@ function renderStats() {
     }
 }
 
+function renderAnalyticsCharts() {
+    // Tickets by Status Chart
+    const ticketsChart = document.getElementById('tickets-status-chart');
+    if (ticketsChart) {
+        const statusCounts = {
+            open: AppState.tickets.filter(t => t.status === 'open').length,
+            'in-progress': AppState.tickets.filter(t => t.status === 'in-progress').length,
+            resolved: AppState.tickets.filter(t => t.status === 'resolved').length
+        };
+        const maxTickets = Math.max(...Object.values(statusCounts), 1);
+        const statusColors = { open: '#7c3aed', 'in-progress': '#f59e0b', resolved: '#10b981' };
+        const statusLabels = { open: 'Open', 'in-progress': 'In Progress', resolved: 'Resolved' };
+
+        ticketsChart.innerHTML = Object.entries(statusCounts).map(([status, count]) => {
+            const height = Math.max((count / maxTickets) * 100, 5);
+            return `<div class="chart-bar" style="height:${height}%;background:${statusColors[status]}">
+                <span class="chart-bar-value">${count}</span>
+                <span class="chart-bar-label">${statusLabels[status]}</span>
+            </div>`;
+        }).join('');
+    }
+
+    // Projects by Tier Chart
+    const projectsChart = document.getElementById('projects-tier-chart');
+    if (projectsChart) {
+        const tierCounts = {};
+        const tiers = ['guardian', 'watchfuleye', 'farmer', 'bugcatcher', 'host'];
+        tiers.forEach(tier => {
+            tierCounts[tier] = AppState.projects.filter(p => p.tier === tier).length;
+        });
+        const maxProjects = Math.max(...Object.values(tierCounts), 1);
+        const tierColors = {
+            guardian: '#7c3aed',
+            watchfuleye: '#3b82f6',
+            farmer: '#10b981',
+            bugcatcher: '#f59e0b',
+            host: '#ef4444'
+        };
+
+        projectsChart.innerHTML = tiers.map(tier => {
+            const count = tierCounts[tier] || 0;
+            const height = Math.max((count / maxProjects) * 100, 5);
+            return `<div class="chart-bar" style="height:${height}%;background:${tierColors[tier]}">
+                <span class="chart-bar-value">${count}</span>
+                <span class="chart-bar-label">${getTierName(tier)}</span>
+            </div>`;
+        }).join('');
+    }
+}
+
 function renderFilterBar(containerId, items, type) {
     const c = document.getElementById(containerId);
     if (!c) return;
@@ -1472,6 +1522,7 @@ function renderPage(page) {
             renderStats();
             if (AppState.isAdmin) {
                 renderProjects('projects-grid', AppState.projects.filter(p => p.status === 'active').slice(0, 4));
+                renderAnalyticsCharts();
             } else {
                 // Client dashboard - show their projects and tickets
                 renderProjects('projects-grid', AppState.projects);
@@ -1707,7 +1758,14 @@ function renderProjectDetail() {
 // Setup
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOMContentLoaded fired - app.js loaded successfully');
-    
+
+    // Register Service Worker for offline support
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('[SW] Registered:', reg.scope))
+            .catch(err => console.error('[SW] Registration failed:', err));
+    }
+
     document.getElementById('login-form')?.addEventListener('submit', handleLogin);
     document.getElementById('logout-btn')?.addEventListener('click', logout);
     document.querySelectorAll('.modal-close').forEach(b => b.addEventListener('click', closeAllModals));

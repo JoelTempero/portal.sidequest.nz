@@ -201,6 +201,19 @@
                             </div>
                         </div>
 
+                        <!-- Linked Tickets Card -->
+                        <div class="card admin-only">
+                            <div class="card-header">
+                                <h3 class="card-title">Linked Tickets</h3>
+                                <button class="btn btn-sm btn-ghost" onclick="openLinkTicketModal()" aria-label="Link another ticket">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                </button>
+                            </div>
+                            <div id="linked-tickets" class="linked-tickets-list">
+                                <span class="empty-state-small">No linked tickets</span>
+                            </div>
+                        </div>
+
                         <!-- Activity Timeline Card -->
                         <div class="card">
                             <div class="card-header">
@@ -245,6 +258,28 @@
             <div class="modal-footer">
                 <button class="btn btn-ghost" onclick="closeModal('attachment-modal')">Cancel</button>
                 <button class="btn btn-primary" onclick="uploadAttachment()">Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Link Ticket Modal -->
+    <div class="modal-overlay" id="link-ticket-modal" role="dialog" aria-labelledby="link-ticket-title" aria-modal="true">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="link-ticket-title">Link Ticket</h3>
+                <button class="modal-close" onclick="closeModal('link-ticket-modal')" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="link-ticket-search">Search Tickets</label>
+                    <input type="text" id="link-ticket-search" class="form-input" placeholder="Search by title or ID..." oninput="searchTicketsForLinking(this.value)">
+                </div>
+                <div id="link-ticket-results" class="link-ticket-results">
+                    <p class="empty-state-small">Start typing to search tickets</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeModal('link-ticket-modal')">Cancel</button>
             </div>
         </div>
     </div>
