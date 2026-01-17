@@ -3,23 +3,17 @@
    Firebase Connected Version
    ============================================ */
 
-const firebaseConfig = {
-    apiKey: "AIzaSyCHBw5_1925Bno5CHVEMUpdBgqQR_UHbAk",
-    authDomain: "sidequest-digital.firebaseapp.com",
-    projectId: "sidequest-digital",
-    storageBucket: "sidequest-digital.firebasestorage.app",
-    messagingSenderId: "576711179044",
-    appId: "1:576711179044:web:bef810a231f00c0b9c11b1"
-};
+import { FIREBASE_CONFIG, NAVIGATION, UI_TIMING } from './config/constants.js';
 
-const ADMIN_UIDS = ['XQINsp8rRqh9xmgQBrBjI4M2Z7e2'];
+// Use centralized Firebase config from constants.js
+const firebaseConfig = FIREBASE_CONFIG;
 
 // Tier names: Host, Bug Catcher, Farmer, Watchful Eye, Guardian
 const TIER_NAMES = { host: 'Host', bugcatcher: 'Bug Catcher', farmer: 'Farmer', watchfuleye: 'Watchful Eye', guardian: 'Guardian' };
 const TIER_ORDER = { guardian: 0, watchfuleye: 1, farmer: 2, bugcatcher: 3, host: 4 };
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, browserLocalPersistence, setPersistence } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, setDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js';
 import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
@@ -30,12 +24,51 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 const functions = getFunctions(app);
 
+// Set Firebase auth persistence to local (survives browser restart)
+// This is more secure than manual localStorage and handles token refresh automatically
+setPersistence(auth, browserLocalPersistence).catch((error) => {
+    console.error('Failed to set auth persistence:', error);
+});
+
 const AppState = {
     currentUser: null, userProfile: null, isAdmin: false,
     leads: [], projects: [], archived: [], tickets: [], clients: [], messages: [],
     posts: [],  // NEW: Posts collection
     currentItem: null, unsubscribers: [], pendingLogoFile: null
 };
+
+/**
+ * Check if user has admin/manager role based on Firestore profile
+ * This replaces the hardcoded ADMIN_UIDS approach for better security
+ * Admin status is determined by the 'role' field in the user's Firestore document
+ * @param {Object} userProfile - User profile from Firestore
+ * @returns {boolean} True if user has admin or manager role
+ */
+function checkIsAdmin(userProfile) {
+    if (!userProfile || !userProfile.role) return false;
+    return ['admin', 'manager'].includes(userProfile.role);
+}
+
+/**
+ * Check if user has specific role
+ * @param {string} role - Role to check for
+ * @returns {boolean} True if user has the role
+ */
+function hasRole(role) {
+    if (!AppState.userProfile) return false;
+    const userRole = AppState.userProfile.role;
+
+    // Role hierarchy: admin > manager > support > client
+    const roleHierarchy = {
+        admin: ['admin', 'manager', 'support', 'client'],
+        manager: ['manager', 'support', 'client'],
+        support: ['support', 'client'],
+        client: ['client']
+    };
+
+    const allowedRoles = roleHierarchy[userRole] || [];
+    return allowedRoles.includes(role);
+}
 
 // Utilities
 const formatDate = d => { if (!d) return '-'; const date = d.toDate ? d.toDate() : new Date(d); return date.toLocaleDateString('en-NZ', { month: 'short', day: 'numeric', year: 'numeric' }); };
@@ -749,7 +782,7 @@ function generateSlug(text) {
 // ============================================
 
 export {
-    auth, db, storage, AppState, ADMIN_UIDS, TIER_NAMES, TIER_ORDER,
+    auth, db, storage, AppState, TIER_NAMES, TIER_ORDER,
     login, logout, createClientWithAuth, uploadFile, uploadLogo,
     loadLeads, subscribeToLeads, createLead, updateLead,
     loadProjects, subscribeToProjects, createProject, updateProject,
@@ -761,5 +794,7 @@ export {
     // NEW: Posts exports
     loadPosts, subscribeToPosts, createPost, updatePost, deletePost, createPostFromProject, generateSlug,
     formatDate, formatCurrency, timeAgo, getInitials, getTierOrder, getTierName, getStatusLabel,
-    showToast, showLoading
+    showToast, showLoading,
+    // Role checking utilities
+    checkIsAdmin, hasRole
 };

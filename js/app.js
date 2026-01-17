@@ -3,7 +3,7 @@
    ============================================ */
 
 import {
-    auth, db, storage, AppState, ADMIN_UIDS, TIER_NAMES,
+    auth, db, storage, AppState, TIER_NAMES,
     login, logout, createClientWithAuth, uploadFile, uploadLogo,
     loadLeads, subscribeToLeads, createLead, updateLead,
     loadProjects, subscribeToProjects, createProject, updateProject,
@@ -15,8 +15,12 @@ import {
     // NEW: Posts imports
     loadPosts, subscribeToPosts, createPost, updatePost, deletePost, createPostFromProject, generateSlug,
     formatDate, formatCurrency, timeAgo, getInitials, getTierOrder, getTierName, getStatusLabel,
-    showToast, showLoading
+    showToast, showLoading,
+    checkIsAdmin, hasRole
 } from './firebase-portal.js';
+
+import { NAVIGATION, UI_TIMING } from './config/constants.js';
+import { escapeHtml } from './utils/sanitize.js';
 
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { doc, getDoc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
@@ -112,13 +116,13 @@ function renderLeads(containerId) {
     const items = applyFilters(AppState.leads);
     if (!items.length) { c.innerHTML = `<div class="empty-state"><h3>${AppState.leads.length ? 'No matches' : 'No leads yet'}</h3></div>`; return; }
     c.innerHTML = items.map(l => `
-        <div class="item-card" onclick="window.location.href='lead-detail.html?id=${l.id}'">
-            ${l.logo ? `<div class="item-card-logo" style="background-image:url('${l.logo}')"></div>` : `<div class="item-card-logo item-card-logo-placeholder">${getInitials(l.companyName)}</div>`}
+        <div class="item-card" onclick="window.location.href='${NAVIGATION.LEAD_DETAIL}?id=${escapeHtml(l.id)}'">
+            ${l.logo ? `<div class="item-card-logo" style="background-image:url('${escapeHtml(l.logo)}')"></div>` : `<div class="item-card-logo item-card-logo-placeholder">${escapeHtml(getInitials(l.companyName))}</div>`}
             <div class="item-card-body">
-                <div class="item-company">${l.companyName || 'Unnamed'}</div>
-                <div class="item-client">${l.clientName || ''}</div>
-                <span class="status-badge ${l.status || 'noted'}">${getStatusLabel(l.status || 'noted')}</span>
-                <div class="item-tags"><span class="tag">${l.location || '-'}</span><span class="tag">${l.businessType || '-'}</span></div>
+                <div class="item-company">${escapeHtml(l.companyName || 'Unnamed')}</div>
+                <div class="item-client">${escapeHtml(l.clientName || '')}</div>
+                <span class="status-badge ${escapeHtml(l.status || 'noted')}">${escapeHtml(getStatusLabel(l.status || 'noted'))}</span>
+                <div class="item-tags"><span class="tag">${escapeHtml(l.location || '-')}</span><span class="tag">${escapeHtml(l.businessType || '-')}</span></div>
                 <div class="item-meta"><span>Added ${formatDate(l.createdAt)}</span></div>
             </div>
         </div>`).join('');
@@ -150,19 +154,19 @@ function renderProjects(containerId, items = null) {
     if (!list.length) { c.innerHTML = `<div class="empty-state"><h3>No projects yet</h3></div>`; return; }
     c.innerHTML = list.map(p => `
         <div class="item-card">
-            <div onclick="window.location.href='project-detail.html?id=${p.id}'" style="cursor:pointer;">
-                ${p.logo ? `<div class="item-card-logo" style="background-image:url('${p.logo}')"></div>` : `<div class="item-card-logo item-card-logo-placeholder">${getInitials(p.companyName)}</div>`}
+            <div onclick="window.location.href='${NAVIGATION.PROJECT_DETAIL}?id=${escapeHtml(p.id)}'" style="cursor:pointer;">
+                ${p.logo ? `<div class="item-card-logo" style="background-image:url('${escapeHtml(p.logo)}')"></div>` : `<div class="item-card-logo item-card-logo-placeholder">${escapeHtml(getInitials(p.companyName))}</div>`}
                 <div class="item-card-body">
-                    <div class="item-company">${p.companyName || 'Unnamed'}</div>
-                    <div class="item-client">${p.clientName || ''}</div>
-                    <div class="item-badges"><span class="status-badge ${p.status || 'active'}">${getStatusLabel(p.status || 'active')}</span><span class="tier-badge ${p.tier || 'farmer'}">${getTierName(p.tier || 'farmer')}</span></div>
-                    <div class="item-progress"><div class="progress-header"><span>Progress</span><span>${p.progress || 0}%</span></div><div class="progress-bar"><div class="progress-fill" style="width:${p.progress || 0}%"></div></div></div>
+                    <div class="item-company">${escapeHtml(p.companyName || 'Unnamed')}</div>
+                    <div class="item-client">${escapeHtml(p.clientName || '')}</div>
+                    <div class="item-badges"><span class="status-badge ${escapeHtml(p.status || 'active')}">${escapeHtml(getStatusLabel(p.status || 'active'))}</span><span class="tier-badge ${escapeHtml(p.tier || 'farmer')}">${escapeHtml(getTierName(p.tier || 'farmer'))}</span></div>
+                    <div class="item-progress"><div class="progress-header"><span>Progress</span><span>${parseInt(p.progress) || 0}%</span></div><div class="progress-bar"><div class="progress-fill" style="width:${parseInt(p.progress) || 0}%"></div></div></div>
                 </div>
             </div>
             ${AppState.isAdmin ? `<div style="padding:0 16px 16px;border-top:1px solid var(--color-border-subtle);margin-top:8px;padding-top:12px;" onclick="event.stopPropagation();">
                 <label style="font-size:11px;color:var(--color-text-muted);display:block;margin-bottom:4px;">Current Task</label>
-                <div style="display:flex;gap:8px;"><input type="text" id="task-input-${p.id}" class="form-input" value="${(p.currentTask || '').replace(/"/g, '&quot;')}" placeholder="What's being worked on?" style="flex:1;font-size:13px;padding:6px 10px;"><button class="btn btn-primary btn-sm" onclick="handleQuickSaveTask('${p.id}')">Save</button></div>
-            </div>` : `<div style="padding:0 16px 16px;"><span style="font-size:12px;color:var(--color-text-muted);">Task:</span> <span style="font-size:13px;">${p.currentTask || 'None set'}</span></div>`}
+                <div style="display:flex;gap:8px;"><input type="text" id="task-input-${escapeHtml(p.id)}" class="form-input" value="${escapeHtml(p.currentTask || '')}" placeholder="What's being worked on?" style="flex:1;font-size:13px;padding:6px 10px;"><button class="btn btn-primary btn-sm" onclick="handleQuickSaveTask('${escapeHtml(p.id)}')">Save</button></div>
+            </div>` : `<div style="padding:0 16px 16px;"><span style="font-size:12px;color:var(--color-text-muted);">Task:</span> <span style="font-size:13px;">${escapeHtml(p.currentTask || 'None set')}</span></div>`}
         </div>`).join('');
 }
 
@@ -172,12 +176,12 @@ function renderClients(containerId) {
     if (!AppState.clients.length) { c.innerHTML = '<div class="empty-state"><h3>No clients yet</h3></div>'; return; }
     c.innerHTML = `<table class="table"><thead><tr><th>Name</th><th>Email</th><th>Company</th><th>Password</th><th>Projects</th><th></th></tr></thead><tbody>
         ${AppState.clients.map(cl => `<tr>
-            <td><strong>${cl.displayName || '-'}</strong></td>
-            <td>${cl.email || '-'}</td>
-            <td>${cl.company || '-'}</td>
-            <td><code style="background:#333;padding:2px 6px;border-radius:4px;font-size:11px;">${cl.tempPassword || '-'}</code> <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:11px;" onclick="openChangePasswordModal('${cl.id}')">Change</button></td>
+            <td><strong>${escapeHtml(cl.displayName || '-')}</strong></td>
+            <td>${escapeHtml(cl.email || '-')}</td>
+            <td>${escapeHtml(cl.company || '-')}</td>
+            <td><code style="background:#333;padding:2px 6px;border-radius:4px;font-size:11px;">${escapeHtml(cl.tempPassword || '-')}</code> <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:11px;" onclick="openChangePasswordModal('${escapeHtml(cl.id)}')">Change</button></td>
             <td>${AppState.projects.filter(p => (p.assignedClients || []).includes(cl.id)).length}</td>
-            <td><button class="btn btn-ghost btn-sm" onclick="openEditClientModal('${cl.id}')">Edit</button></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="openEditClientModal('${escapeHtml(cl.id)}')">Edit</button></td>
         </tr>`).join('')}</tbody></table>`;
 }
 
@@ -186,16 +190,16 @@ function renderArchive(containerId) {
     if (!c) return;
     if (!AppState.archived.length) { c.innerHTML = '<div class="empty-state"><h3>Archive empty</h3></div>'; return; }
     c.innerHTML = AppState.archived.map(a => `
-        <div class="item-card" onclick="openArchiveDetailModal('${a.id}')">
-            <div class="item-card-logo item-card-logo-placeholder" style="opacity:0.5">${getInitials(a.companyName || a.clientName)}</div>
+        <div class="item-card" onclick="openArchiveDetailModal('${escapeHtml(a.id)}')">
+            <div class="item-card-logo item-card-logo-placeholder" style="opacity:0.5">${escapeHtml(getInitials(a.companyName || a.clientName))}</div>
             <div class="item-card-body">
-                <div class="item-company">${a.companyName || a.clientName || 'Unnamed'}</div>
-                <div class="item-client">${a.clientEmail || ''}</div>
+                <div class="item-company">${escapeHtml(a.companyName || a.clientName || 'Unnamed')}</div>
+                <div class="item-client">${escapeHtml(a.clientEmail || '')}</div>
                 <span class="badge badge-secondary">${a.type === 'client' ? 'Client' : a.type === 'lead' ? 'Lead' : 'Project'}</span>
                 <div class="item-meta"><span>Archived ${formatDate(a.archivedAt)}</span></div>
                 <div class="flex gap-sm mt-sm">
-                    <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); handleRestore('${a.id}', '${a.type}')">Restore</button>
-                    <button class="btn btn-ghost btn-sm" style="color:var(--color-error);" onclick="event.stopPropagation(); handleDeletePermanent('${a.id}')">Delete</button>
+                    <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); handleRestore('${escapeHtml(a.id)}', '${escapeHtml(a.type)}')">Restore</button>
+                    <button class="btn btn-ghost btn-sm" style="color:var(--color-error);" onclick="event.stopPropagation(); handleDeletePermanent('${escapeHtml(a.id)}')">Delete</button>
                 </div>
             </div>
         </div>`).join('');
@@ -238,10 +242,10 @@ function renderTickets(containerId, items = null, showResolvedSection = true) {
     }
 
     const renderTicketRow = (t) => `
-        <div class="ticket-row" onclick="window.location.href='ticket-detail.html?id=${t.id}'" style="cursor:pointer;">
-            <div class="ticket-priority ${t.tier || 'host'}"></div>
-            <div class="ticket-info"><div class="ticket-title">${t.title || 'Untitled'}</div><div class="ticket-meta">${t.projectName || '-'} • ${t.submittedBy || '-'} • ${timeAgo(t.submittedAt)}</div></div>
-            <div class="ticket-badges"><span class="tier-badge ${t.tier || 'host'}">${getTierName(t.tier || 'host')}</span><span class="status-badge ${t.status || 'open'}">${getStatusLabel(t.status || 'open')}</span></div>
+        <div class="ticket-row" onclick="window.location.href='${NAVIGATION.TICKET_DETAIL}?id=${escapeHtml(t.id)}'" style="cursor:pointer;">
+            <div class="ticket-priority ${escapeHtml(t.tier || 'host')}"></div>
+            <div class="ticket-info"><div class="ticket-title">${escapeHtml(t.title || 'Untitled')}</div><div class="ticket-meta">${escapeHtml(t.projectName || '-')} • ${escapeHtml(t.submittedBy || '-')} • ${timeAgo(t.submittedAt)}</div></div>
+            <div class="ticket-badges"><span class="tier-badge ${escapeHtml(t.tier || 'host')}">${escapeHtml(getTierName(t.tier || 'host'))}</span><span class="status-badge ${escapeHtml(t.status || 'open')}">${escapeHtml(getStatusLabel(t.status || 'open'))}</span></div>
         </div>`;
 
     let html = '';
@@ -288,10 +292,10 @@ function renderMilestones(containerId, milestones, editable = false) {
     if (!c) return;
     if (!milestones?.length) { c.innerHTML = '<p class="text-muted">No milestones yet.</p>'; return; }
     c.innerHTML = `<div class="milestone-list">${milestones.map((m, i) => `
-        <div class="milestone-item ${m.status || 'pending'}">
+        <div class="milestone-item ${escapeHtml(m.status || 'pending')}">
             <div class="milestone-dot"></div>
             <div class="milestone-content">
-                <div class="milestone-title">${m.title || 'Milestone'}</div>
+                <div class="milestone-title">${escapeHtml(m.title || 'Milestone')}</div>
                 ${editable ? `<select class="form-input form-select milestone-status-select" data-index="${i}">
                     <option value="pending" ${m.status === 'pending' ? 'selected' : ''}>Upcoming</option>
                     <option value="current" ${m.status === 'current' ? 'selected' : ''}>In Progress</option>
