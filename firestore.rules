@@ -140,10 +140,11 @@ service cloud.firestore {
 
     match /tickets/{ticketId} {
       // Support+ can read all tickets
-      // Clients can read tickets they created (by clientId) or for their assigned projects
+      // Clients can read tickets they created (by clientId or submittedById) or for their assigned projects
       allow read: if isSupport() ||
                     (isClient() && (
                       resource.data.clientId == request.auth.uid ||
+                      resource.data.submittedById == request.auth.uid ||
                       isAssignedToProject(resource.data.projectId)
                     ));
 
@@ -158,9 +159,10 @@ service cloud.firestore {
 
       // Support+ can update any ticket (status, assignment, comments, etc.)
       // Clients can update their own tickets (add comments, update description, add to timeline)
+      // Check both clientId and submittedById for backwards compatibility
       allow update: if isSupport() ||
                       (isClient() &&
-                       resource.data.clientId == request.auth.uid &&
+                       (resource.data.clientId == request.auth.uid || resource.data.submittedById == request.auth.uid) &&
                        request.resource.data.diff(resource.data).affectedKeys()
                          .hasOnly(['description', 'comments', 'attachments', 'updates', 'updatedAt']));
 
