@@ -87,13 +87,15 @@ export const TICKET_STATUS_LABELS = {
 export const TICKET_URGENCIES = {
     ASAP: 'asap',
     DAY: 'day',
-    WEEK: 'week'
+    WEEK: 'week',
+    MONTH: 'month'
 };
 
 export const TICKET_URGENCY_LABELS = {
     [TICKET_URGENCIES.ASAP]: 'ASAP',
     [TICKET_URGENCIES.DAY]: 'Within a Day',
-    [TICKET_URGENCIES.WEEK]: 'Within a Week'
+    [TICKET_URGENCIES.WEEK]: 'Within a Week',
+    [TICKET_URGENCIES.MONTH]: 'Within a Month'
 };
 
 // Milestone Status Configuration

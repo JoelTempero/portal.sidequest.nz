@@ -1327,10 +1327,12 @@ function renderPage(page) {
 function renderClientTickets(containerId) {
     const c = document.getElementById(containerId);
     if (!c) return;
-    const myTickets = AppState.tickets.filter(t => t.submittedById === AppState.currentUser?.uid);
+    // Filter by both clientId and submittedById to catch all user's tickets
+    const userId = AppState.currentUser?.uid;
+    const myTickets = AppState.tickets.filter(t => t.submittedById === userId || t.clientId === userId);
     if (!myTickets.length) { c.innerHTML = '<p class="text-muted">No tickets submitted yet.</p>'; return; }
     c.innerHTML = myTickets.map(t => `
-        <div class="ticket-row">
+        <div class="ticket-row" onclick="window.location.href='ticket-detail.html?id=${t.id}'" style="cursor:pointer;">
             <div class="ticket-priority ${t.tier || 'host'}"></div>
             <div class="ticket-info"><div class="ticket-title">${t.title || 'Untitled'}</div><div class="ticket-meta">${t.projectName || '-'} • ${timeAgo(t.submittedAt)}</div></div>
             <span class="status-badge ${t.status || 'open'}">${getStatusLabel(t.status || 'open')}</span>
