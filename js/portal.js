@@ -71,7 +71,7 @@ const formatDate = d => d ? new Date(d).toLocaleDateString('en-NZ', { month: 'sh
 const formatCurrency = n => new Intl.NumberFormat('en-NZ', { style: 'currency', currency: 'NZD' }).format(n);
 const timeAgo = d => { const s = Math.floor((new Date() - new Date(d)) / 1000); if (s < 60) return 'Just now'; if (s < 3600) return Math.floor(s/60) + 'm ago'; if (s < 86400) return Math.floor(s/3600) + 'h ago'; return Math.floor(s/86400) + 'd ago'; };
 const getInitials = n => n ? n.split(' ').map(x => x[0]).join('').slice(0,2).toUpperCase() : '??';
-const getTierOrder = t => ({ premium: 0, growth: 1, bugcatcher: 2, host: 3 }[t] ?? 4);
+const getTierOrder = t => ({ guardian: 0, watchfuleye: 1, premium: 1, farmer: 2, growth: 2, bugcatcher: 3, host: 4 }[t] ?? 5);
 const getStatusLabel = s => ({ 'noted': 'Noted', 'demo-complete': 'Demo Complete', 'demo-sent': 'Demo Sent', 'active': 'Active', 'paused': 'Paused', 'open': 'Open', 'in-progress': 'In Progress', 'resolved': 'Resolved' }[s] || s);
 
 // ============================================

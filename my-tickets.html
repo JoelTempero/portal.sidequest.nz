@@ -113,10 +113,30 @@
                     </div>
                 </div>
 
-                <!-- Tickets List -->
-                <div class="card">
+                <!-- Active Tickets List -->
+                <div class="card" id="active-tickets-card">
+                    <div class="card-header" style="padding:16px 20px;border-bottom:1px solid var(--color-border-subtle);display:flex;justify-content:space-between;align-items:center;">
+                        <h3 style="margin:0;font-size:16px;font-weight:600;">Active Tickets</h3>
+                        <span class="badge" id="active-count" style="background:var(--color-primary-light);color:var(--color-primary);padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;">0</span>
+                    </div>
                     <div id="tickets-list" class="tickets-list">
                         <!-- Dynamically populated -->
+                    </div>
+                </div>
+
+                <!-- Resolved Tickets Section (Collapsible) -->
+                <div class="card" id="resolved-tickets-card" style="margin-top:20px;display:none;">
+                    <div class="card-header" onclick="toggleResolvedSection()" style="padding:16px 20px;border-bottom:1px solid var(--color-border-subtle);display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <svg id="resolved-chevron" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="transition:transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+                            <h3 style="margin:0;font-size:16px;font-weight:600;color:var(--color-text-secondary);">Resolved Tickets</h3>
+                        </div>
+                        <span class="badge" id="resolved-count" style="background:var(--color-success-light);color:var(--color-success);padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;">0</span>
+                    </div>
+                    <div id="resolved-tickets-body" style="display:none;">
+                        <div id="resolved-tickets-list" class="tickets-list">
+                            <!-- Dynamically populated -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -154,7 +174,7 @@
     <script type="module">
         import { initAuthListener, logout } from './js/services/auth.js';
         import { getState, setTheme, getTheme, initializeTheme } from './js/services/state.js';
-        import { loadTickets, subscribeToTickets, searchTickets, getTicketStats } from './js/services/tickets.js';
+        import { loadTickets, subscribeToTickets, searchTickets, getTicketStats, calculateSLAStatus } from './js/services/tickets.js';
         import { showToast } from './js/components/toast.js';
         import { showLoading, showSkeleton } from './js/components/loaders.js';
         import { openModal, closeModal } from './js/components/modal.js';
@@ -231,54 +251,96 @@
                 );
             }
 
+            // Sort by: Tier → Urgency → SLA (remaining time, least time remaining first)
+            const tierOrder = { 'guardian': 0, 'watchfuleye': 1, 'premium': 1, 'enterprise': 1, 'farmer': 2, 'professional': 2, 'bugcatcher': 3, 'starter': 3, 'host': 4, 'basic': 4 };
+            const urgencyOrder = { 'asap': 0, 'day': 1, 'week': 2, 'month': 3 };
+
+            filtered.sort((a, b) => {
+                // 1. Sort by tier (highest tier first)
+                const tierA = tierOrder[a.tier] ?? 5;
+                const tierB = tierOrder[b.tier] ?? 5;
+                if (tierA !== tierB) return tierA - tierB;
+
+                // 2. Sort by urgency (most urgent first)
+                const urgencyA = urgencyOrder[a.urgency] ?? 3;
+                const urgencyB = urgencyOrder[b.urgency] ?? 3;
+                if (urgencyA !== urgencyB) return urgencyA - urgencyB;
+
+                // 3. Sort by SLA (least time remaining first, breached tickets first)
+                const slaA = calculateSLAStatus(a);
+                const slaB = calculateSLAStatus(b);
+                const timeA = slaA.breached ? -slaA.hoursOverdue : (slaA.hoursRemaining || 999);
+                const timeB = slaB.breached ? -slaB.hoursOverdue : (slaB.hoursRemaining || 999);
+                return timeA - timeB;
+            });
+
             return filtered;
         }
 
         function renderTickets(tickets) {
+            // Separate active and resolved tickets
+            const activeTickets = tickets.filter(t => t.status !== 'resolved');
+            const resolvedTickets = tickets.filter(t => t.status === 'resolved');
+
+            // Update counts
+            document.getElementById('active-count').textContent = activeTickets.length;
+            document.getElementById('resolved-count').textContent = resolvedTickets.length;
+
+            // Render active tickets
             const container = document.getElementById('tickets-list');
 
-            if (tickets.length === 0) {
+            if (activeTickets.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <h3>No tickets found</h3>
-                        <p>You haven't submitted any tickets yet, or none match your filters.</p>
+                        <h3>No active tickets</h3>
+                        <p>You have no open or in-progress tickets.</p>
                         <a href="projects.html" class="btn btn-primary">View Projects to Submit Tickets</a>
                     </div>
                 `;
-                return;
+            } else {
+                container.innerHTML = activeTickets.map(ticket => renderTicketCard(ticket)).join('');
             }
 
-            container.innerHTML = tickets.map(ticket => {
-                const statusClass = ticket.status.replace('-', '');
-                const priorityClass = ticket.priority || 'medium';
-                const hasNewActivity = ticket.updates?.length > 1 &&
-                    new Date(ticket.updates[ticket.updates.length - 1]?.timestamp) > new Date(Date.now() - 24 * 60 * 60 * 1000);
+            // Render resolved tickets
+            const resolvedContainer = document.getElementById('resolved-tickets-list');
+            if (resolvedTickets.length > 0) {
+                document.getElementById('resolved-tickets-card').style.display = 'block';
+                resolvedContainer.innerHTML = resolvedTickets.map(ticket => renderTicketCard(ticket, true)).join('');
+            } else {
+                document.getElementById('resolved-tickets-card').style.display = 'none';
+            }
+        }
 
-                return `
-                    <div class="ticket-card" onclick="window.location.href='ticket-detail.html?id=${ticket.id}'">
-                        <div class="ticket-card-header">
-                            <div class="ticket-card-badges">
-                                <span class="status-badge ${statusClass}">${TICKET_STATUS_LABELS[ticket.status] || ticket.status}</span>
-                                <span class="priority-badge small ${priorityClass}">${TICKET_PRIORITY_LABELS[ticket.priority] || 'Medium'}</span>
-                                ${hasNewActivity ? '<span class="badge-new">New Activity</span>' : ''}
-                            </div>
-                            <span class="ticket-card-time">${timeAgo(ticket.createdAt)}</span>
+        function renderTicketCard(ticket, isResolved = false) {
+            const statusClass = ticket.status.replace('-', '');
+            const priorityClass = ticket.priority || 'medium';
+            const hasNewActivity = ticket.updates?.length > 1 &&
+                new Date(ticket.updates[ticket.updates.length - 1]?.timestamp) > new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+            return `
+                <div class="ticket-card${isResolved ? ' resolved' : ''}" onclick="window.location.href='ticket-detail.html?id=${ticket.id}'" style="${isResolved ? 'opacity:0.7;' : ''}">
+                    <div class="ticket-card-header">
+                        <div class="ticket-card-badges">
+                            <span class="status-badge ${statusClass}">${TICKET_STATUS_LABELS[ticket.status] || ticket.status}</span>
+                            <span class="priority-badge small ${priorityClass}">${TICKET_PRIORITY_LABELS[ticket.priority] || 'Medium'}</span>
+                            ${hasNewActivity ? '<span class="badge-new">New Activity</span>' : ''}
                         </div>
-                        <h3 class="ticket-card-title">${escapeHtml(ticket.title)}</h3>
-                        <p class="ticket-card-description">${escapeHtml((ticket.description || '').slice(0, 100))}${(ticket.description?.length > 100) ? '...' : ''}</p>
-                        <div class="ticket-card-footer">
-                            <span class="ticket-card-project">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                                ${escapeHtml(ticket.projectName || 'No Project')}
-                            </span>
-                            <span class="ticket-card-comments">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                ${(ticket.comments || []).filter(c => !c.isInternal).length} comments
-                            </span>
-                        </div>
+                        <span class="ticket-card-time">${timeAgo(ticket.createdAt)}</span>
                     </div>
-                `;
-            }).join('');
+                    <h3 class="ticket-card-title">${escapeHtml(ticket.title)}</h3>
+                    <p class="ticket-card-description">${escapeHtml((ticket.description || '').slice(0, 100))}${(ticket.description?.length > 100) ? '...' : ''}</p>
+                    <div class="ticket-card-footer">
+                        <span class="ticket-card-project">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                            ${escapeHtml(ticket.projectName || 'No Project')}
+                        </span>
+                        <span class="ticket-card-comments">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            ${(ticket.comments || []).filter(c => !c.isInternal).length} comments
+                        </span>
+                    </div>
+                </div>
+            `;
         }
 
         // Global functions
@@ -313,6 +375,21 @@
         window.toggleMobileMenu = function() {
             document.querySelector('.sidebar').classList.toggle('mobile-open');
             document.querySelector('.mobile-overlay').classList.toggle('active');
+        };
+
+        let resolvedExpanded = false;
+        window.toggleResolvedSection = function() {
+            resolvedExpanded = !resolvedExpanded;
+            const body = document.getElementById('resolved-tickets-body');
+            const chevron = document.getElementById('resolved-chevron');
+
+            if (resolvedExpanded) {
+                body.style.display = 'block';
+                chevron.style.transform = 'rotate(180deg)';
+            } else {
+                body.style.display = 'none';
+                chevron.style.transform = 'rotate(0deg)';
+            }
         };
 
         window.saveSettings = function() {

@@ -14,6 +14,7 @@ export const FIREBASE_CONFIG = {
 
 // Tier Configuration
 export const TIERS = {
+    GUARDIAN: 'guardian',
     WATCHFUL_EYE: 'watchfuleye',
     FARMER: 'farmer',
     BUG_CATCHER: 'bugcatcher',
@@ -21,6 +22,7 @@ export const TIERS = {
 };
 
 export const TIER_NAMES = {
+    [TIERS.GUARDIAN]: 'Guardian',
     [TIERS.WATCHFUL_EYE]: 'Watchful Eye',
     [TIERS.FARMER]: 'Farmer',
     [TIERS.BUG_CATCHER]: 'Bug Catcher',
@@ -28,10 +30,11 @@ export const TIER_NAMES = {
 };
 
 export const TIER_ORDER = {
-    [TIERS.WATCHFUL_EYE]: 0,
-    [TIERS.FARMER]: 1,
-    [TIERS.BUG_CATCHER]: 2,
-    [TIERS.HOST]: 3
+    [TIERS.GUARDIAN]: 0,
+    [TIERS.WATCHFUL_EYE]: 1,
+    [TIERS.FARMER]: 2,
+    [TIERS.BUG_CATCHER]: 3,
+    [TIERS.HOST]: 4
 };
 
 // Legacy tier mapping for backwards compatibility
@@ -310,5 +313,5 @@ export function getTierName(tier) {
 // Get tier order for sorting
 export function getTierOrder(tier) {
     const mapped = LEGACY_TIER_MAP[tier] || tier;
-    return TIER_ORDER[mapped] ?? 4;
+    return TIER_ORDER[mapped] ?? 5;
 }

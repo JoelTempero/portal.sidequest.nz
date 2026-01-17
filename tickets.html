@@ -350,12 +350,27 @@
                 );
             }
 
-            // Sort by tier (premium first)
-            const tierOrder = { 'premium': 0, 'enterprise': 0, 'professional': 1, 'starter': 2, 'host': 3, 'basic': 3 };
+            // Sort by: Tier → Urgency → SLA (remaining time, least time remaining first)
+            const tierOrder = { 'guardian': 0, 'watchfuleye': 1, 'premium': 1, 'enterprise': 1, 'farmer': 2, 'professional': 2, 'bugcatcher': 3, 'starter': 3, 'host': 4, 'basic': 4 };
+            const urgencyOrder = { 'asap': 0, 'day': 1, 'week': 2, 'month': 3 };
+
             filtered.sort((a, b) => {
-                const tierA = tierOrder[a.tier] ?? 4;
-                const tierB = tierOrder[b.tier] ?? 4;
-                return tierA - tierB;
+                // 1. Sort by tier (highest tier first)
+                const tierA = tierOrder[a.tier] ?? 5;
+                const tierB = tierOrder[b.tier] ?? 5;
+                if (tierA !== tierB) return tierA - tierB;
+
+                // 2. Sort by urgency (most urgent first)
+                const urgencyA = urgencyOrder[a.urgency] ?? 3;
+                const urgencyB = urgencyOrder[b.urgency] ?? 3;
+                if (urgencyA !== urgencyB) return urgencyA - urgencyB;
+
+                // 3. Sort by SLA (least time remaining first, breached tickets first)
+                const slaA = calculateSLAStatus(a);
+                const slaB = calculateSLAStatus(b);
+                const timeA = slaA.breached ? -slaA.hoursOverdue : (slaA.hoursRemaining || 999);
+                const timeB = slaB.breached ? -slaB.hoursOverdue : (slaB.hoursRemaining || 999);
+                return timeA - timeB;
             });
 
             return filtered;
@@ -363,6 +378,7 @@
 
         function getTierName(tier) {
             const names = {
+                'guardian': 'Guardian',
                 'watchfuleye': 'Eye', 'premium': 'Eye', 'enterprise': 'Eye',
                 'farmer': 'Farmer', 'professional': 'Farmer',
                 'bugcatcher': 'Bug', 'starter': 'Bug',
@@ -373,6 +389,7 @@
 
         function getTierClass(tier) {
             const mapping = {
+                'guardian': 'guardian',
                 'watchfuleye': 'watchfuleye', 'premium': 'watchfuleye', 'enterprise': 'watchfuleye',
                 'farmer': 'farmer', 'professional': 'farmer',
                 'bugcatcher': 'bugcatcher', 'starter': 'bugcatcher',
