@@ -537,14 +537,64 @@ window.openConfirmModal = (message, onConfirm) => {
 window.handleConfirm = () => { const m = document.getElementById('confirm-modal'); if (m?._onConfirm) m._onConfirm(); closeModal('confirm-modal'); };
 
 // ============================================
-// ACTION HANDLERS
+// ACTION HANDLERS - With proper error handling
 // ============================================
 
-window.handleArchive = (type, id) => openConfirmModal('Archive this item?', async () => { const r = await archiveItem(type, id); if (r.success) window.location.href = type === 'lead' ? 'leads.html' : 'projects.html'; });
-window.handleRestore = (id, type) => openConfirmModal(`Restore this ${type || 'item'}?`, async () => { await restoreFromArchive(id); await loadArchive(); renderArchive('archive-grid'); closeAllModals(); });
-window.handleDeletePermanent = (id) => openConfirmModal('Permanently delete this item? This cannot be undone.', async () => { await deletePermanent(id); await loadArchive(); renderArchive('archive-grid'); closeAllModals(); });
-window.handleMoveToProject = (leadId) => openConfirmModal('Convert this lead to a project?', async () => { const r = await moveLeadToProject(leadId); if (r.success) window.location.href = 'projects.html'; });
-window.handleReturnToLead = (projectId) => openConfirmModal('Return this project to leads?', async () => { const r = await returnProjectToLead(projectId); if (r.success) window.location.href = 'leads.html'; });
+window.handleArchive = (type, id) => openConfirmModal('Archive this item?', async () => {
+    try {
+        const r = await archiveItem(type, id);
+        if (r.success) {
+            window.location.href = type === 'lead' ? NAVIGATION.LEADS : NAVIGATION.PROJECTS;
+        }
+    } catch (error) {
+        console.error('Archive failed:', error);
+        showToast('Failed to archive item', 'error');
+    }
+});
+
+window.handleRestore = (id, type) => openConfirmModal(`Restore this ${type || 'item'}?`, async () => {
+    try {
+        await restoreFromArchive(id);
+        await loadArchive();
+        renderArchive('archive-grid');
+        closeAllModals();
+    } catch (error) {
+        console.error('Restore failed:', error);
+        showToast('Failed to restore item', 'error');
+    }
+});
+
+window.handleDeletePermanent = (id) => openConfirmModal('Permanently delete this item? This cannot be undone.', async () => {
+    try {
+        await deletePermanent(id);
+        await loadArchive();
+        renderArchive('archive-grid');
+        closeAllModals();
+    } catch (error) {
+        console.error('Delete failed:', error);
+        showToast('Failed to delete item', 'error');
+    }
+});
+
+window.handleMoveToProject = (leadId) => openConfirmModal('Convert this lead to a project?', async () => {
+    try {
+        const r = await moveLeadToProject(leadId);
+        if (r.success) window.location.href = NAVIGATION.PROJECTS;
+    } catch (error) {
+        console.error('Convert to project failed:', error);
+        showToast('Failed to convert to project', 'error');
+    }
+});
+
+window.handleReturnToLead = (projectId) => openConfirmModal('Return this project to leads?', async () => {
+    try {
+        const r = await returnProjectToLead(projectId);
+        if (r.success) window.location.href = NAVIGATION.LEADS;
+    } catch (error) {
+        console.error('Return to lead failed:', error);
+        showToast('Failed to return to lead', 'error');
+    }
+});
 
 window.handleLogin = async (e) => {
     e.preventDefault();
@@ -1353,29 +1403,46 @@ window.handleMakePost = async (projectId) => {
 
 onAuthStateChanged(auth, async (user) => {
     const page = location.pathname.split('/').pop() || 'index.html';
-    
+
     if (user) {
         AppState.currentUser = user;
-        AppState.isAdmin = ADMIN_UIDS.includes(user.uid);
-        
-        const userRef = doc(db, 'users', user.uid);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-            AppState.userProfile = userSnap.data();
-        } else {
-            const profile = { email: user.email, displayName: user.displayName || user.email.split('@')[0], role: AppState.isAdmin ? 'admin' : 'client', createdAt: serverTimestamp() };
-            await setDoc(userRef, profile);
-            AppState.userProfile = profile;
+
+        try {
+            const userRef = doc(db, 'users', user.uid);
+            const userSnap = await getDoc(userRef);
+            if (userSnap.exists()) {
+                AppState.userProfile = userSnap.data();
+                // Determine admin status from Firestore role field
+                AppState.isAdmin = checkIsAdmin(AppState.userProfile);
+            } else {
+                // Create profile for new users - determine role based on context
+                const profile = {
+                    email: user.email,
+                    displayName: user.displayName || user.email.split('@')[0],
+                    role: 'client', // Default to client, admin promotes via updateUserRole
+                    createdAt: serverTimestamp()
+                };
+                await setDoc(userRef, profile);
+                AppState.userProfile = profile;
+                AppState.isAdmin = false;
+            }
+
+            if (page === 'index.html') {
+                window.location.href = NAVIGATION.DASHBOARD;
+                return;
+            }
+
+            await loadPageData(page);
+            renderPage(page);
+            updateUserInfo();
+        } catch (error) {
+            console.error('Error loading user profile:', error);
+            showToast('Failed to load user profile', 'error');
+        } finally {
+            showLoading(false);
         }
-        
-        if (page === 'index.html') { window.location.href = 'dashboard.html'; return; }
-        
-        await loadPageData(page);
-        renderPage(page);
-        updateUserInfo();
-        showLoading(false);
     } else {
-        if (page !== 'index.html') window.location.href = 'index.html';
+        if (page !== 'index.html') window.location.href = NAVIGATION.LOGIN;
         showLoading(false);
     }
 });
@@ -1468,10 +1535,10 @@ function renderClientTickets(containerId) {
     });
 
     const renderTicketRow = (t) => `
-        <div class="ticket-row" onclick="window.location.href='ticket-detail.html?id=${t.id}'" style="cursor:pointer;">
-            <div class="ticket-priority ${t.tier || 'host'}"></div>
-            <div class="ticket-info"><div class="ticket-title">${t.title || 'Untitled'}</div><div class="ticket-meta">${t.projectName || '-'} • ${timeAgo(t.submittedAt)}</div></div>
-            <span class="status-badge ${t.status || 'open'}">${getStatusLabel(t.status || 'open')}</span>
+        <div class="ticket-row" data-ticket-id="${escapeHtml(t.id)}" role="button" tabindex="0" style="cursor:pointer;">
+            <div class="ticket-priority ${escapeHtml(t.tier || 'host')}"></div>
+            <div class="ticket-info"><div class="ticket-title">${escapeHtml(t.title || 'Untitled')}</div><div class="ticket-meta">${escapeHtml(t.projectName || '-')} • ${timeAgo(t.submittedAt)}</div></div>
+            <span class="status-badge ${escapeHtml(t.status || 'open')}">${escapeHtml(getStatusLabel(t.status || 'open'))}</span>
         </div>`;
 
     let html = '';
@@ -1487,23 +1554,53 @@ function renderClientTickets(containerId) {
     if (resolvedTickets.length) {
         html += `
             <div class="resolved-tickets-section" style="margin-top: 16px; border-top: 1px solid var(--color-border-subtle); padding-top: 12px;">
-                <div class="resolved-header" onclick="toggleResolvedTickets(this)" style="display: flex; align-items: center; cursor: pointer; margin-bottom: 8px;">
-                    <svg class="chevron-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="transition: transform 0.2s; margin-right: 6px;"><polyline points="6 9 12 15 18 9"/></svg>
+                <button type="button" class="resolved-header" style="display: flex; align-items: center; cursor: pointer; margin-bottom: 8px; background: none; border: none; padding: 0; width: 100%; text-align: left;" aria-expanded="false" aria-controls="resolved-list-${containerId}">
+                    <svg class="chevron-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="transition: transform 0.2s; margin-right: 6px;" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                     <span style="font-size: 13px; color: var(--color-text-muted); font-weight: 500;">Resolved (${resolvedTickets.length})</span>
-                </div>
-                <div class="resolved-tickets-list" style="display: none;">
+                </button>
+                <div id="resolved-list-${containerId}" class="resolved-tickets-list" style="display: none;">
                     ${resolvedTickets.map(t => renderTicketRow(t)).join('')}
                 </div>
             </div>`;
     }
 
     c.innerHTML = html;
+
+    // Use event delegation for ticket rows
+    c.addEventListener('click', (e) => {
+        const ticketRow = e.target.closest('.ticket-row[data-ticket-id]');
+        if (ticketRow) {
+            window.location.href = `${NAVIGATION.TICKET_DETAIL}?id=${ticketRow.dataset.ticketId}`;
+            return;
+        }
+
+        const resolvedHeader = e.target.closest('.resolved-header');
+        if (resolvedHeader) {
+            const list = resolvedHeader.nextElementSibling;
+            const chevron = resolvedHeader.querySelector('.chevron-icon');
+            const isExpanded = list.style.display !== 'none';
+            list.style.display = isExpanded ? 'none' : 'block';
+            chevron.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(180deg)';
+            resolvedHeader.setAttribute('aria-expanded', !isExpanded);
+        }
+    });
+
+    // Keyboard accessibility for ticket rows
+    c.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            const ticketRow = e.target.closest('.ticket-row[data-ticket-id]');
+            if (ticketRow) {
+                e.preventDefault();
+                window.location.href = `${NAVIGATION.TICKET_DETAIL}?id=${ticketRow.dataset.ticketId}`;
+            }
+        }
+    });
 }
 
 function renderLeadDetail() {
     const id = new URLSearchParams(location.search).get('id');
     const lead = AppState.leads.find(l => l.id === id);
-    if (!lead) { window.location.href = 'leads.html'; return; }
+    if (!lead) { window.location.href = NAVIGATION.LEADS; return; }
     AppState.currentItem = lead;
     
     const el = i => document.getElementById(i);
@@ -1540,7 +1637,7 @@ function renderLeadDetail() {
 function renderProjectDetail() {
     const id = new URLSearchParams(location.search).get('id');
     const proj = AppState.projects.find(p => p.id === id);
-    if (!proj) { window.location.href = 'projects.html'; return; }
+    if (!proj) { window.location.href = NAVIGATION.PROJECTS; return; }
     AppState.currentItem = proj;
     
     const el = i => document.getElementById(i);
