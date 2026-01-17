@@ -69,20 +69,31 @@ function renderFilterBar(containerId, items, type) {
     const locations = getUniqueValues(items, 'location');
     const types = getUniqueValues(items, 'businessType');
     const statuses = type === 'lead' ? ['noted', 'demo-complete', 'demo-sent'] : ['active', 'paused', 'completed'];
+    const tiers = ['guardian', 'watchfuleye', 'farmer', 'bugcatcher', 'host'];
+
+    // Add tier filter only for projects
+    const tierFilterHtml = type === 'project' ? `
+        <select class="form-input form-select" id="filter-tier" style="width:150px;">
+            <option value="all" ${tierFilter === 'all' ? 'selected' : ''}>All Tiers</option>
+            ${tiers.map(t => `<option value="${t}" ${tierFilter === t ? 'selected' : ''}>${getTierName(t)}</option>`).join('')}
+        </select>` : '';
+
     c.innerHTML = `<div class="filter-bar">
         <input type="text" class="form-input" id="filter-search" placeholder="Search..." value="${filters.search}" style="flex:1;min-width:200px;">
+        ${tierFilterHtml}
         <select class="form-input form-select" id="filter-location" style="width:150px;"><option value="">All Locations</option>${locations.map(l => `<option value="${l}" ${filters.location === l ? 'selected' : ''}>${l}</option>`).join('')}</select>
         <select class="form-input form-select" id="filter-type" style="width:180px;"><option value="">All Types</option>${types.map(t => `<option value="${t}" ${filters.businessType === t ? 'selected' : ''}>${t}</option>`).join('')}</select>
         <select class="form-input form-select" id="filter-status" style="width:150px;"><option value="">All Statuses</option>${statuses.map(s => `<option value="${s}" ${filters.status === s ? 'selected' : ''}>${getStatusLabel(s)}</option>`).join('')}</select>
         <button class="btn btn-ghost" onclick="clearFilters()">Clear</button>
     </div>`;
     document.getElementById('filter-search')?.addEventListener('input', e => { filters.search = e.target.value; renderGridOnly(); });
+    document.getElementById('filter-tier')?.addEventListener('change', e => { tierFilter = e.target.value; renderGridOnly(); });
     document.getElementById('filter-location')?.addEventListener('change', e => { filters.location = e.target.value; renderGridOnly(); });
     document.getElementById('filter-type')?.addEventListener('change', e => { filters.businessType = e.target.value; renderGridOnly(); });
     document.getElementById('filter-status')?.addEventListener('change', e => { filters.status = e.target.value; renderGridOnly(); });
 }
 
-window.clearFilters = () => { filters = { search: '', location: '', businessType: '', status: '' }; renderCurrentPage(); };
+window.clearFilters = () => { filters = { search: '', location: '', businessType: '', status: '' }; tierFilter = 'all'; renderCurrentPage(); };
 
 let currentPageType = '';
 function renderGridOnly() {
@@ -113,10 +124,29 @@ function renderLeads(containerId) {
         </div>`).join('');
 }
 
+// Tier filter state
+let tierFilter = 'all';
+
 function renderProjects(containerId, items = null) {
     const c = document.getElementById(containerId);
     if (!c) return;
     let list = items || applyFilters(AppState.projects);
+
+    // Apply tier filter
+    if (tierFilter !== 'all') {
+        list = list.filter(p => p.tier === tierFilter);
+    }
+
+    // Sort by tier first (highest tier first), then by creation date
+    list.sort((a, b) => {
+        const tierDiff = getTierOrder(a.tier) - getTierOrder(b.tier);
+        if (tierDiff !== 0) return tierDiff;
+        // If same tier, sort by creation date (newest first)
+        const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
+        const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
+        return dateB - dateA;
+    });
+
     if (!list.length) { c.innerHTML = `<div class="empty-state"><h3>No projects yet</h3></div>`; return; }
     c.innerHTML = list.map(p => `
         <div class="item-card">
@@ -171,17 +201,86 @@ function renderArchive(containerId) {
         </div>`).join('');
 }
 
-function renderTickets(containerId, items = null) {
+function renderTickets(containerId, items = null, showResolvedSection = true) {
     const c = document.getElementById(containerId);
     if (!c) return;
-    let list = [...(items || AppState.tickets)].sort((a, b) => getTierOrder(a.tier) - getTierOrder(b.tier));
-    if (!list.length) { c.innerHTML = '<div class="empty-state"><h3>No tickets</h3></div>'; return; }
-    c.innerHTML = list.map(t => `
-        <div class="ticket-row" onclick="openTicketModal('${t.id}')">
+    let list = [...(items || AppState.tickets)];
+
+    // Separate active and resolved tickets
+    const activeTickets = list.filter(t => t.status !== 'resolved');
+    const resolvedTickets = list.filter(t => t.status === 'resolved');
+
+    // Sort active tickets by tier, urgency, then SLA
+    const urgencyOrder = { 'asap': 0, 'day': 1, 'week': 2, 'month': 3 };
+    activeTickets.sort((a, b) => {
+        // First by tier
+        const tierDiff = getTierOrder(a.tier) - getTierOrder(b.tier);
+        if (tierDiff !== 0) return tierDiff;
+        // Then by urgency
+        const urgencyDiff = (urgencyOrder[a.urgency] || 3) - (urgencyOrder[b.urgency] || 3);
+        if (urgencyDiff !== 0) return urgencyDiff;
+        // Then by date (oldest first for SLA)
+        const dateA = a.submittedAt?.toDate?.() || new Date(a.submittedAt || 0);
+        const dateB = b.submittedAt?.toDate?.() || new Date(b.submittedAt || 0);
+        return dateA - dateB;
+    });
+
+    // Sort resolved tickets by resolution date (newest first)
+    resolvedTickets.sort((a, b) => {
+        const dateA = a.resolvedAt?.toDate?.() || a.updatedAt?.toDate?.() || new Date(0);
+        const dateB = b.resolvedAt?.toDate?.() || b.updatedAt?.toDate?.() || new Date(0);
+        return dateB - dateA;
+    });
+
+    if (!activeTickets.length && !resolvedTickets.length) {
+        c.innerHTML = '<div class="empty-state"><h3>No tickets</h3></div>';
+        return;
+    }
+
+    const renderTicketRow = (t, clickAction = "openTicketModal") => `
+        <div class="ticket-row" onclick="${clickAction}('${t.id}')" style="cursor:pointer;">
             <div class="ticket-priority ${t.tier || 'host'}"></div>
             <div class="ticket-info"><div class="ticket-title">${t.title || 'Untitled'}</div><div class="ticket-meta">${t.projectName || '-'} • ${t.submittedBy || '-'} • ${timeAgo(t.submittedAt)}</div></div>
             <div class="ticket-badges"><span class="tier-badge ${t.tier || 'host'}">${getTierName(t.tier || 'host')}</span><span class="status-badge ${t.status || 'open'}">${getStatusLabel(t.status || 'open')}</span></div>
-        </div>`).join('');
+        </div>`;
+
+    let html = '';
+
+    // Active tickets section
+    if (activeTickets.length) {
+        html += activeTickets.map(t => renderTicketRow(t)).join('');
+    } else {
+        html += '<p class="text-muted" style="padding: 16px;">No active tickets</p>';
+    }
+
+    // Resolved tickets section (collapsible)
+    if (showResolvedSection && resolvedTickets.length) {
+        html += `
+            <div class="resolved-tickets-section" style="margin-top: 24px; border-top: 1px solid var(--color-border-subtle); padding-top: 16px;">
+                <div class="resolved-header" onclick="toggleResolvedTickets(this)" style="display: flex; align-items: center; cursor: pointer; margin-bottom: 12px;">
+                    <svg class="chevron-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" style="transition: transform 0.2s; margin-right: 8px;"><polyline points="6 9 12 15 18 9"/></svg>
+                    <h4 style="margin: 0; color: var(--color-text-muted);">Resolved Tickets (${resolvedTickets.length})</h4>
+                </div>
+                <div class="resolved-tickets-list" style="display: none;">
+                    ${resolvedTickets.map(t => renderTicketRow(t)).join('')}
+                </div>
+            </div>`;
+    }
+
+    c.innerHTML = html;
+}
+
+// Toggle resolved tickets visibility
+window.toggleResolvedTickets = function(header) {
+    const list = header.nextElementSibling;
+    const chevron = header.querySelector('.chevron-icon');
+    if (list.style.display === 'none') {
+        list.style.display = 'block';
+        chevron.style.transform = 'rotate(180deg)';
+    } else {
+        list.style.display = 'none';
+        chevron.style.transform = 'rotate(0deg)';
+    }
 }
 
 function renderMilestones(containerId, milestones, editable = false) {
@@ -224,7 +323,11 @@ function renderMessages(containerId, messages) {
     const c = document.getElementById(containerId);
     if (!c) return;
     if (!messages?.length) { c.innerHTML = '<p class="text-muted text-center">No messages yet.</p>'; return; }
-    c.innerHTML = messages.map(m => `<div class="message ${m.senderId === AppState.currentUser?.uid ? 'sent' : 'received'}"><div class="message-avatar">${getInitials(m.senderName)}</div><div class="message-bubble"><div class="message-sender">${m.senderName || 'User'}</div><div class="message-text">${m.text || ''}</div><div class="message-time">${timeAgo(m.timestamp)}</div></div></div>`).join('');
+    c.innerHTML = messages.map(m => {
+        // Use timestamp if available, fall back to clientTimestamp
+        const messageTime = m.timestamp || m.clientTimestamp;
+        return `<div class="message ${m.senderId === AppState.currentUser?.uid ? 'sent' : 'received'}"><div class="message-avatar">${getInitials(m.senderName)}</div><div class="message-bubble"><div class="message-sender">${m.senderName || 'User'}</div><div class="message-text">${m.text || ''}</div><div class="message-time">${timeAgo(messageTime)}</div></div></div>`;
+    }).join('');
     c.scrollTop = c.scrollHeight;
 }
 
@@ -241,8 +344,22 @@ function updateUserInfo() {
             a.textContent = getInitials(AppState.userProfile?.displayName || 'U');
         }
     }
-    document.querySelectorAll('.admin-only').forEach(el => el.style.display = AppState.isAdmin ? '' : 'none');
-    document.querySelectorAll('.client-only').forEach(el => el.style.display = AppState.isAdmin ? 'none' : '');
+    // Show admin elements only for admins, hide client elements for admins
+    document.querySelectorAll('.admin-only').forEach(el => {
+        el.style.display = AppState.isAdmin ? '' : 'none';
+    });
+    document.querySelectorAll('.client-only').forEach(el => {
+        el.style.display = AppState.isAdmin ? 'none' : '';
+        // Also set visibility as a backup
+        el.style.visibility = AppState.isAdmin ? 'hidden' : 'visible';
+        // Remove from layout entirely if admin
+        if (AppState.isAdmin) {
+            el.style.position = 'absolute';
+            el.style.width = '0';
+            el.style.height = '0';
+            el.style.overflow = 'hidden';
+        }
+    });
     
     // Populate admin profile modal if exists
     const adminName = document.getElementById('admin-display-name');
@@ -1330,13 +1447,66 @@ function renderClientTickets(containerId) {
     // Filter by both clientId and submittedById to catch all user's tickets
     const userId = AppState.currentUser?.uid;
     const myTickets = AppState.tickets.filter(t => t.submittedById === userId || t.clientId === userId);
-    if (!myTickets.length) { c.innerHTML = '<p class="text-muted">No tickets submitted yet.</p>'; return; }
-    c.innerHTML = myTickets.map(t => `
+
+    if (!myTickets.length) {
+        c.innerHTML = '<p class="text-muted">No tickets submitted yet.</p>';
+        return;
+    }
+
+    // Separate active and resolved tickets
+    const activeTickets = myTickets.filter(t => t.status !== 'resolved');
+    const resolvedTickets = myTickets.filter(t => t.status === 'resolved');
+
+    // Sort active tickets by tier, urgency, then date
+    const urgencyOrder = { 'asap': 0, 'day': 1, 'week': 2, 'month': 3 };
+    activeTickets.sort((a, b) => {
+        const tierDiff = getTierOrder(a.tier) - getTierOrder(b.tier);
+        if (tierDiff !== 0) return tierDiff;
+        const urgencyDiff = (urgencyOrder[a.urgency] || 3) - (urgencyOrder[b.urgency] || 3);
+        if (urgencyDiff !== 0) return urgencyDiff;
+        const dateA = a.submittedAt?.toDate?.() || new Date(a.submittedAt || 0);
+        const dateB = b.submittedAt?.toDate?.() || new Date(b.submittedAt || 0);
+        return dateA - dateB;
+    });
+
+    // Sort resolved tickets by resolution date (newest first)
+    resolvedTickets.sort((a, b) => {
+        const dateA = a.resolvedAt?.toDate?.() || a.updatedAt?.toDate?.() || new Date(0);
+        const dateB = b.resolvedAt?.toDate?.() || b.updatedAt?.toDate?.() || new Date(0);
+        return dateB - dateA;
+    });
+
+    const renderTicketRow = (t) => `
         <div class="ticket-row" onclick="window.location.href='ticket-detail.html?id=${t.id}'" style="cursor:pointer;">
             <div class="ticket-priority ${t.tier || 'host'}"></div>
             <div class="ticket-info"><div class="ticket-title">${t.title || 'Untitled'}</div><div class="ticket-meta">${t.projectName || '-'} • ${timeAgo(t.submittedAt)}</div></div>
             <span class="status-badge ${t.status || 'open'}">${getStatusLabel(t.status || 'open')}</span>
-        </div>`).join('');
+        </div>`;
+
+    let html = '';
+
+    // Active tickets
+    if (activeTickets.length) {
+        html += activeTickets.map(t => renderTicketRow(t)).join('');
+    } else {
+        html += '<p class="text-muted" style="padding: 8px 0;">No active tickets</p>';
+    }
+
+    // Resolved tickets section (collapsible)
+    if (resolvedTickets.length) {
+        html += `
+            <div class="resolved-tickets-section" style="margin-top: 16px; border-top: 1px solid var(--color-border-subtle); padding-top: 12px;">
+                <div class="resolved-header" onclick="toggleResolvedTickets(this)" style="display: flex; align-items: center; cursor: pointer; margin-bottom: 8px;">
+                    <svg class="chevron-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="transition: transform 0.2s; margin-right: 6px;"><polyline points="6 9 12 15 18 9"/></svg>
+                    <span style="font-size: 13px; color: var(--color-text-muted); font-weight: 500;">Resolved (${resolvedTickets.length})</span>
+                </div>
+                <div class="resolved-tickets-list" style="display: none;">
+                    ${resolvedTickets.map(t => renderTicketRow(t)).join('')}
+                </div>
+            </div>`;
+    }
+
+    c.innerHTML = html;
 }
 
 function renderLeadDetail() {

@@ -85,23 +85,23 @@ export const TICKET_PRIORITY_LABELS = {
 
 // SLA hours matrix: Tier + Urgency
 // Higher tier = faster SLA, higher urgency = faster SLA
-// Values now better aligned with urgency labels (week = 3-7 days, month = 14-30 days)
+// Values from tier SLA table (ASAP, Day, Week, Month)
 export const SLA_MATRIX = {
-    // Guardian tier - highest priority, fastest response
-    'guardian': { 'asap': 1, 'day': 4, 'week': 72, 'month': 336 },      // 1h, 4h, 3d, 14d
-    // Premium/Enterprise tier (Watchful Eye)
-    'premium': { 'asap': 2, 'day': 8, 'week': 120, 'month': 504 },      // 2h, 8h, 5d, 21d
-    'enterprise': { 'asap': 2, 'day': 8, 'week': 120, 'month': 504 },
-    'watchfuleye': { 'asap': 2, 'day': 8, 'week': 120, 'month': 504 },
-    // Professional tier (Farmer) - standard fast response
-    'professional': { 'asap': 4, 'day': 16, 'week': 168, 'month': 504 }, // 4h, 16h, 7d, 21d
-    'farmer': { 'asap': 4, 'day': 16, 'week': 168, 'month': 504 },
-    // Starter tier (Bug Catcher) - moderate response
-    'starter': { 'asap': 8, 'day': 24, 'week': 168, 'month': 720 },      // 8h, 24h, 7d, 30d
-    'bugcatcher': { 'asap': 8, 'day': 24, 'week': 168, 'month': 720 },
-    // Host/Basic tier - standard response
-    'host': { 'asap': 12, 'day': 48, 'week': 168, 'month': 720 },        // 12h, 48h, 7d, 30d
-    'basic': { 'asap': 12, 'day': 48, 'week': 168, 'month': 720 }
+    // Guardian tier - highest priority, fastest response (12h, 24h, 72h/3d, 336h/14d)
+    'guardian': { 'asap': 12, 'day': 24, 'week': 72, 'month': 336 },
+    // Watchful Eye tier (16h, 30h, 120h/5d, 504h/21d)
+    'premium': { 'asap': 16, 'day': 30, 'week': 120, 'month': 504 },
+    'enterprise': { 'asap': 16, 'day': 30, 'week': 120, 'month': 504 },
+    'watchfuleye': { 'asap': 16, 'day': 30, 'week': 120, 'month': 504 },
+    // Farmer tier (18h, 34h, 168h/7d, 504h/21d)
+    'professional': { 'asap': 18, 'day': 34, 'week': 168, 'month': 504 },
+    'farmer': { 'asap': 18, 'day': 34, 'week': 168, 'month': 504 },
+    // Bug Catcher tier (20h, 48h, 168h/7d, 720h/30d)
+    'starter': { 'asap': 20, 'day': 48, 'week': 168, 'month': 720 },
+    'bugcatcher': { 'asap': 20, 'day': 48, 'week': 168, 'month': 720 },
+    // Host tier - standard response (24h, 52h, 168h/7d, 720h/30d)
+    'host': { 'asap': 24, 'day': 52, 'week': 168, 'month': 720 },
+    'basic': { 'asap': 24, 'day': 52, 'week': 168, 'month': 720 }
 };
 
 // Legacy fallback
