@@ -162,6 +162,24 @@
     color: #22c55e;
 }
 
+.urgency-badge.month {
+    background: rgba(100, 116, 139, 0.15);
+    color: #64748b;
+}
+
+/* Tier indicator dots */
+.tier-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.tier-dot.watchfuleye { background: linear-gradient(135deg, #f59e0b, #eab308); }
+.tier-dot.farmer { background: linear-gradient(135deg, #22c55e, #16a34a); }
+.tier-dot.bugcatcher { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.tier-dot.host { background: linear-gradient(135deg, #6b7280, #4b5563); }
+
 /* ============================================
    PRIORITY BADGES
    ============================================ */
