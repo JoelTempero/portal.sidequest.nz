@@ -3,6 +3,11 @@
    ============================================ */
 
 // Firebase Configuration
+// NOTE: Firebase API keys are safe to expose in client-side code as access is controlled
+// by Firebase Security Rules. However, for additional security consider:
+// 1. Enable Firebase App Check to prevent unauthorized API usage
+// 2. Restrict API key in Google Cloud Console to specific domains
+// 3. Monitor usage in Firebase Console for anomalies
 export const FIREBASE_CONFIG = {
     apiKey: "AIzaSyCHBw5_1925Bno5CHVEMUpdBgqQR_UHbAk",
     authDomain: "sidequest-digital.firebaseapp.com",
@@ -10,6 +15,31 @@ export const FIREBASE_CONFIG = {
     storageBucket: "sidequest-digital.firebasestorage.app",
     messagingSenderId: "576711179044",
     appId: "1:576711179044:web:bef810a231f00c0b9c11b1"
+};
+
+// UI Animation & Timing Constants
+export const UI_TIMING = {
+    TOAST_DURATION_MS: 3000,
+    MODAL_ANIMATION_MS: 200,
+    DEBOUNCE_SEARCH_MS: 300,
+    LOADING_DELAY_MS: 500,
+    AUTO_SAVE_INTERVAL_MS: 30000
+};
+
+// Navigation URLs (centralized for maintainability)
+export const NAVIGATION = {
+    LOGIN: 'index.html',
+    DASHBOARD: 'dashboard.html',
+    LEADS: 'leads.html',
+    LEAD_DETAIL: 'lead-detail.html',
+    PROJECTS: 'projects.html',
+    PROJECT_DETAIL: 'project-detail.html',
+    TICKETS: 'tickets.html',
+    MY_TICKETS: 'my-tickets.html',
+    TICKET_DETAIL: 'ticket-detail.html',
+    CLIENTS: 'clients.html',
+    POSTS: 'posts.html',
+    ARCHIVE: 'archive.html'
 };
 
 // Tier Configuration
