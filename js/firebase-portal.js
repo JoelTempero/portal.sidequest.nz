@@ -172,6 +172,23 @@ async function updateProject(id, updates) {
     try {
         console.log('Updating project:', id, updates);
         await updateDoc(doc(db, 'projects', id), { ...updates, updatedAt: serverTimestamp() });
+
+        // If tier was updated, also update all tickets for this project
+        if (updates.tier) {
+            console.log('Tier changed, updating related tickets...');
+            try {
+                const ticketsQuery = query(collection(db, 'tickets'), where('projectId', '==', id));
+                const ticketsSnapshot = await getDocs(ticketsQuery);
+                const updatePromises = ticketsSnapshot.docs.map(ticketDoc =>
+                    updateDoc(doc(db, 'tickets', ticketDoc.id), { tier: updates.tier })
+                );
+                await Promise.all(updatePromises);
+                console.log(`Updated tier for ${ticketsSnapshot.docs.length} tickets`);
+            } catch (ticketErr) {
+                console.warn('Could not update ticket tiers:', ticketErr);
+            }
+        }
+
         showToast('Project updated!', 'success');
         return { success: true };
     } catch (e) { console.error('Update project error:', e); showToast('Failed to update', 'error'); return { success: false }; }
@@ -404,17 +421,80 @@ async function createTicket(data) {
 async function updateTicket(id, updates) { try { await updateDoc(doc(db, 'tickets', id), updates); showToast('Ticket updated!', 'success'); return { success: true }; } catch (e) { console.error('Update ticket error:', e); showToast('Failed to update ticket', 'error'); return { success: false }; } }
 
 // MESSAGES
-function subscribeToMessages(projectId, cb) { const q = query(collection(db, 'messages'), where('projectId', '==', projectId), orderBy('timestamp', 'asc')); const u = onSnapshot(q, s => { if (cb) cb(s.docs.map(d => ({ id: d.id, ...d.data() }))); }); AppState.unsubscribers.push(u); return u; }
+function subscribeToMessages(projectId, cb) {
+    console.log('subscribeToMessages called for project:', projectId);
+    const q = query(collection(db, 'messages'), where('projectId', '==', projectId), orderBy('timestamp', 'asc'));
+    const u = onSnapshot(q, s => {
+        const messages = s.docs.map(d => ({ id: d.id, ...d.data() }));
+        console.log('Messages snapshot received:', messages.length, 'messages');
+        if (cb) cb(messages);
+    }, (error) => {
+        console.error('Messages subscription error:', error);
+        // Try without orderBy if index doesn't exist
+        if (error.code === 'failed-precondition') {
+            console.log('Index missing, retrying without orderBy...');
+            const fallbackQ = query(collection(db, 'messages'), where('projectId', '==', projectId));
+            onSnapshot(fallbackQ, s => {
+                const messages = s.docs.map(d => ({ id: d.id, ...d.data() }));
+                // Sort client-side
+                messages.sort((a, b) => {
+                    const timeA = a.timestamp?.toDate?.() || new Date(a.timestamp || 0);
+                    const timeB = b.timestamp?.toDate?.() || new Date(b.timestamp || 0);
+                    return timeA - timeB;
+                });
+                if (cb) cb(messages);
+            });
+        }
+    });
+    AppState.unsubscribers.push(u);
+    return u;
+}
 async function sendMessage(projectId, text) {
     try {
-        console.log('Sending message:', { projectId, text, sender: AppState.currentUser?.uid });
-        await addDoc(collection(db, 'messages'), { projectId, senderId: AppState.currentUser.uid, senderName: AppState.userProfile?.displayName || 'User', text, timestamp: serverTimestamp() });
-        console.log('Message sent successfully');
-        return { success: true };
+        // Validate user is authenticated
+        if (!AppState.currentUser?.uid) {
+            console.error('Cannot send message: User not authenticated');
+            showToast('Please log in to send messages', 'error');
+            return { success: false, error: 'Not authenticated' };
+        }
+
+        if (!text || !text.trim()) {
+            console.error('Cannot send message: Empty text');
+            return { success: false, error: 'Message is empty' };
+        }
+
+        if (!projectId) {
+            console.error('Cannot send message: No project ID');
+            showToast('Project ID missing', 'error');
+            return { success: false, error: 'No project ID' };
+        }
+
+        console.log('Sending message:', { projectId, text, sender: AppState.currentUser.uid, senderName: AppState.userProfile?.displayName });
+
+        // Include both serverTimestamp and a client-side fallback timestamp
+        const messageData = {
+            projectId,
+            senderId: AppState.currentUser.uid,
+            senderName: AppState.userProfile?.displayName || 'User',
+            text: text.trim(),
+            timestamp: serverTimestamp(),
+            clientTimestamp: new Date().toISOString() // Fallback for display
+        };
+
+        const docRef = await addDoc(collection(db, 'messages'), messageData);
+        console.log('Message sent successfully, ID:', docRef.id);
+        return { success: true, id: docRef.id };
     } catch (e) {
         console.error('Send message error:', e);
-        showToast('Failed to send message', 'error');
-        return { success: false };
+        console.error('Error code:', e.code);
+        console.error('Error message:', e.message);
+
+        let errorMsg = 'Failed to send message';
+        if (e.code === 'permission-denied') {
+            errorMsg = 'You do not have permission to send messages on this project';
+        }
+        showToast(errorMsg, 'error');
+        return { success: false, error: e.message };
     }
 }
 
