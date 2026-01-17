@@ -272,10 +272,14 @@ async function createTicket(data) {
 
         const ticketData = {
             ...data,
+            // Required by Firestore rules: clientId must match auth.uid
+            clientId: data.submittedById || data.clientId,
+            // Required by Firestore rules: createdAt timestamp
+            createdAt: serverTimestamp(),
+            submittedAt: serverTimestamp(),
             status: 'open',
             adminNotes: '',
-            updates: [],
-            submittedAt: serverTimestamp()
+            updates: []
         };
         console.log('Saving ticket to Firestore:', ticketData);
 
