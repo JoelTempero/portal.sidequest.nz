@@ -253,10 +253,45 @@ async function deletePermanent(archiveId) {
 }
 
 // TICKETS
-async function loadTickets() { try { const q = query(collection(db, 'tickets'), orderBy('submittedAt', 'desc')); const s = await getDocs(q); AppState.tickets = s.docs.map(d => ({ id: d.id, ...d.data() })); return AppState.tickets; } catch (e) { return []; } }
+async function loadTickets() { try { const q = query(collection(db, 'tickets'), orderBy('submittedAt', 'desc')); const s = await getDocs(q); AppState.tickets = s.docs.map(d => ({ id: d.id, ...d.data() })); return AppState.tickets; } catch (e) { console.error('Load tickets error:', e); return []; } }
 function subscribeToTickets(cb) { const q = query(collection(db, 'tickets'), orderBy('submittedAt', 'desc')); const u = onSnapshot(q, s => { AppState.tickets = s.docs.map(d => ({ id: d.id, ...d.data() })); if (cb) cb(AppState.tickets); }); AppState.unsubscribers.push(u); return u; }
-async function createTicket(data) { try { await addDoc(collection(db, 'tickets'), { ...data, status: 'open', adminNotes: '', updates: [], submittedAt: serverTimestamp() }); showToast('Ticket submitted!', 'success'); return { success: true }; } catch (e) { showToast('Failed', 'error'); return { success: false }; } }
-async function updateTicket(id, updates) { try { await updateDoc(doc(db, 'tickets', id), updates); showToast('Ticket updated!', 'success'); return { success: true }; } catch (e) { showToast('Failed', 'error'); return { success: false }; } }
+async function createTicket(data) {
+    console.log('createTicket called with data:', data);
+    try {
+        // Validate required fields
+        if (!data.title || !data.title.trim()) {
+            console.error('Ticket validation failed: Title is required');
+            showToast('Title is required', 'error');
+            return { success: false, error: 'Title is required' };
+        }
+        if (!data.projectId) {
+            console.error('Ticket validation failed: Project ID is required');
+            showToast('Project is required', 'error');
+            return { success: false, error: 'Project is required' };
+        }
+
+        const ticketData = {
+            ...data,
+            status: 'open',
+            adminNotes: '',
+            updates: [],
+            submittedAt: serverTimestamp()
+        };
+        console.log('Saving ticket to Firestore:', ticketData);
+
+        const docRef = await addDoc(collection(db, 'tickets'), ticketData);
+        console.log('Ticket created successfully with ID:', docRef.id);
+        showToast('Ticket submitted!', 'success');
+        return { success: true, id: docRef.id };
+    } catch (e) {
+        console.error('Create ticket error:', e);
+        console.error('Error code:', e.code);
+        console.error('Error message:', e.message);
+        showToast('Failed to submit ticket: ' + (e.message || 'Unknown error'), 'error');
+        return { success: false, error: e.message };
+    }
+}
+async function updateTicket(id, updates) { try { await updateDoc(doc(db, 'tickets', id), updates); showToast('Ticket updated!', 'success'); return { success: true }; } catch (e) { console.error('Update ticket error:', e); showToast('Failed to update ticket', 'error'); return { success: false }; } }
 
 // MESSAGES
 function subscribeToMessages(projectId, cb) { const q = query(collection(db, 'messages'), where('projectId', '==', projectId), orderBy('timestamp', 'asc')); const u = onSnapshot(q, s => { if (cb) cb(s.docs.map(d => ({ id: d.id, ...d.data() }))); }); AppState.unsubscribers.push(u); return u; }
