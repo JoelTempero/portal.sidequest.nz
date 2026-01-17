@@ -543,6 +543,55 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     color: #64748b;
 }
 
+/* Light theme detail page */
+[data-theme="light"] .detail-logo {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+[data-theme="light"] .detail-info h1 {
+    color: #1e293b;
+}
+
+[data-theme="light"] .detail-info p {
+    color: #64748b;
+}
+
+[data-theme="light"] .info-item label {
+    color: #94a3b8;
+}
+
+[data-theme="light"] .info-item span,
+[data-theme="light"] .info-item a {
+    color: #1e293b;
+}
+
+[data-theme="light"] .info-section,
+[data-theme="light"] .task-box,
+[data-theme="light"] .milestones-section,
+[data-theme="light"] .invoices-section,
+[data-theme="light"] .messages-section,
+[data-theme="light"] .tickets-section {
+    background: #ffffff;
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .task-content {
+    color: #1e293b;
+}
+
+[data-theme="light"] .messages-header h3,
+[data-theme="light"] .tickets-header h3,
+[data-theme="light"] .milestones-header h3,
+[data-theme="light"] .info-section h3,
+[data-theme="light"] .invoices-section h3 {
+    color: #1e293b;
+}
+
+[data-theme="light"] .progress-bar {
+    background: #e2e8f0;
+}
+
 /* Light theme for prefers-color-scheme (system preference) */
 @media (prefers-color-scheme: light) {
     html:not([data-theme="dark"]) .sidebar {
@@ -598,6 +647,45 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
     html:not([data-theme="dark"]) .login-page {
         background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    }
+
+    /* Detail page in system light mode */
+    html:not([data-theme="dark"]) .detail-logo {
+        background: #f1f5f9;
+        color: #64748b;
+    }
+
+    html:not([data-theme="dark"]) .detail-info h1 {
+        color: #1e293b;
+    }
+
+    html:not([data-theme="dark"]) .detail-info p {
+        color: #64748b;
+    }
+
+    html:not([data-theme="dark"]) .info-item label {
+        color: #94a3b8;
+    }
+
+    html:not([data-theme="dark"]) .info-item span {
+        color: #1e293b;
+    }
+
+    html:not([data-theme="dark"]) .info-section,
+    html:not([data-theme="dark"]) .task-box,
+    html:not([data-theme="dark"]) .milestones-section,
+    html:not([data-theme="dark"]) .messages-section,
+    html:not([data-theme="dark"]) .tickets-section {
+        background: #ffffff;
+        border-color: #e2e8f0;
+    }
+
+    html:not([data-theme="dark"]) .task-content {
+        color: #1e293b;
+    }
+
+    html:not([data-theme="dark"]) .progress-bar {
+        background: #e2e8f0;
     }
 }
 
