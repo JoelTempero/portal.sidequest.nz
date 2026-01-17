@@ -254,36 +254,112 @@ async function deletePermanent(archiveId) {
 
 // TICKETS
 async function loadTickets() {
+    console.log('loadTickets called, isAdmin:', AppState.isAdmin, 'userId:', AppState.currentUser?.uid);
     try {
-        let q;
         if (AppState.isAdmin) {
             // Admins can see all tickets
-            q = query(collection(db, 'tickets'), orderBy('submittedAt', 'desc'));
+            const q = query(collection(db, 'tickets'), orderBy('submittedAt', 'desc'));
+            const s = await getDocs(q);
+            AppState.tickets = s.docs.map(d => ({ id: d.id, ...d.data() }));
         } else {
-            // Clients can only see their own tickets (clientId must match their uid per Firestore rules)
-            q = query(collection(db, 'tickets'), where('clientId', '==', AppState.currentUser?.uid || ''), orderBy('createdAt', 'desc'));
+            // Clients can see tickets where:
+            // 1. clientId matches their uid (new tickets)
+            // 2. submittedById matches their uid (old tickets)
+            // 3. projectId is in their assigned projects
+            const userId = AppState.currentUser?.uid || '';
+            console.log('Client loading tickets for userId:', userId);
+
+            // Get user's project IDs
+            const projectIds = AppState.projects.map(p => p.id);
+            console.log('User project IDs:', projectIds);
+
+            // Query tickets by clientId
+            const ticketsMap = new Map();
+
+            try {
+                const q1 = query(collection(db, 'tickets'), where('clientId', '==', userId));
+                const s1 = await getDocs(q1);
+                console.log('Query by clientId returned', s1.docs.length, 'results');
+                s1.docs.forEach(d => ticketsMap.set(d.id, { id: d.id, ...d.data() }));
+            } catch (e) {
+                console.log('clientId query failed:', e.message);
+            }
+
+            // Also query by submittedById for old tickets
+            try {
+                const q2 = query(collection(db, 'tickets'), where('submittedById', '==', userId));
+                const s2 = await getDocs(q2);
+                console.log('Query by submittedById returned', s2.docs.length, 'results');
+                s2.docs.forEach(d => ticketsMap.set(d.id, { id: d.id, ...d.data() }));
+            } catch (e) {
+                console.log('submittedById query failed:', e.message);
+            }
+
+            // Query by projectId for each of the user's projects (in batches of 10)
+            for (let i = 0; i < projectIds.length; i += 10) {
+                const batch = projectIds.slice(i, i + 10);
+                if (batch.length > 0) {
+                    try {
+                        const q3 = query(collection(db, 'tickets'), where('projectId', 'in', batch));
+                        const s3 = await getDocs(q3);
+                        console.log('Query by projectId batch returned', s3.docs.length, 'results');
+                        s3.docs.forEach(d => ticketsMap.set(d.id, { id: d.id, ...d.data() }));
+                    } catch (e) {
+                        console.log('projectId query failed:', e.message);
+                    }
+                }
+            }
+
+            AppState.tickets = Array.from(ticketsMap.values());
+            // Sort by date
+            AppState.tickets.sort((a, b) => {
+                const dateA = a.createdAt?.toDate?.() || a.submittedAt?.toDate?.() || new Date(0);
+                const dateB = b.createdAt?.toDate?.() || b.submittedAt?.toDate?.() || new Date(0);
+                return dateB - dateA;
+            });
         }
-        const s = await getDocs(q);
-        AppState.tickets = s.docs.map(d => ({ id: d.id, ...d.data() }));
+        console.log('loadTickets result:', AppState.tickets.length, 'tickets');
         return AppState.tickets;
     } catch (e) {
         console.error('Load tickets error:', e);
+        console.error('Error code:', e.code, 'Error message:', e.message);
         return [];
     }
 }
 function subscribeToTickets(cb) {
-    let q;
+    console.log('subscribeToTickets called, isAdmin:', AppState.isAdmin, 'userId:', AppState.currentUser?.uid);
     if (AppState.isAdmin) {
-        q = query(collection(db, 'tickets'), orderBy('submittedAt', 'desc'));
+        const q = query(collection(db, 'tickets'), orderBy('submittedAt', 'desc'));
+        const u = onSnapshot(q, s => {
+            AppState.tickets = s.docs.map(d => ({ id: d.id, ...d.data() }));
+            if (cb) cb(AppState.tickets);
+        }, (error) => {
+            console.error('Tickets subscription error:', error);
+        });
+        AppState.unsubscribers.push(u);
+        return u;
     } else {
-        q = query(collection(db, 'tickets'), where('clientId', '==', AppState.currentUser?.uid || ''), orderBy('createdAt', 'desc'));
+        // For clients, subscribe to tickets by clientId
+        const userId = AppState.currentUser?.uid || '';
+        const q = query(collection(db, 'tickets'), where('clientId', '==', userId));
+        const u = onSnapshot(q, s => {
+            console.log('Tickets subscription by clientId got', s.docs.length, 'results');
+            // Merge with existing tickets from other queries
+            const ticketsMap = new Map(AppState.tickets.map(t => [t.id, t]));
+            s.docs.forEach(d => ticketsMap.set(d.id, { id: d.id, ...d.data() }));
+            AppState.tickets = Array.from(ticketsMap.values());
+            AppState.tickets.sort((a, b) => {
+                const dateA = a.createdAt?.toDate?.() || a.submittedAt?.toDate?.() || new Date(0);
+                const dateB = b.createdAt?.toDate?.() || b.submittedAt?.toDate?.() || new Date(0);
+                return dateB - dateA;
+            });
+            if (cb) cb(AppState.tickets);
+        }, (error) => {
+            console.error('Tickets subscription error:', error);
+        });
+        AppState.unsubscribers.push(u);
+        return u;
     }
-    const u = onSnapshot(q, s => {
-        AppState.tickets = s.docs.map(d => ({ id: d.id, ...d.data() }));
-        if (cb) cb(AppState.tickets);
-    });
-    AppState.unsubscribers.push(u);
-    return u;
 }
 async function createTicket(data) {
     console.log('createTicket called with data:', data);
