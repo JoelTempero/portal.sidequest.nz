@@ -35,6 +35,8 @@ import { formatDate, formatDateTime, timeAgo, parseQueryParams } from './utils/h
 import { TICKET_STATUSES, TICKET_STATUS_LABELS, TICKET_URGENCIES, TICKET_URGENCY_LABELS } from './config/constants.js';
 import {
     db,
+    doc,
+    getDoc,
     collection,
     getDocs,
     query,
@@ -43,6 +45,7 @@ import {
 
 // Current ticket state
 let currentTicket = null;
+let currentProject = null;
 let currentReplyTab = 'public';
 let unsubscribeTicket = null;
 
@@ -124,21 +127,35 @@ async function loadTicketDetail(ticketId) {
         unsubscribeTicket();
     }
 
-    unsubscribeTicket = subscribeToTicket(ticketId, (ticket) => {
+    unsubscribeTicket = subscribeToTicket(ticketId, async (ticket) => {
         if (!ticket) {
             showToast('Ticket not found', 'error');
             window.location.href = checkIsAdmin() ? 'tickets.html' : 'my-tickets.html';
             return;
         }
 
-        // Check access
-        if (!checkIsAdmin() && ticket.submittedById !== getCurrentUserId()) {
+        // Check access (allow if clientId matches OR submittedById matches)
+        const userId = getCurrentUserId();
+        if (!checkIsAdmin() && ticket.submittedById !== userId && ticket.clientId !== userId) {
             showToast('Access denied', 'error');
             window.location.href = 'my-tickets.html';
             return;
         }
 
         currentTicket = ticket;
+
+        // Fetch project data for logo
+        if (ticket.projectId && !currentProject) {
+            try {
+                const projectDoc = await getDoc(doc(db, 'projects', ticket.projectId));
+                if (projectDoc.exists()) {
+                    currentProject = { id: projectDoc.id, ...projectDoc.data() };
+                }
+            } catch (e) {
+                console.log('Could not load project:', e);
+            }
+        }
+
         renderTicketDetail(ticket);
         showLoading(false);
     });
@@ -293,8 +310,17 @@ function renderSidebar(ticket) {
 
     // Details
     document.getElementById('detail-ticket-id').textContent = `#${ticket.id.slice(-6).toUpperCase()}`;
-    document.getElementById('detail-project').textContent = ticket.projectName || 'No Project';
-    document.getElementById('detail-project').href = `project-detail.html?id=${ticket.projectId}`;
+
+    // Project with logo
+    const projectEl = document.getElementById('detail-project');
+    const projectLogo = currentProject?.logo;
+    const projectName = ticket.projectName || 'No Project';
+    const projectInitial = (projectName || 'P')[0].toUpperCase();
+    const logoHtml = projectLogo
+        ? `<img src="${escapeHtml(projectLogo)}" alt="" style="width:32px;height:32px;border-radius:6px;object-fit:cover;flex-shrink:0;">`
+        : `<div style="width:32px;height:32px;border-radius:6px;background:var(--color-bg-tertiary);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--color-text-muted);flex-shrink:0;">${projectInitial}</div>`;
+    projectEl.innerHTML = `<span style="display:flex;align-items:center;gap:10px;">${logoHtml}<span>${escapeHtml(projectName)}</span></span>`;
+    projectEl.href = `project-detail.html?id=${ticket.projectId}`;
     document.getElementById('detail-category').textContent = TICKET_CATEGORY_LABELS[ticket.category] || ticket.category || 'Support';
     document.getElementById('detail-priority').innerHTML = `<span class="priority-badge small ${ticket.priority || 'medium'}">${TICKET_PRIORITY_LABELS[ticket.priority] || 'Medium'}</span>`;
     document.getElementById('detail-urgency').textContent = TICKET_URGENCY_LABELS[ticket.urgency] || ticket.urgency || 'Normal';

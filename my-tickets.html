@@ -189,6 +189,9 @@
                 document.getElementById('user-name').textContent = profile.displayName || 'User';
                 document.getElementById('user-avatar').textContent = (profile.displayName || 'U')[0].toUpperCase();
             }
+            // Hide admin-only and show client-only elements
+            document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.client-only').forEach(el => el.style.display = '');
         }
 
         async function loadUserTickets() {

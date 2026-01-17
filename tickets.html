@@ -272,6 +272,9 @@
         async function loadTickets() {
             showLoading(true);
 
+            // Load project logos first
+            await loadProjectLogos();
+
             subscribeToAllTickets((tickets) => {
                 allTickets = tickets;
                 updateStats(tickets);
@@ -407,13 +410,33 @@
             document.getElementById('resolved-tickets-card').style.display = resolvedTickets.length > 0 ? 'block' : 'none';
         }
 
+        // Cache for project logos
+        let projectLogos = {};
+
+        async function loadProjectLogos() {
+            try {
+                const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
+                const { db } = await import('./js/services/firebase-init.js');
+                const snapshot = await getDocs(collection(db, 'projects'));
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.logo) {
+                        projectLogos[doc.id] = data.logo;
+                    }
+                });
+            } catch (e) {
+                console.log('Could not load project logos:', e);
+            }
+        }
+
         function getProjectLogo(ticket) {
-            // Use project logo if available, otherwise show first letter
-            if (ticket.projectLogo) {
-                return `<img src="${escapeHtml(ticket.projectLogo)}" alt="" style="width:24px;height:24px;border-radius:4px;object-fit:cover;">`;
+            // Use cached project logo or ticket's projectLogo field
+            const logo = projectLogos[ticket.projectId] || ticket.projectLogo;
+            if (logo) {
+                return `<img src="${escapeHtml(logo)}" alt="" style="width:36px;height:36px;border-radius:6px;object-fit:cover;">`;
             }
             const initial = (ticket.projectName || 'P')[0].toUpperCase();
-            return `<div style="width:24px;height:24px;border-radius:4px;background:var(--color-bg-tertiary);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--color-text-muted);">${initial}</div>`;
+            return `<div style="width:36px;height:36px;border-radius:6px;background:var(--color-bg-tertiary);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--color-text-muted);">${initial}</div>`;
         }
 
         function renderTicketRow(ticket, showCheckbox = true) {

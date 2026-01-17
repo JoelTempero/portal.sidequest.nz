@@ -132,27 +132,44 @@ export async function loadTickets(options = {}) {
     try {
         logger.info('Loading tickets', options);
 
-        let q;
+        let tickets = [];
         if (isAdmin()) {
-            q = query(
+            const q = query(
                 collection(db, COLLECTIONS.TICKETS),
                 orderBy('createdAt', 'desc')
             );
+            const snapshot = await getDocs(q);
+            tickets = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
         } else {
-            // Clients see only their own tickets (clientId matches Firestore rules)
+            // Clients: query multiple ways to find all their tickets
             const userId = getCurrentUserId();
-            q = query(
-                collection(db, COLLECTIONS.TICKETS),
-                where('clientId', '==', userId),
-                orderBy('createdAt', 'desc')
-            );
-        }
+            const ticketsMap = new Map();
 
-        const snapshot = await getDocs(q);
-        let tickets = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
+            // Query by clientId (new tickets)
+            try {
+                const q1 = query(collection(db, COLLECTIONS.TICKETS), where('clientId', '==', userId));
+                const s1 = await getDocs(q1);
+                s1.docs.forEach(d => ticketsMap.set(d.id, { id: d.id, ...d.data() }));
+            } catch (e) { logger.debug('clientId query failed', e); }
+
+            // Query by submittedById (old tickets)
+            try {
+                const q2 = query(collection(db, COLLECTIONS.TICKETS), where('submittedById', '==', userId));
+                const s2 = await getDocs(q2);
+                s2.docs.forEach(d => ticketsMap.set(d.id, { id: d.id, ...d.data() }));
+            } catch (e) { logger.debug('submittedById query failed', e); }
+
+            tickets = Array.from(ticketsMap.values());
+            // Sort by date
+            tickets.sort((a, b) => {
+                const dateA = a.createdAt?.toDate?.() || a.submittedAt?.toDate?.() || new Date(0);
+                const dateB = b.createdAt?.toDate?.() || b.submittedAt?.toDate?.() || new Date(0);
+                return dateB - dateA;
+            });
+        }
 
         // Apply additional filters client-side
         if (status) {
@@ -194,37 +211,54 @@ export async function loadTickets(options = {}) {
  * @returns {Function} Unsubscribe function
  */
 export function subscribeToTickets(callback = null) {
-    let q;
     if (isAdmin()) {
-        q = query(
+        const q = query(
             collection(db, COLLECTIONS.TICKETS),
             orderBy('createdAt', 'desc')
         );
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const tickets = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                slaStatus: calculateSLAStatus({ id: doc.id, ...doc.data() })
+            }));
+            setTickets(tickets);
+            if (callback) callback(tickets);
+        }, (error) => {
+            logger.error('Tickets subscription error', error);
+        });
+        addUnsubscriber(unsubscribe);
+        return unsubscribe;
     } else {
-        // Clients see only their own tickets (clientId matches Firestore rules)
+        // For clients, subscribe to tickets by clientId (no orderBy to avoid index)
         const userId = getCurrentUserId();
-        q = query(
-            collection(db, COLLECTIONS.TICKETS),
-            where('clientId', '==', userId),
-            orderBy('createdAt', 'desc')
-        );
+        const q = query(collection(db, COLLECTIONS.TICKETS), where('clientId', '==', userId));
+        const unsubscribe = onSnapshot(q, async (snapshot) => {
+            // Also load tickets by submittedById for old tickets
+            const ticketsMap = new Map();
+            snapshot.docs.forEach(d => ticketsMap.set(d.id, { id: d.id, ...d.data() }));
+
+            try {
+                const q2 = query(collection(db, COLLECTIONS.TICKETS), where('submittedById', '==', userId));
+                const s2 = await getDocs(q2);
+                s2.docs.forEach(d => ticketsMap.set(d.id, { id: d.id, ...d.data() }));
+            } catch (e) { /* ignore */ }
+
+            let tickets = Array.from(ticketsMap.values());
+            tickets = tickets.map(t => ({ ...t, slaStatus: calculateSLAStatus(t) }));
+            tickets.sort((a, b) => {
+                const dateA = a.createdAt?.toDate?.() || a.submittedAt?.toDate?.() || new Date(0);
+                const dateB = b.createdAt?.toDate?.() || b.submittedAt?.toDate?.() || new Date(0);
+                return dateB - dateA;
+            });
+            setTickets(tickets);
+            if (callback) callback(tickets);
+        }, (error) => {
+            logger.error('Tickets subscription error', error);
+        });
+        addUnsubscriber(unsubscribe);
+        return unsubscribe;
     }
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-        const tickets = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            slaStatus: calculateSLAStatus({ id: doc.id, ...doc.data() })
-        }));
-
-        setTickets(tickets);
-        if (callback) callback(tickets);
-    }, (error) => {
-        logger.error('Tickets subscription error', error);
-    });
-
-    addUnsubscriber(unsubscribe);
-    return unsubscribe;
 }
 
 /**
