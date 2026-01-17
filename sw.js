@@ -1,5 +1,5 @@
 // Service Worker for Sidequest Digital Portal
-const CACHE_NAME = 'sidequest-portal-v2';
+const CACHE_NAME = 'sidequest-portal-v3';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
