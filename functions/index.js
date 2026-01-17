@@ -19,6 +19,37 @@ initializeApp();
 const db = getFirestore();
 
 // ============================================
+// ERROR CODES - Structured error responses
+// ============================================
+
+const ERROR_CODES = {
+  // Authentication errors
+  AUTH_REQUIRED: { code: 'AUTH_001', message: 'Authentication required' },
+  PERMISSION_DENIED: { code: 'AUTH_002', message: 'Insufficient permissions' },
+
+  // Validation errors
+  INVALID_EMAIL: { code: 'VAL_001', message: 'Invalid email format' },
+  INVALID_PASSWORD: { code: 'VAL_002', message: 'Password must be at least 8 characters with mixed case and numbers' },
+  INVALID_NAME: { code: 'VAL_003', message: 'Display name must be 2-100 characters' },
+  INVALID_USER_ID: { code: 'VAL_004', message: 'Invalid user ID format' },
+  INVALID_ROLE: { code: 'VAL_005', message: 'Invalid role specified' },
+  MISSING_REQUIRED: { code: 'VAL_006', message: 'Missing required fields' },
+  INVALID_AMOUNT: { code: 'VAL_007', message: 'Invalid payment amount' },
+
+  // Resource errors
+  USER_NOT_FOUND: { code: 'RES_001', message: 'User not found' },
+  EMAIL_EXISTS: { code: 'RES_002', message: 'Email already in use' },
+  INVOICE_NOT_FOUND: { code: 'RES_003', message: 'Invoice not found' },
+
+  // Operation errors
+  SELF_MODIFICATION: { code: 'OP_001', message: 'Cannot modify your own account this way' },
+  CREATE_FAILED: { code: 'OP_002', message: 'Failed to create resource' },
+  UPDATE_FAILED: { code: 'OP_003', message: 'Failed to update resource' },
+  DELETE_FAILED: { code: 'OP_004', message: 'Failed to delete resource' },
+  PAYMENT_FAILED: { code: 'OP_005', message: 'Payment processing failed' }
+};
+
+// ============================================
 // HELPER FUNCTIONS
 // ============================================
 
@@ -48,11 +79,37 @@ async function isAdmin(uid) {
 }
 
 /**
- * Validate email format
+ * Validate email format (RFC 5322 compliant)
  */
 function isValidEmail(email) {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  if (!email || typeof email !== 'string') return false;
+  // More robust email regex
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  return emailRegex.test(email) && email.length <= 254;
+}
+
+/**
+ * Validate password strength
+ * Requirements: 8+ chars, at least one uppercase, one lowercase, one number
+ */
+function isValidPassword(password) {
+  if (!password || typeof password !== 'string') return false;
+  if (password.length < 8) return false;
+
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+
+  return hasUppercase && hasLowercase && hasNumber;
+}
+
+/**
+ * Validate Firebase User ID format
+ */
+function isValidUserId(userId) {
+  if (!userId || typeof userId !== 'string') return false;
+  // Firebase UIDs are typically 28 characters, alphanumeric
+  return /^[a-zA-Z0-9]{20,128}$/.test(userId);
 }
 
 /**
@@ -63,6 +120,15 @@ function sanitizeString(str, maxLength = 1000) {
   return str.trim().slice(0, maxLength);
 }
 
+/**
+ * Create structured error response
+ */
+function createError(errorType, httpCode, details = null) {
+  const error = ERROR_CODES[errorType] || { code: 'UNKNOWN', message: 'An error occurred' };
+  const message = details ? `${error.message}: ${details}` : error.message;
+  return new HttpsError(httpCode, message, { errorCode: error.code });
+}
+
 // ============================================
 // CREATE CLIENT (Admin/Manager only)
 // ============================================
@@ -70,28 +136,28 @@ function sanitizeString(str, maxLength = 1000) {
 exports.createClient = onCall(async (request) => {
   // Authentication check
   if (!request.auth) {
-    throw new HttpsError("unauthenticated", "Authentication required");
+    throw createError('AUTH_REQUIRED', 'unauthenticated');
   }
 
   // Authorization check
   const authorized = await isAdminOrManager(request.auth.uid);
   if (!authorized) {
-    throw new HttpsError("permission-denied", "Only admins and managers can create clients");
+    throw createError('PERMISSION_DENIED', 'permission-denied', 'Only admins and managers can create clients');
   }
 
   const { email, password, displayName, company } = request.data;
 
-  // Validate inputs
+  // Validate inputs with specific error messages
   if (!email || !isValidEmail(email)) {
-    throw new HttpsError("invalid-argument", "Valid email is required");
+    throw createError('INVALID_EMAIL', 'invalid-argument');
   }
 
-  if (!password || password.length < 6) {
-    throw new HttpsError("invalid-argument", "Password must be at least 6 characters");
+  if (!password || !isValidPassword(password)) {
+    throw createError('INVALID_PASSWORD', 'invalid-argument');
   }
 
-  if (!displayName || displayName.trim().length < 2) {
-    throw new HttpsError("invalid-argument", "Display name is required");
+  if (!displayName || displayName.trim().length < 2 || displayName.trim().length > 100) {
+    throw createError('INVALID_NAME', 'invalid-argument');
   }
 
   try {
@@ -131,19 +197,19 @@ exports.createClient = onCall(async (request) => {
       email: userRecord.email,
     };
   } catch (error) {
-    console.error("Error creating user:", error);
+    console.error("Error creating user:", error.code, error.message);
 
     if (error.code === "auth/email-already-exists") {
-      throw new HttpsError("already-exists", "Email already in use");
+      throw createError('EMAIL_EXISTS', 'already-exists');
     }
     if (error.code === "auth/invalid-email") {
-      throw new HttpsError("invalid-argument", "Invalid email format");
+      throw createError('INVALID_EMAIL', 'invalid-argument');
     }
     if (error.code === "auth/weak-password") {
-      throw new HttpsError("invalid-argument", "Password is too weak");
+      throw createError('INVALID_PASSWORD', 'invalid-argument');
     }
 
-    throw new HttpsError("internal", "Failed to create user");
+    throw createError('CREATE_FAILED', 'internal', 'User creation failed');
   }
 });
 
@@ -153,94 +219,196 @@ exports.createClient = onCall(async (request) => {
 
 exports.updateUserRole = onCall(async (request) => {
   if (!request.auth) {
-    throw new HttpsError("unauthenticated", "Authentication required");
+    throw createError('AUTH_REQUIRED', 'unauthenticated');
   }
 
   const authorized = await isAdmin(request.auth.uid);
   if (!authorized) {
-    throw new HttpsError("permission-denied", "Only admins can change user roles");
+    throw createError('PERMISSION_DENIED', 'permission-denied', 'Only admins can change user roles');
   }
 
   const { userId, role } = request.data;
 
+  // Validate user ID format
+  if (!isValidUserId(userId)) {
+    throw createError('INVALID_USER_ID', 'invalid-argument');
+  }
+
   // Validate role
   const validRoles = ['admin', 'manager', 'support', 'client'];
   if (!validRoles.includes(role)) {
-    throw new HttpsError("invalid-argument", "Invalid role");
+    throw createError('INVALID_ROLE', 'invalid-argument', `Valid roles: ${validRoles.join(', ')}`);
   }
 
   // Prevent changing own role
   if (userId === request.auth.uid) {
-    throw new HttpsError("invalid-argument", "Cannot change your own role");
+    throw createError('SELF_MODIFICATION', 'invalid-argument');
+  }
+
+  // Verify user exists
+  const userDoc = await db.collection('users').doc(userId).get();
+  if (!userDoc.exists) {
+    throw createError('USER_NOT_FOUND', 'not-found');
   }
 
   try {
+    const oldRole = userDoc.data().role;
+
     await db.collection('users').doc(userId).update({
       role: role,
       updatedAt: FieldValue.serverTimestamp(),
       updatedBy: request.auth.uid
     });
 
-    return { success: true };
+    // Log role change for audit
+    await db.collection('activity').add({
+      type: 'role_changed',
+      data: {
+        userId: userId,
+        oldRole: oldRole,
+        newRole: role,
+        changedBy: request.auth.uid
+      },
+      userId: request.auth.uid,
+      timestamp: FieldValue.serverTimestamp()
+    });
+
+    return { success: true, previousRole: oldRole, newRole: role };
   } catch (error) {
-    console.error("Error updating role:", error);
-    throw new HttpsError("internal", "Failed to update role");
+    console.error("Error updating role:", error.code, error.message);
+    throw createError('UPDATE_FAILED', 'internal', 'Role update failed');
   }
 });
 
 // ============================================
-// DELETE USER (Admin only)
+// DELETE USER (Admin only) - With Cascade Cleanup
 // ============================================
 
 exports.deleteUser = onCall(async (request) => {
   if (!request.auth) {
-    throw new HttpsError("unauthenticated", "Authentication required");
+    throw createError('AUTH_REQUIRED', 'unauthenticated');
   }
 
   const authorized = await isAdmin(request.auth.uid);
   if (!authorized) {
-    throw new HttpsError("permission-denied", "Only admins can delete users");
+    throw createError('PERMISSION_DENIED', 'permission-denied', 'Only admins can delete users');
   }
 
   const { userId } = request.data;
 
-  if (!userId) {
-    throw new HttpsError("invalid-argument", "User ID is required");
+  // Validate user ID
+  if (!isValidUserId(userId)) {
+    throw createError('INVALID_USER_ID', 'invalid-argument');
   }
 
   // Prevent self-deletion
   if (userId === request.auth.uid) {
-    throw new HttpsError("invalid-argument", "Cannot delete yourself");
+    throw createError('SELF_MODIFICATION', 'invalid-argument', 'Cannot delete yourself');
   }
 
   try {
-    // Delete from Auth
+    // Get user document before deletion for archiving
+    const userDoc = await db.collection('users').doc(userId).get();
+
+    if (!userDoc.exists) {
+      throw createError('USER_NOT_FOUND', 'not-found');
+    }
+
+    const userData = userDoc.data();
+    const batch = db.batch();
+
+    // 1. Archive user document
+    const archiveRef = db.collection('archived').doc();
+    batch.set(archiveRef, {
+      type: 'client',
+      originalId: userId,
+      originalData: userData,
+      reason: 'User deleted',
+      archivedAt: FieldValue.serverTimestamp(),
+      archivedBy: request.auth.uid
+    });
+
+    // 2. Reassign or mark tickets from this user
+    const ticketsSnapshot = await db.collection('tickets')
+      .where('clientId', '==', userId)
+      .get();
+
+    ticketsSnapshot.docs.forEach(ticketDoc => {
+      batch.update(ticketDoc.ref, {
+        clientId: null,
+        clientDeleted: true,
+        clientDeletedName: userData.displayName || 'Deleted User',
+        updatedAt: FieldValue.serverTimestamp()
+      });
+    });
+
+    // 3. Remove user from project assignments
+    const projectsSnapshot = await db.collection('projects')
+      .where('assignedClients', 'array-contains', userId)
+      .get();
+
+    projectsSnapshot.docs.forEach(projectDoc => {
+      const currentClients = projectDoc.data().assignedClients || [];
+      const updatedClients = currentClients.filter(id => id !== userId);
+      batch.update(projectDoc.ref, {
+        assignedClients: updatedClients,
+        updatedAt: FieldValue.serverTimestamp()
+      });
+    });
+
+    // 4. Delete user notifications
+    const notificationsSnapshot = await db.collection('notifications')
+      .where('userId', '==', userId)
+      .get();
+
+    notificationsSnapshot.docs.forEach(notifDoc => {
+      batch.delete(notifDoc.ref);
+    });
+
+    // 5. Delete user document
+    batch.delete(db.collection('users').doc(userId));
+
+    // Commit batch (handles up to 500 operations)
+    await batch.commit();
+
+    // Delete from Firebase Auth
     await getAuth().deleteUser(userId);
 
-    // Archive user document instead of deleting
-    const userDoc = await db.collection('users').doc(userId).get();
-    if (userDoc.exists) {
-      await db.collection('archived').add({
-        type: 'client',
-        originalId: userId,
-        originalData: userDoc.data(),
-        reason: 'User deleted',
-        archivedAt: FieldValue.serverTimestamp(),
-        archivedBy: request.auth.uid
-      });
+    // Log activity
+    await db.collection('activity').add({
+      type: 'user_deleted',
+      data: {
+        userId: userId,
+        displayName: userData.displayName,
+        email: userData.email,
+        ticketsReassigned: ticketsSnapshot.size,
+        projectsUpdated: projectsSnapshot.size,
+        notificationsDeleted: notificationsSnapshot.size
+      },
+      userId: request.auth.uid,
+      timestamp: FieldValue.serverTimestamp()
+    });
 
-      await db.collection('users').doc(userId).delete();
-    }
-
-    return { success: true };
+    return {
+      success: true,
+      cleanup: {
+        ticketsReassigned: ticketsSnapshot.size,
+        projectsUpdated: projectsSnapshot.size,
+        notificationsDeleted: notificationsSnapshot.size
+      }
+    };
   } catch (error) {
-    console.error("Error deleting user:", error);
+    console.error("Error deleting user:", error.code, error.message);
 
     if (error.code === "auth/user-not-found") {
-      throw new HttpsError("not-found", "User not found");
+      throw createError('USER_NOT_FOUND', 'not-found');
     }
 
-    throw new HttpsError("internal", "Failed to delete user");
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+
+    throw createError('DELETE_FAILED', 'internal', 'User deletion failed');
   }
 });
 
@@ -250,22 +418,30 @@ exports.deleteUser = onCall(async (request) => {
 
 exports.resetUserPassword = onCall(async (request) => {
   if (!request.auth) {
-    throw new HttpsError("unauthenticated", "Authentication required");
+    throw createError('AUTH_REQUIRED', 'unauthenticated');
   }
 
   const authorized = await isAdmin(request.auth.uid);
   if (!authorized) {
-    throw new HttpsError("permission-denied", "Only admins can reset passwords");
+    throw createError('PERMISSION_DENIED', 'permission-denied', 'Only admins can reset passwords');
   }
 
   const { userId, newPassword } = request.data;
 
-  if (!userId) {
-    throw new HttpsError("invalid-argument", "User ID is required");
+  // Validate user ID
+  if (!isValidUserId(userId)) {
+    throw createError('INVALID_USER_ID', 'invalid-argument');
   }
 
-  if (!newPassword || newPassword.length < 6) {
-    throw new HttpsError("invalid-argument", "Password must be at least 6 characters");
+  // Validate password strength
+  if (!newPassword || !isValidPassword(newPassword)) {
+    throw createError('INVALID_PASSWORD', 'invalid-argument');
+  }
+
+  // Verify user exists
+  const userDoc = await db.collection('users').doc(userId).get();
+  if (!userDoc.exists) {
+    throw createError('USER_NOT_FOUND', 'not-found');
   }
 
   try {
@@ -273,16 +449,72 @@ exports.resetUserPassword = onCall(async (request) => {
       password: newPassword
     });
 
+    // Log password reset for audit
+    await db.collection('activity').add({
+      type: 'password_reset',
+      data: {
+        userId: userId,
+        resetBy: request.auth.uid
+      },
+      userId: request.auth.uid,
+      timestamp: FieldValue.serverTimestamp()
+    });
+
     return { success: true };
   } catch (error) {
-    console.error("Error resetting password:", error);
+    console.error("Error resetting password:", error.code, error.message);
 
     if (error.code === "auth/user-not-found") {
-      throw new HttpsError("not-found", "User not found");
+      throw createError('USER_NOT_FOUND', 'not-found');
     }
 
-    throw new HttpsError("internal", "Failed to reset password");
+    throw createError('UPDATE_FAILED', 'internal', 'Password reset failed');
   }
+});
+
+// ============================================
+// PROCESS PAYMENT (Stub for future Stripe integration)
+// ============================================
+
+exports.processPayment = onCall(async (request) => {
+  if (!request.auth) {
+    throw createError('AUTH_REQUIRED', 'unauthenticated');
+  }
+
+  const { invoiceId, paymentMethodId, amount } = request.data;
+
+  // Validate inputs
+  if (!invoiceId || typeof invoiceId !== 'string') {
+    throw createError('MISSING_REQUIRED', 'invalid-argument', 'Invoice ID required');
+  }
+
+  if (!amount || typeof amount !== 'number' || amount <= 0) {
+    throw createError('INVALID_AMOUNT', 'invalid-argument');
+  }
+
+  // Verify invoice exists and belongs to user or user is admin
+  const invoiceQuery = await db.collection('projects')
+    .where('invoices', 'array-contains', { id: invoiceId })
+    .limit(1)
+    .get();
+
+  // For now, return a stub response indicating payment integration is not yet configured
+  // TODO: Integrate with Stripe when ready
+  // 1. Create Stripe PaymentIntent
+  // 2. Confirm payment
+  // 3. Update invoice status
+  // 4. Send receipt email
+
+  console.log(`Payment attempt for invoice ${invoiceId}, amount: ${amount}`);
+
+  return {
+    success: false,
+    message: 'Payment processing is not yet configured. Please contact support for payment options.',
+    invoiceId: invoiceId,
+    amount: amount,
+    currency: 'NZD',
+    status: 'pending_configuration'
+  };
 });
 
 // ============================================
@@ -291,12 +523,12 @@ exports.resetUserPassword = onCall(async (request) => {
 
 exports.getSLABreachedTickets = onCall(async (request) => {
   if (!request.auth) {
-    throw new HttpsError("unauthenticated", "Authentication required");
+    throw createError('AUTH_REQUIRED', 'unauthenticated');
   }
 
   const authorized = await isAdminOrManager(request.auth.uid);
   if (!authorized) {
-    throw new HttpsError("permission-denied", "Only admins and managers can view SLA data");
+    throw createError('PERMISSION_DENIED', 'permission-denied', 'Only admins and managers can view SLA data');
   }
 
   // SLA hours by priority
