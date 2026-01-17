@@ -1,30 +1,40 @@
 /* ============================================
    SIDEQUEST DIGITAL - Portal CSS (Clean)
+
+   NOTE: Color variables are defined in theme.css
+   This file contains layout and component styles
    ============================================ */
 
 :root {
-    --color-bg-primary: #12131a;
-    --color-bg-secondary: #1a1b23;
-    --color-bg-tertiary: #22232d;
-    --color-bg-hover: #2a2b38;
-    --color-text-primary: #f1f5f9;
-    --color-text-secondary: #a0a0a0;
-    --color-text-muted: #666;
-    --color-primary: #7c3aed;
-    --color-primary-hover: #6d28d9;
-    --color-border: #2d2e3a;
-    --color-border-subtle: rgba(255,255,255,0.08);
-    --color-success: #22c55e;
-    --color-warning: #f59e0b;
-    --color-error: #ef4444;
-    --color-info: #3b82f6;
+    /* Typography */
     --font-display: 'Outfit', sans-serif;
     --font-body: 'Inter', sans-serif;
+
+    /* Spacing */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+    --space-2xl: 48px;
+
+    /* Border Radius */
     --radius-sm: 6px;
     --radius-md: 10px;
     --radius-lg: 16px;
     --radius-full: 9999px;
+
+    /* Layout */
     --sidebar-width: 260px;
+    --sidebar-width-tablet: 220px;
+    --header-height: 64px;
+    --mobile-nav-height: 72px;
+
+    /* Breakpoints (for reference - use in media queries) */
+    /* --breakpoint-mobile: 480px; */
+    /* --breakpoint-tablet: 768px; */
+    /* --breakpoint-desktop: 1024px; */
+    /* --breakpoint-wide: 1280px; */
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -306,19 +316,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 /* ============================================
    LIGHT THEME SUPPORT
+   NOTE: Full theme definitions in theme.css
+   Only supplemental light theme styles here
    ============================================ */
-
-[data-theme="light"] {
-    --color-bg-primary: #f8fafc;
-    --color-bg-secondary: #ffffff;
-    --color-bg-tertiary: #f1f5f9;
-    --color-bg-hover: #e2e8f0;
-    --color-text-primary: #0f172a;
-    --color-text-secondary: #475569;
-    --color-text-muted: #94a3b8;
-    --color-border: #e2e8f0;
-    --color-border-subtle: #f1f5f9;
-}
 
 [data-theme="light"] .sidebar {
     background: #ffffff;
@@ -329,43 +329,20 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
 }
 
-/* Theme Toggle Button */
-.theme-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: var(--radius-md);
-    background: var(--color-bg-tertiary);
-    border: 1px solid var(--color-border-subtle);
-    cursor: pointer;
-    transition: all 0.2s ease;
+[data-theme="light"] .stat-icon.purple { background: rgba(124, 58, 237, 0.15); }
+[data-theme="light"] .stat-icon.orange { background: rgba(249, 115, 22, 0.15); }
+[data-theme="light"] .stat-icon.blue { background: rgba(59, 130, 246, 0.15); }
+[data-theme="light"] .stat-icon.yellow { background: rgba(234, 179, 8, 0.15); }
+
+[data-theme="light"] .item-card:hover {
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
 }
 
-.theme-toggle:hover {
-    background: var(--color-bg-hover);
-    border-color: var(--color-primary);
+[data-theme="light"] .message-bubble {
+    background: #e2e8f0;
 }
 
-.theme-toggle svg {
-    width: 20px;
-    height: 20px;
-    color: var(--color-text-secondary);
-}
-
-.theme-toggle .icon-sun { display: none; }
-.theme-toggle .icon-moon { display: block; }
-
-[data-theme="light"] .theme-toggle .icon-sun { display: block; }
-[data-theme="light"] .theme-toggle .icon-moon { display: none; }
-
-/* Header Right Section */
-.header-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
+/* NOTE: Theme toggle styles are in theme.css */
 
 /* ============================================
    Admin/Client Role-Based Visibility
@@ -378,4 +355,213 @@ body.is-admin .client-only {
 /* Hide admin elements when user is client */
 body.is-client .admin-only {
     display: none !important;
+}
+
+/* ============================================
+   RESPONSIVE BREAKPOINTS
+   Mobile: < 480px
+   Tablet: 481px - 768px
+   Desktop: 769px - 1024px
+   Wide: > 1024px
+   ============================================ */
+
+/* Small Mobile (< 480px) */
+@media (max-width: 480px) {
+    .page-content {
+        padding: var(--space-md);
+    }
+
+    .header {
+        padding: 0 var(--space-md);
+    }
+
+    .header-title {
+        font-size: 1rem;
+    }
+
+    .page-header h1 {
+        font-size: 1.25rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-sm);
+    }
+
+    .stat-card {
+        padding: var(--space-md);
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+    }
+
+    .item-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-md);
+    }
+
+    .item-card-logo {
+        height: 100px;
+    }
+
+    .detail-header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .detail-logo {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto var(--space-md);
+    }
+
+    .detail-info h1 {
+        font-size: 1.25rem;
+    }
+
+    .detail-actions {
+        justify-content: center;
+    }
+
+    .btn {
+        padding: var(--space-sm) var(--space-md);
+        font-size: 13px;
+    }
+
+    .modal {
+        margin: var(--space-md);
+        max-height: calc(100vh - 40px);
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-bar {
+        flex-direction: column;
+    }
+
+    .filter-bar select,
+    .filter-bar input {
+        width: 100%;
+    }
+}
+
+/* Tablet Portrait (481px - 768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+    .page-content {
+        padding: var(--space-lg);
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .item-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-md);
+    }
+
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .info-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Tablet Landscape (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .sidebar {
+        width: var(--sidebar-width-tablet);
+    }
+
+    .main-content {
+        margin-left: var(--sidebar-width-tablet);
+    }
+
+    .item-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .detail-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* Wide Desktop (> 1280px) */
+@media (min-width: 1280px) {
+    .item-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .page-content {
+        padding: var(--space-xl) var(--space-2xl);
+    }
+}
+
+/* Extra Wide (> 1600px) */
+@media (min-width: 1600px) {
+    .item-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+
+    .modal.large {
+        max-width: 900px;
+    }
+}
+
+/* ============================================
+   TOUCH TARGET IMPROVEMENTS
+   Ensure minimum 44px touch targets per WCAG
+   ============================================ */
+@media (hover: none) and (pointer: coarse) {
+    .btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    .btn-sm {
+        min-height: 44px;
+        padding: var(--space-sm) var(--space-md);
+    }
+
+    .modal-close {
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .nav-item {
+        min-height: 44px;
+    }
+
+    .checkbox-item {
+        min-height: 44px;
+    }
+
+    .ticket-row {
+        min-height: 60px;
+    }
+
+    .tab {
+        min-height: 44px;
+    }
+
+    .filter-bar select,
+    .filter-bar input {
+        min-height: 44px;
+    }
 }
