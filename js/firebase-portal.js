@@ -253,8 +253,38 @@ async function deletePermanent(archiveId) {
 }
 
 // TICKETS
-async function loadTickets() { try { const q = query(collection(db, 'tickets'), orderBy('submittedAt', 'desc')); const s = await getDocs(q); AppState.tickets = s.docs.map(d => ({ id: d.id, ...d.data() })); return AppState.tickets; } catch (e) { console.error('Load tickets error:', e); return []; } }
-function subscribeToTickets(cb) { const q = query(collection(db, 'tickets'), orderBy('submittedAt', 'desc')); const u = onSnapshot(q, s => { AppState.tickets = s.docs.map(d => ({ id: d.id, ...d.data() })); if (cb) cb(AppState.tickets); }); AppState.unsubscribers.push(u); return u; }
+async function loadTickets() {
+    try {
+        let q;
+        if (AppState.isAdmin) {
+            // Admins can see all tickets
+            q = query(collection(db, 'tickets'), orderBy('submittedAt', 'desc'));
+        } else {
+            // Clients can only see their own tickets (clientId must match their uid per Firestore rules)
+            q = query(collection(db, 'tickets'), where('clientId', '==', AppState.currentUser?.uid || ''), orderBy('createdAt', 'desc'));
+        }
+        const s = await getDocs(q);
+        AppState.tickets = s.docs.map(d => ({ id: d.id, ...d.data() }));
+        return AppState.tickets;
+    } catch (e) {
+        console.error('Load tickets error:', e);
+        return [];
+    }
+}
+function subscribeToTickets(cb) {
+    let q;
+    if (AppState.isAdmin) {
+        q = query(collection(db, 'tickets'), orderBy('submittedAt', 'desc'));
+    } else {
+        q = query(collection(db, 'tickets'), where('clientId', '==', AppState.currentUser?.uid || ''), orderBy('createdAt', 'desc'));
+    }
+    const u = onSnapshot(q, s => {
+        AppState.tickets = s.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (cb) cb(AppState.tickets);
+    });
+    AppState.unsubscribers.push(u);
+    return u;
+}
 async function createTicket(data) {
     console.log('createTicket called with data:', data);
     try {
