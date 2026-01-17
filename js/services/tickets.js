@@ -65,7 +65,8 @@ export const TICKET_CATEGORY_LABELS = {
 export const TICKET_URGENCY_LABELS = {
     'asap': 'ASAP',
     'day': 'Within a Day',
-    'week': 'Within a Week'
+    'week': 'Within a Week',
+    'month': 'Within a Month'
 };
 
 // Priority constants (internal use and backward compatibility)
@@ -86,22 +87,26 @@ export const TICKET_PRIORITY_LABELS = {
 // Higher tier = faster SLA, higher urgency = faster SLA
 export const SLA_MATRIX = {
     // Premium/Enterprise tier - fastest response
-    'premium': { 'asap': 2, 'day': 8, 'week': 48 },
-    'enterprise': { 'asap': 2, 'day': 8, 'week': 48 },
+    'premium': { 'asap': 2, 'day': 8, 'week': 48, 'month': 336 },
+    'enterprise': { 'asap': 2, 'day': 8, 'week': 48, 'month': 336 },
+    'watchfuleye': { 'asap': 2, 'day': 8, 'week': 48, 'month': 336 },
     // Professional tier - standard fast response
-    'professional': { 'asap': 4, 'day': 16, 'week': 72 },
+    'professional': { 'asap': 4, 'day': 16, 'week': 72, 'month': 336 },
+    'farmer': { 'asap': 4, 'day': 16, 'week': 72, 'month': 336 },
     // Starter tier - moderate response
-    'starter': { 'asap': 8, 'day': 24, 'week': 120 },
+    'starter': { 'asap': 8, 'day': 24, 'week': 120, 'month': 504 },
+    'bugcatcher': { 'asap': 8, 'day': 24, 'week': 120, 'month': 504 },
     // Host/Basic tier - standard response
-    'host': { 'asap': 12, 'day': 48, 'week': 168 },
-    'basic': { 'asap': 12, 'day': 48, 'week': 168 }
+    'host': { 'asap': 12, 'day': 48, 'week': 168, 'month': 720 },
+    'basic': { 'asap': 12, 'day': 48, 'week': 168, 'month': 720 }
 };
 
 // Legacy fallback
 export const SLA_HOURS = {
     'asap': 4,
     'day': 24,
-    'week': 168
+    'week': 168,
+    'month': 720
 };
 
 // ============================================
@@ -134,11 +139,11 @@ export async function loadTickets(options = {}) {
                 orderBy('createdAt', 'desc')
             );
         } else {
-            // Clients see only their own tickets
+            // Clients see only their own tickets (clientId matches Firestore rules)
             const userId = getCurrentUserId();
             q = query(
                 collection(db, COLLECTIONS.TICKETS),
-                where('submittedById', '==', userId),
+                where('clientId', '==', userId),
                 orderBy('createdAt', 'desc')
             );
         }
@@ -196,10 +201,11 @@ export function subscribeToTickets(callback = null) {
             orderBy('createdAt', 'desc')
         );
     } else {
+        // Clients see only their own tickets (clientId matches Firestore rules)
         const userId = getCurrentUserId();
         q = query(
             collection(db, COLLECTIONS.TICKETS),
-            where('submittedById', '==', userId),
+            where('clientId', '==', userId),
             orderBy('createdAt', 'desc')
         );
     }
