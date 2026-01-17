@@ -95,34 +95,11 @@
 
 /* ============================================
    STATUS BADGES
+   NOTE: Base .status-badge styles are in portal.css
+   These are ticket-specific overrides only
    ============================================ */
 
-.status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    border-radius: var(--radius-full);
-    font-size: 12px;
-    font-weight: 500;
-    text-transform: capitalize;
-}
-
-.status-badge.open {
-    background: var(--color-info-light);
-    color: var(--color-info);
-}
-
-.status-badge.inprogress {
-    background: var(--color-warning-light);
-    color: var(--color-warning);
-}
-
-.status-badge.resolved {
-    background: var(--color-success-light);
-    color: var(--color-success);
-}
-
+/* Additional status variants for tickets */
 .status-badge.closed {
     background: rgba(100, 100, 100, 0.2);
     color: var(--color-text-muted);
@@ -131,6 +108,12 @@
 .status-badge.pending {
     background: rgba(156, 163, 175, 0.2);
     color: #9ca3af;
+}
+
+/* Alias for in-progress (support both class names) */
+.status-badge.inprogress {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--color-warning);
 }
 
 /* ============================================
@@ -167,7 +150,8 @@
     color: #64748b;
 }
 
-/* Tier indicator dots */
+/* Tier indicator dots
+   NOTE: Uses same color scheme as tier-badge in portal.css */
 .tier-dot {
     width: 10px;
     height: 10px;
@@ -175,11 +159,12 @@
     flex-shrink: 0;
 }
 
+/* Tier colors - consistent with portal.css tier-badge */
 .tier-dot.guardian { background: linear-gradient(135deg, #a855f7, #7c3aed); }
-.tier-dot.watchfuleye { background: linear-gradient(135deg, #f59e0b, #eab308); }
-.tier-dot.farmer { background: linear-gradient(135deg, #22c55e, #16a34a); }
-.tier-dot.bugcatcher { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-.tier-dot.host { background: linear-gradient(135deg, #6b7280, #4b5563); }
+.tier-dot.watchfuleye { background: linear-gradient(135deg, #ffd700, #ffb347); }
+.tier-dot.farmer { background: linear-gradient(135deg, #c0c0c0, #a8a8a8); }
+.tier-dot.bugcatcher { background: linear-gradient(135deg, #cd7f32, #b87333); }
+.tier-dot.host { background: var(--color-bg-tertiary); }
 
 /* ============================================
    PRIORITY BADGES
@@ -1648,4 +1633,93 @@
 .skeleton-meta {
     width: 120px;
     height: 16px;
+}
+
+/* ============================================
+   LIGHT THEME OVERRIDES
+   ============================================ */
+
+[data-theme="light"] .ticket-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .ticket-detail-header {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .comment {
+    background: #f1f5f9;
+}
+
+[data-theme="light"] .comment.internal {
+    background: rgba(245, 158, 11, 0.08);
+}
+
+[data-theme="light"] .timeline-body {
+    background: #f1f5f9;
+}
+
+[data-theme="light"] .timeline-body.internal-note {
+    background: rgba(245, 158, 11, 0.08);
+}
+
+[data-theme="light"] .composer-header,
+[data-theme="light"] .composer-footer {
+    background: #f1f5f9;
+}
+
+[data-theme="light"] .sidebar-section {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .sla-status {
+    background: #f1f5f9;
+}
+
+[data-theme="light"] .attachment-card {
+    background: #f8fafc;
+}
+
+[data-theme="light"] .attachment-card:hover {
+    background: #f1f5f9;
+}
+
+/* ============================================
+   TOUCH TARGET IMPROVEMENTS
+   ============================================ */
+
+@media (hover: none) and (pointer: coarse) {
+    .ticket-card {
+        padding: 20px;
+    }
+
+    .filter-btn {
+        min-height: 44px;
+        padding: 12px 16px;
+    }
+
+    .reply-tab {
+        min-height: 44px;
+        padding: 10px 16px;
+    }
+
+    .composer-tab {
+        min-height: 44px;
+        padding: 10px 16px;
+    }
+
+    .quick-action-btn {
+        min-height: 44px;
+        padding: 12px 16px;
+    }
+
+    .attachment-card {
+        min-height: 60px;
+        padding: 16px;
+    }
+
+    .checkbox-item {
+        min-height: 44px;
+        padding: 12px 8px;
+    }
 }
