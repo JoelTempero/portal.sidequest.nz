@@ -5,6 +5,20 @@ service cloud.firestore {
     // ============================================
     // HELPER FUNCTIONS
     // ============================================
+    //
+    // PERFORMANCE NOTE: The getUserData() function performs a document read
+    // on each rule evaluation. For high-traffic applications, consider migrating
+    // to Firebase Custom Claims for role-based access control:
+    //
+    // 1. Set custom claims via Admin SDK:
+    //    admin.auth().setCustomUserClaims(uid, { role: 'admin' })
+    //
+    // 2. Access in rules via request.auth.token:
+    //    function isAdmin() { return request.auth.token.role == 'admin'; }
+    //
+    // This eliminates the document read and improves performance significantly.
+    // See: https://firebase.google.com/docs/auth/admin/custom-claims
+    // ============================================
 
     // Check if user is authenticated
     function isAuthenticated() {
@@ -16,35 +30,43 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Get user document
+    // Get user document data for role checking
+    // NOTE: This causes a document read per rule evaluation.
+    // For optimization, migrate to Custom Claims (see note above)
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     // Check if user has admin role
+    // Future: return isAuthenticated() && request.auth.token.role == 'admin';
     function isAdmin() {
       return isAuthenticated() && getUserData().role == 'admin';
     }
 
     // Check if user has manager role (includes admin)
+    // Future: return isAuthenticated() && request.auth.token.role in ['admin', 'manager'];
     function isManager() {
       return isAuthenticated() && getUserData().role in ['admin', 'manager'];
     }
 
     // Check if user has support role (includes admin, manager)
+    // Future: return isAuthenticated() && request.auth.token.role in ['admin', 'manager', 'support'];
     function isSupport() {
       return isAuthenticated() && getUserData().role in ['admin', 'manager', 'support'];
     }
 
     // Check if user is a client
+    // Future: return isAuthenticated() && request.auth.token.role == 'client';
     function isClient() {
       return isAuthenticated() && getUserData().role == 'client';
     }
 
     // Check if user is assigned to a project
+    // Added error handling for missing projects
     function isAssignedToProject(projectId) {
-      let project = get(/databases/$(database)/documents/projects/$(projectId)).data;
-      return request.auth.uid in project.assignedClients;
+      let projectPath = /databases/$(database)/documents/projects/$(projectId);
+      return exists(projectPath) &&
+             request.auth.uid in get(projectPath).data.assignedClients;
     }
 
     // Validate required fields exist
