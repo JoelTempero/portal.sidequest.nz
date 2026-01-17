@@ -8,9 +8,164 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/portal.css">
+    <style>
+        /* Project Detail Page Layout */
+        .project-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 24px;
+        }
+        @media (max-width: 1200px) {
+            .project-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .project-main {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .project-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        /* Messages Section */
+        .messages-section {
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-lg);
+            display: flex;
+            flex-direction: column;
+            max-height: 450px;
+        }
+        .messages-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--color-border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .messages-header h3 {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 1rem;
+            margin: 0;
+        }
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 200px;
+        }
+        .messages-input {
+            padding: 16px 20px;
+            border-top: 1px solid var(--color-border-subtle);
+            display: flex;
+            gap: 12px;
+        }
+        .messages-input input {
+            flex: 1;
+        }
+        /* Tickets Section */
+        .tickets-section {
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-lg);
+        }
+        .tickets-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--color-border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .tickets-header h3 {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 1rem;
+            margin: 0;
+        }
+        .tickets-list {
+            padding: 8px 0;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+        .tickets-list .ticket-row {
+            padding: 12px 20px;
+        }
+        /* Info Section Compact */
+        .info-section {
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+        }
+        .info-section h3 {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 1rem;
+            margin: 0 0 16px 0;
+        }
+        /* Milestones Compact */
+        .milestones-section {
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+        }
+        .milestones-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .milestones-header h3 {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 1rem;
+            margin: 0;
+        }
+        /* Current Task Box */
+        .task-box {
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+        }
+        .task-box h3 {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin: 0 0 12px 0;
+            color: var(--color-text-muted);
+        }
+        .task-content {
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        /* Invoices Section */
+        .invoices-section {
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+        }
+        .invoices-section h3 {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 1rem;
+            margin: 0 0 16px 0;
+        }
+    </style>
 </head>
 <body>
     <div id="loading-overlay" style="position:fixed;inset:0;background:rgba(18,19,26,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;"><div style="text-align:center;color:white;"><div style="width:40px;height:40px;border:3px solid #333;border-top-color:#7c3aed;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px;"></div><p>Loading...</p></div></div>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
     <div class="portal-layout">
         <aside class="sidebar">
@@ -34,10 +189,11 @@
             </nav>
             <div class="sidebar-footer"><div class="user-card" id="logout-btn" style="cursor:pointer;"><div class="user-avatar" id="user-avatar">J</div><div class="user-info"><div class="user-name" id="user-name">User</div><div class="user-role" id="user-role">Role</div></div></div></div>
         </aside>
-        
+
         <main class="main-content">
             <header class="header"><div class="header-left"><div class="breadcrumbs"><a href="projects.html">Projects</a><span>/</span><span id="breadcrumb-title">Project</span></div></div></header>
             <div class="page-content">
+                <!-- Project Header -->
                 <div class="detail-header">
                     <div class="detail-logo" id="detail-logo"></div>
                     <div class="detail-info">
@@ -53,40 +209,79 @@
                         <button class="btn btn-ghost" onclick="handleArchive('project', new URLSearchParams(location.search).get('id'))">Archive</button>
                     </div>
                 </div>
-                
-                <div class="card mb-lg admin-only">
+
+                <!-- Progress Bar (Admin Only) -->
+                <div class="card mb-lg admin-only" style="padding: 16px 20px;">
                     <div class="project-progress">
                         <div class="progress-header"><span>Progress</span><span id="detail-progress">0%</span></div>
                         <input type="range" id="progress-slider" min="0" max="100" value="0" style="width:100%;margin:8px 0;accent-color:var(--color-primary);">
                         <div class="progress-bar" style="height:10px;"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
                     </div>
                 </div>
-                
-                <div class="tabs">
-                    <button class="tab active" onclick="showTab('overview')">Overview</button>
-                    <button class="tab" onclick="showTab('invoices')">Invoices</button>
-                    <button class="tab" onclick="showTab('messages')">Messages</button>
-                    <button class="tab" onclick="showTab('tickets')">Tickets</button>
-                </div>
-                
-                <div id="tab-overview" class="tab-content">
-                    <!-- Current Task Card -->
-                    <div class="card mb-lg">
-                        <div class="card-header"><h3 class="card-title">Current Task</h3><button class="btn btn-ghost btn-sm admin-only" onclick="openModal('edit-task-modal')">Edit</button></div>
-                        <p id="current-task" style="white-space:pre-wrap;">No current task set.</p>
+
+                <!-- Two Column Layout -->
+                <div class="project-grid">
+                    <!-- Left Column: Main Content -->
+                    <div class="project-main">
+                        <!-- Current Task -->
+                        <div class="task-box">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                                <h3 style="margin: 0;">Current Task</h3>
+                                <button class="btn btn-ghost btn-sm admin-only" onclick="openModal('edit-task-modal')">Edit</button>
+                            </div>
+                            <p id="current-task" class="task-content">No current task set.</p>
+                        </div>
+
+                        <!-- Project Info -->
+                        <div class="info-section">
+                            <h3>Project Information</h3>
+                            <div class="info-grid" id="detail-info"></div>
+                        </div>
+
+                        <!-- Milestones -->
+                        <div class="milestones-section">
+                            <div class="milestones-header">
+                                <h3>Milestones</h3>
+                                <button class="btn btn-primary btn-sm admin-only" onclick="openModal('add-milestone-modal')">Add Milestone</button>
+                            </div>
+                            <div id="milestones"></div>
+                        </div>
+
+                        <!-- Invoices (Admin Only) -->
+                        <div class="invoices-section admin-only">
+                            <h3>Invoices</h3>
+                            <div id="invoices"></div>
+                        </div>
                     </div>
-                    <!-- Project Info -->
-                    <div class="card mb-lg"><div class="card-header"><h3 class="card-title">Project Info</h3></div><div class="info-grid" id="detail-info"></div></div>
-                    <!-- Milestones -->
-                    <div class="card"><div class="card-header"><h3 class="card-title">Milestones</h3><button class="btn btn-primary btn-sm admin-only" onclick="openModal('add-milestone-modal')">Add Milestone</button></div><div id="milestones"></div></div>
+
+                    <!-- Right Column: Messages & Tickets -->
+                    <div class="project-sidebar">
+                        <!-- Messages -->
+                        <div class="messages-section">
+                            <div class="messages-header">
+                                <h3>Messages</h3>
+                            </div>
+                            <div id="messages-container" class="messages-container"></div>
+                            <div class="messages-input">
+                                <input type="text" id="message-input" class="form-input" placeholder="Type message...">
+                                <button type="button" class="btn btn-primary" id="send-message-btn">Send</button>
+                            </div>
+                        </div>
+
+                        <!-- Tickets -->
+                        <div class="tickets-section">
+                            <div class="tickets-header">
+                                <h3>Tickets</h3>
+                                <button class="btn btn-primary btn-sm" onclick="openModal('new-ticket-modal')">New Ticket</button>
+                            </div>
+                            <div id="project-tickets" class="tickets-list"></div>
+                        </div>
+                    </div>
                 </div>
-                <div id="tab-invoices" class="tab-content" style="display:none;"><div class="card"><div class="card-header"><h3 class="card-title">Invoices</h3></div><div id="invoices"></div></div></div>
-                <div id="tab-messages" class="tab-content" style="display:none;"><div class="card"><div class="card-header"><h3 class="card-title">Messages</h3></div><div id="messages-container" style="max-height:400px;overflow-y:auto;margin-bottom:16px;"></div><div style="display:flex;gap:12px;"><input type="text" id="message-input" class="form-input" placeholder="Type message..." style="flex:1;"><button type="button" class="btn btn-primary" id="send-message-btn">Send</button></div></div></div>
-                <div id="tab-tickets" class="tab-content" style="display:none;"><div class="card"><div class="card-header"><h3 class="card-title">Tickets</h3><button class="btn btn-primary btn-sm" onclick="openModal('new-ticket-modal')">New Ticket</button></div><div id="project-tickets"></div></div></div>
             </div>
         </main>
     </div>
-    
+
     <!-- Edit Project Modal -->
     <div class="modal-overlay" id="edit-project-modal">
         <div class="modal large">
@@ -107,7 +302,7 @@
             </form>
         </div>
     </div>
-    
+
     <!-- New Ticket Modal -->
     <div class="modal-overlay" id="new-ticket-modal">
         <div class="modal"><div class="modal-header"><h3 class="modal-title">Submit Ticket</h3><button class="modal-close">×</button></div>
@@ -125,7 +320,7 @@
         </div>
         <div class="modal-footer"><button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button><button class="btn btn-primary" onclick="handleSubmitTicket(new URLSearchParams(location.search).get('id'))">Submit Ticket</button></div></div>
     </div>
-    
+
     <!-- Add Milestone Modal -->
     <div class="modal-overlay" id="add-milestone-modal">
         <div class="modal" style="max-width:400px;">
@@ -137,7 +332,7 @@
             <div class="modal-footer"><button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button><button class="btn btn-primary" onclick="handleAddMilestone()">Add Milestone</button></div>
         </div>
     </div>
-    
+
     <!-- Edit Current Task Modal -->
     <div class="modal-overlay" id="edit-task-modal">
         <div class="modal" style="max-width:500px;">
@@ -148,7 +343,7 @@
             <div class="modal-footer"><button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button><button class="btn btn-primary" onclick="handleSaveCurrentTask()">Save</button></div>
         </div>
     </div>
-    
+
     <!-- Confirm Modal -->
     <div class="modal-overlay" id="confirm-modal">
         <div class="modal" style="max-width:400px;">
@@ -157,17 +352,7 @@
             <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('confirm-modal')">Cancel</button><button class="btn btn-primary" onclick="handleConfirm()">Confirm</button></div>
         </div>
     </div>
-    
-    <!-- Ticket View Modal -->
-    <div class="modal-overlay" id="ticket-modal">
-        <div class="modal">
-            <div class="modal-header"><h3 class="modal-title">Ticket</h3><button class="modal-close">×</button></div>
-            <div class="modal-body"></div>
-            <div class="modal-footer admin-only"><button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button><button class="btn btn-primary" onclick="handleSaveTicket()">Save</button></div>
-        </div>
-    </div>
-    
-    <script>function showTab(t) { document.querySelectorAll('.tab-content').forEach(e => e.style.display = 'none'); document.querySelectorAll('.tab').forEach(e => e.classList.remove('active')); document.getElementById('tab-' + t).style.display = 'block'; event.target.classList.add('active'); }</script>
+
     <script type="module" src="js/app.js"></script>
 </body>
 </html>

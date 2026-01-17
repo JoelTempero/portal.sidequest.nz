@@ -366,3 +366,16 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     align-items: center;
     gap: 12px;
 }
+
+/* ============================================
+   Admin/Client Role-Based Visibility
+   ============================================ */
+/* Hide client elements when user is admin */
+body.is-admin .client-only {
+    display: none !important;
+}
+
+/* Hide admin elements when user is client */
+body.is-client .admin-only {
+    display: none !important;
+}

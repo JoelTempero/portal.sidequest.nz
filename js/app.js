@@ -237,8 +237,8 @@ function renderTickets(containerId, items = null, showResolvedSection = true) {
         return;
     }
 
-    const renderTicketRow = (t, clickAction = "openTicketModal") => `
-        <div class="ticket-row" onclick="${clickAction}('${t.id}')" style="cursor:pointer;">
+    const renderTicketRow = (t) => `
+        <div class="ticket-row" onclick="window.location.href='ticket-detail.html?id=${t.id}'" style="cursor:pointer;">
             <div class="ticket-priority ${t.tier || 'host'}"></div>
             <div class="ticket-info"><div class="ticket-title">${t.title || 'Untitled'}</div><div class="ticket-meta">${t.projectName || '-'} • ${t.submittedBy || '-'} • ${timeAgo(t.submittedAt)}</div></div>
             <div class="ticket-badges"><span class="tier-badge ${t.tier || 'host'}">${getTierName(t.tier || 'host')}</span><span class="status-badge ${t.status || 'open'}">${getStatusLabel(t.status || 'open')}</span></div>
@@ -344,22 +344,9 @@ function updateUserInfo() {
             a.textContent = getInitials(AppState.userProfile?.displayName || 'U');
         }
     }
-    // Show admin elements only for admins, hide client elements for admins
-    document.querySelectorAll('.admin-only').forEach(el => {
-        el.style.display = AppState.isAdmin ? '' : 'none';
-    });
-    document.querySelectorAll('.client-only').forEach(el => {
-        el.style.display = AppState.isAdmin ? 'none' : '';
-        // Also set visibility as a backup
-        el.style.visibility = AppState.isAdmin ? 'hidden' : 'visible';
-        // Remove from layout entirely if admin
-        if (AppState.isAdmin) {
-            el.style.position = 'absolute';
-            el.style.width = '0';
-            el.style.height = '0';
-            el.style.overflow = 'hidden';
-        }
-    });
+    // Add role class to body for CSS-based visibility control
+    document.body.classList.remove('is-admin', 'is-client');
+    document.body.classList.add(AppState.isAdmin ? 'is-admin' : 'is-client');
     
     // Populate admin profile modal if exists
     const adminName = document.getElementById('admin-display-name');

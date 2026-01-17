@@ -90,12 +90,9 @@ function onAuthStateChanged(user) {
 
 function updateUIForRole() {
     const isAdmin = checkIsAdmin();
-    document.querySelectorAll('.admin-only').forEach(el => {
-        el.style.display = isAdmin ? '' : 'none';
-    });
-    document.querySelectorAll('.client-only').forEach(el => {
-        el.style.display = isAdmin ? 'none' : '';
-    });
+    // Add role class to body for CSS-based visibility control
+    document.body.classList.remove('is-admin', 'is-client');
+    document.body.classList.add(isAdmin ? 'is-admin' : 'is-client');
 }
 
 function updateUserInfo() {
