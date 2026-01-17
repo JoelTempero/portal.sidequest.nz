@@ -445,6 +445,162 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     background: rgba(248, 250, 252, 0.95);
 }
 
+/* Light theme buttons - ensure text is visible */
+[data-theme="light"] .btn-secondary {
+    background: #f1f5f9;
+    color: #1e293b;
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .btn-secondary:hover {
+    background: #e2e8f0;
+}
+
+[data-theme="light"] .btn-ghost {
+    color: #64748b;
+}
+
+[data-theme="light"] .btn-ghost:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+/* Light theme form inputs */
+[data-theme="light"] .form-input,
+[data-theme="light"] .form-select,
+[data-theme="light"] .form-textarea {
+    background: #ffffff;
+    border-color: #e2e8f0;
+    color: #1e293b;
+}
+
+[data-theme="light"] .form-input::placeholder {
+    color: #94a3b8;
+}
+
+/* Light theme modal */
+[data-theme="light"] .modal-overlay {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+/* Light theme login page */
+[data-theme="light"] .login-title,
+[data-theme="light"] .login-subtitle {
+    color: #1e293b;
+}
+
+[data-theme="light"] .login-logo {
+    color: #1e293b;
+}
+
+[data-theme="light"] .login-footer {
+    color: #64748b;
+}
+
+[data-theme="light"] .login-card {
+    background: #ffffff;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Light theme sidebar */
+[data-theme="light"] .nav-item {
+    color: #64748b;
+}
+
+[data-theme="light"] .nav-item:hover {
+    color: #1e293b;
+    background: #f1f5f9;
+}
+
+[data-theme="light"] .nav-section-title {
+    color: #94a3b8;
+}
+
+[data-theme="light"] .sidebar-logo {
+    color: #1e293b;
+}
+
+/* Light theme user card in sidebar */
+[data-theme="light"] .user-name {
+    color: #1e293b;
+}
+
+[data-theme="light"] .user-role {
+    color: #64748b;
+}
+
+/* Light theme item cards */
+[data-theme="light"] .item-card {
+    background: #ffffff;
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .item-card-title {
+    color: #1e293b;
+}
+
+[data-theme="light"] .item-card-subtitle {
+    color: #64748b;
+}
+
+/* Light theme for prefers-color-scheme (system preference) */
+@media (prefers-color-scheme: light) {
+    html:not([data-theme="dark"]) .sidebar {
+        background: #ffffff;
+        border-right-color: #e2e8f0;
+    }
+
+    html:not([data-theme="dark"]) .header {
+        background: #ffffff;
+        border-bottom-color: #e2e8f0;
+    }
+
+    html:not([data-theme="dark"]) .card {
+        background: #ffffff;
+        border-color: #e2e8f0;
+    }
+
+    html:not([data-theme="dark"]) .nav-item {
+        color: #64748b;
+    }
+
+    html:not([data-theme="dark"]) .nav-item:hover {
+        color: #1e293b;
+        background: #f1f5f9;
+    }
+
+    html:not([data-theme="dark"]) .nav-item.active {
+        background: rgba(124, 58, 237, 0.1);
+        color: #7c3aed;
+    }
+
+    html:not([data-theme="dark"]) .form-input,
+    html:not([data-theme="dark"]) .form-select,
+    html:not([data-theme="dark"]) .form-textarea {
+        background: #ffffff;
+        border-color: #e2e8f0;
+        color: #1e293b;
+    }
+
+    html:not([data-theme="dark"]) .btn-secondary {
+        background: #f1f5f9;
+        color: #1e293b;
+        border-color: #e2e8f0;
+    }
+
+    html:not([data-theme="dark"]) .btn-ghost {
+        color: #64748b;
+    }
+
+    html:not([data-theme="dark"]) .modal {
+        background: #ffffff;
+    }
+
+    html:not([data-theme="dark"]) .login-page {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    }
+}
+
 /* NOTE: Theme toggle styles are in theme.css */
 
 /* ============================================
