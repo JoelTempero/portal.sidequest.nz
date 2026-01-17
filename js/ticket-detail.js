@@ -182,6 +182,9 @@ function renderTicketDetail(ticket) {
 
     // Render timeline
     renderTimeline(ticket);
+
+    // Render linked tickets
+    renderLinkedTickets(ticket.linkedTickets);
 }
 
 function renderTicketHeader(ticket) {
@@ -571,4 +574,180 @@ window.toggleMobileMenu = function() {
 window.saveSettings = async function() {
     // Implement settings save
     closeModal('settings-modal');
+};
+
+// ============================================
+// TICKET LINKING
+// ============================================
+
+let allTickets = []; // Cache for ticket search
+
+async function loadAllTickets() {
+    if (allTickets.length > 0) return allTickets;
+    try {
+        const ticketsRef = collection(db, 'tickets');
+        const snapshot = await getDocs(ticketsRef);
+        allTickets = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        return allTickets;
+    } catch (error) {
+        console.error('Error loading tickets:', error);
+        return [];
+    }
+}
+
+window.openLinkTicketModal = async function() {
+    await loadAllTickets();
+    document.getElementById('link-ticket-search').value = '';
+    document.getElementById('link-ticket-results').innerHTML = '<p class="empty-state-small">Start typing to search tickets</p>';
+    openModal('link-ticket-modal');
+};
+
+window.searchTicketsForLinking = function(searchTerm) {
+    const resultsContainer = document.getElementById('link-ticket-results');
+    if (!searchTerm || searchTerm.length < 2) {
+        resultsContainer.innerHTML = '<p class="empty-state-small">Start typing to search tickets</p>';
+        return;
+    }
+
+    const search = searchTerm.toLowerCase();
+    const currentId = currentTicket?.id;
+    const linkedIds = currentTicket?.linkedTickets || [];
+
+    const matches = allTickets.filter(t => {
+        if (t.id === currentId) return false;
+        if (linkedIds.includes(t.id)) return false;
+        const title = (t.title || '').toLowerCase();
+        const id = (t.id || '').toLowerCase();
+        return title.includes(search) || id.includes(search);
+    }).slice(0, 10);
+
+    if (matches.length === 0) {
+        resultsContainer.innerHTML = '<p class="empty-state-small">No matching tickets found</p>';
+        return;
+    }
+
+    resultsContainer.innerHTML = matches.map(t => `
+        <div class="link-ticket-item" onclick="linkTicket('${t.id}')">
+            <div class="link-ticket-info">
+                <div class="link-ticket-title">${escapeHtml(t.title || 'Untitled')}</div>
+                <div class="link-ticket-meta">#${t.id.slice(0, 8)} · ${t.status || 'open'}</div>
+            </div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+        </div>
+    `).join('');
+};
+
+window.linkTicket = async function(targetTicketId) {
+    if (!currentTicket?.id) return;
+
+    try {
+        showLoading(true);
+        const currentLinked = currentTicket.linkedTickets || [];
+
+        // Add to current ticket
+        await updateTicket(currentTicket.id, {
+            linkedTickets: [...currentLinked, targetTicketId]
+        });
+
+        // Add reverse link to target ticket
+        const targetDoc = await getDoc(doc(db, 'tickets', targetTicketId));
+        if (targetDoc.exists()) {
+            const targetLinked = targetDoc.data().linkedTickets || [];
+            await updateTicket(targetTicketId, {
+                linkedTickets: [...targetLinked, currentTicket.id]
+            });
+        }
+
+        showToast('Ticket linked successfully', 'success');
+        closeModal('link-ticket-modal');
+        // Refresh linked tickets display
+        renderLinkedTickets([...currentLinked, targetTicketId]);
+    } catch (error) {
+        console.error('Error linking ticket:', error);
+        showToast('Failed to link ticket', 'error');
+    } finally {
+        showLoading(false);
+    }
+};
+
+window.unlinkTicket = async function(targetTicketId) {
+    if (!currentTicket?.id) return;
+
+    try {
+        showLoading(true);
+        const currentLinked = currentTicket.linkedTickets || [];
+
+        // Remove from current ticket
+        await updateTicket(currentTicket.id, {
+            linkedTickets: currentLinked.filter(id => id !== targetTicketId)
+        });
+
+        // Remove reverse link from target ticket
+        const targetDoc = await getDoc(doc(db, 'tickets', targetTicketId));
+        if (targetDoc.exists()) {
+            const targetLinked = targetDoc.data().linkedTickets || [];
+            await updateTicket(targetTicketId, {
+                linkedTickets: targetLinked.filter(id => id !== currentTicket.id)
+            });
+        }
+
+        showToast('Ticket unlinked', 'success');
+        renderLinkedTickets(currentLinked.filter(id => id !== targetTicketId));
+    } catch (error) {
+        console.error('Error unlinking ticket:', error);
+        showToast('Failed to unlink ticket', 'error');
+    } finally {
+        showLoading(false);
+    }
+};
+
+async function renderLinkedTickets(linkedIds) {
+    const container = document.getElementById('linked-tickets');
+    if (!container) return;
+
+    if (!linkedIds || linkedIds.length === 0) {
+        container.innerHTML = '<span class="empty-state-small">No linked tickets</span>';
+        return;
+    }
+
+    // Fetch linked ticket details
+    const linkedTickets = [];
+    for (const id of linkedIds) {
+        try {
+            const ticketDoc = await getDoc(doc(db, 'tickets', id));
+            if (ticketDoc.exists()) {
+                linkedTickets.push({ id, ...ticketDoc.data() });
+            }
+        } catch (e) {
+            console.warn('Could not fetch linked ticket:', id);
+        }
+    }
+
+    if (linkedTickets.length === 0) {
+        container.innerHTML = '<span class="empty-state-small">No linked tickets</span>';
+        return;
+    }
+
+    container.innerHTML = linkedTickets.map(t => `
+        <a href="ticket-detail.html?id=${t.id}" class="linked-ticket" title="${escapeHtml(t.title || 'Untitled')}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" aria-hidden="true">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+            #${t.id.slice(0, 8)}
+            <button onclick="event.preventDefault(); unlinkTicket('${t.id}')" class="btn-icon-tiny" aria-label="Unlink ticket" title="Unlink">×</button>
+        </a>
+    `).join('');
+}
+
+// Update renderTicketDetail to call renderLinkedTickets
+const originalRenderTicketDetail = window.renderTicketDetail || function() {};
+window.renderTicketDetailWithLinks = function(ticket) {
+    if (typeof originalRenderTicketDetail === 'function') {
+        originalRenderTicketDetail(ticket);
+    }
+    // Render linked tickets
+    renderLinkedTickets(ticket.linkedTickets);
 };

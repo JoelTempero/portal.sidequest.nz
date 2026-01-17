@@ -1,212 +1,144 @@
-/* ============================================
-   SIDEQUEST DIGITAL - Service Worker
-   Offline support and caching
-   ============================================ */
-
+// Service Worker for Sidequest Digital Portal
 const CACHE_NAME = 'sidequest-portal-v1';
-const STATIC_CACHE_NAME = 'sidequest-static-v1';
-const DYNAMIC_CACHE_NAME = 'sidequest-dynamic-v1';
-
-// Static assets to cache on install
 const STATIC_ASSETS = [
     '/',
     '/index.html',
     '/dashboard.html',
-    '/projects.html',
     '/leads.html',
-    '/tickets.html',
+    '/projects.html',
     '/clients.html',
-    '/archive.html',
+    '/tickets.html',
     '/posts.html',
-    '/project-detail.html',
-    '/lead-detail.html',
+    '/archive.html',
     '/css/portal.css',
-    '/css/theme.css',
-    '/assets/logo.png',
-    // External fonts
-    'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700&display=swap'
-];
-
-// Firebase SDK URLs (we'll cache these for offline)
-const FIREBASE_ASSETS = [
-    'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js',
-    'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js',
-    'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js',
-    'https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js',
-    'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js'
+    '/js/app.js',
+    '/js/firebase-config.js',
+    '/js/constants.js',
+    '/js/components/loaders.js',
+    '/js/components/filters.js',
+    '/js/components/modals.js',
+    '/js/pages/dashboard.js',
+    '/js/pages/leads.js',
+    '/js/pages/projects.js',
+    '/js/pages/clients.js',
+    '/js/pages/tickets.js',
+    '/js/pages/posts.js',
+    '/assets/logo.png'
 ];
 
 // Install event - cache static assets
-self.addEventListener('install', (event) => {
-    console.log('[SW] Installing service worker...');
-
+self.addEventListener('install', event => {
     event.waitUntil(
-        Promise.all([
-            // Cache static assets
-            caches.open(STATIC_CACHE_NAME).then((cache) => {
+        caches.open(CACHE_NAME)
+            .then(cache => {
                 console.log('[SW] Caching static assets');
                 return cache.addAll(STATIC_ASSETS);
-            }),
-            // Cache Firebase SDK
-            caches.open(STATIC_CACHE_NAME).then((cache) => {
-                console.log('[SW] Caching Firebase SDK');
-                return cache.addAll(FIREBASE_ASSETS);
             })
-        ]).then(() => {
-            console.log('[SW] Installation complete');
-            return self.skipWaiting();
-        })
+            .then(() => self.skipWaiting())
+            .catch(err => console.error('[SW] Cache install failed:', err))
     );
 });
 
 // Activate event - clean up old caches
-self.addEventListener('activate', (event) => {
-    console.log('[SW] Activating service worker...');
-
+self.addEventListener('activate', event => {
     event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
-                cacheNames
-                    .filter((name) => {
-                        return name.startsWith('sidequest-') &&
-                               name !== STATIC_CACHE_NAME &&
-                               name !== DYNAMIC_CACHE_NAME;
-                    })
-                    .map((name) => {
-                        console.log('[SW] Deleting old cache:', name);
-                        return caches.delete(name);
-                    })
-            );
-        }).then(() => {
-            console.log('[SW] Activation complete');
-            return self.clients.claim();
-        })
+        caches.keys()
+            .then(cacheNames => {
+                return Promise.all(
+                    cacheNames
+                        .filter(name => name !== CACHE_NAME)
+                        .map(name => {
+                            console.log('[SW] Deleting old cache:', name);
+                            return caches.delete(name);
+                        })
+                );
+            })
+            .then(() => self.clients.claim())
     );
 });
 
-// Fetch event - serve from cache or network
-self.addEventListener('fetch', (event) => {
+// Fetch event - network first for API, cache first for static
+self.addEventListener('fetch', event => {
     const { request } = event;
     const url = new URL(request.url);
 
-    // Skip non-GET requests
-    if (request.method !== 'GET') {
+    // Skip cross-origin requests (Firebase, etc.)
+    if (url.origin !== location.origin) {
         return;
     }
 
-    // Skip Firebase API calls (they need to be live)
-    if (url.hostname.includes('firestore.googleapis.com') ||
-        url.hostname.includes('firebaseio.com') ||
-        url.hostname.includes('cloudfunctions.net')) {
+    // Network first for HTML pages (always get fresh content)
+    if (request.mode === 'navigate' || request.headers.get('accept')?.includes('text/html')) {
+        event.respondWith(networkFirst(request));
         return;
     }
 
-    // Strategy: Stale-while-revalidate for most resources
-    event.respondWith(
-        caches.match(request).then((cachedResponse) => {
-            // Return cached response immediately if available
-            const fetchPromise = fetch(request)
-                .then((networkResponse) => {
-                    // Update cache with fresh response
-                    if (networkResponse && networkResponse.status === 200) {
-                        const cacheName = isStaticAsset(url) ? STATIC_CACHE_NAME : DYNAMIC_CACHE_NAME;
-                        caches.open(cacheName).then((cache) => {
-                            cache.put(request, networkResponse.clone());
-                        });
-                    }
-                    return networkResponse;
-                })
-                .catch(() => {
-                    // Network failed, return cached or offline page
-                    if (request.destination === 'document') {
-                        return caches.match('/index.html');
-                    }
-                    return cachedResponse;
-                });
+    // Cache first for static assets (JS, CSS, images)
+    if (isStaticAsset(url.pathname)) {
+        event.respondWith(cacheFirst(request));
+        return;
+    }
 
-            return cachedResponse || fetchPromise;
+    // Stale-while-revalidate for other requests
+    event.respondWith(staleWhileRevalidate(request));
+});
+
+// Check if request is for a static asset
+function isStaticAsset(pathname) {
+    return /\.(js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)$/.test(pathname);
+}
+
+// Network first strategy - try network, fall back to cache
+async function networkFirst(request) {
+    try {
+        const networkResponse = await fetch(request);
+        if (networkResponse.ok) {
+            const cache = await caches.open(CACHE_NAME);
+            cache.put(request, networkResponse.clone());
+        }
+        return networkResponse;
+    } catch (error) {
+        const cachedResponse = await caches.match(request);
+        if (cachedResponse) {
+            return cachedResponse;
+        }
+        // Return offline page if available
+        return caches.match('/index.html');
+    }
+}
+
+// Cache first strategy - try cache, fall back to network
+async function cacheFirst(request) {
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+        return cachedResponse;
+    }
+    try {
+        const networkResponse = await fetch(request);
+        if (networkResponse.ok) {
+            const cache = await caches.open(CACHE_NAME);
+            cache.put(request, networkResponse.clone());
+        }
+        return networkResponse;
+    } catch (error) {
+        console.error('[SW] Fetch failed:', error);
+        return new Response('Offline', { status: 503 });
+    }
+}
+
+// Stale-while-revalidate strategy
+async function staleWhileRevalidate(request) {
+    const cachedResponse = await caches.match(request);
+
+    const fetchPromise = fetch(request)
+        .then(networkResponse => {
+            if (networkResponse.ok) {
+                const cache = caches.open(CACHE_NAME);
+                cache.then(c => c.put(request, networkResponse.clone()));
+            }
+            return networkResponse;
         })
-    );
-});
+        .catch(() => cachedResponse);
 
-// Check if URL is a static asset
-function isStaticAsset(url) {
-    const staticExtensions = ['.html', '.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2'];
-    return staticExtensions.some(ext => url.pathname.endsWith(ext)) ||
-           url.hostname === 'fonts.googleapis.com' ||
-           url.hostname === 'fonts.gstatic.com' ||
-           url.hostname === 'www.gstatic.com';
+    return cachedResponse || fetchPromise;
 }
-
-// Handle push notifications (for future use)
-self.addEventListener('push', (event) => {
-    if (!event.data) return;
-
-    const data = event.data.json();
-    const options = {
-        body: data.body || 'New notification',
-        icon: '/assets/logo.png',
-        badge: '/assets/logo.png',
-        vibrate: [100, 50, 100],
-        data: {
-            url: data.url || '/'
-        },
-        actions: data.actions || []
-    };
-
-    event.waitUntil(
-        self.registration.showNotification(data.title || 'Sidequest Portal', options)
-    );
-});
-
-// Handle notification clicks
-self.addEventListener('notificationclick', (event) => {
-    event.notification.close();
-
-    const url = event.notification.data?.url || '/';
-
-    event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true })
-            .then((windowClients) => {
-                // Check if there's already a window open
-                for (const client of windowClients) {
-                    if (client.url === url && 'focus' in client) {
-                        return client.focus();
-                    }
-                }
-                // Open a new window
-                if (clients.openWindow) {
-                    return clients.openWindow(url);
-                }
-            })
-    );
-});
-
-// Background sync (for future use)
-self.addEventListener('sync', (event) => {
-    if (event.tag === 'sync-messages') {
-        event.waitUntil(syncMessages());
-    }
-});
-
-async function syncMessages() {
-    // This would sync any pending messages when back online
-    console.log('[SW] Syncing messages...');
-}
-
-// Message handler for communication with main thread
-self.addEventListener('message', (event) => {
-    if (event.data === 'skipWaiting') {
-        self.skipWaiting();
-    }
-
-    if (event.data === 'clearCache') {
-        caches.keys().then((names) => {
-            names.forEach((name) => {
-                if (name.startsWith('sidequest-')) {
-                    caches.delete(name);
-                }
-            });
-        });
-    }
-});
