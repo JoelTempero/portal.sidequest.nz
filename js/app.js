@@ -2,6 +2,15 @@
    SIDEQUEST DIGITAL - App UI Layer
    ============================================ */
 
+// Force refresh service worker on load to clear old caches
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(registration => {
+            registration.update();
+        });
+    });
+}
+
 import {
     auth, db, storage, AppState, TIER_NAMES,
     login, logout, createClientWithAuth, uploadFile, uploadLogo,
