@@ -925,6 +925,54 @@ window.handleQuickSaveTask = async (projectId) => {
     }
 };
 
+// Inline task editing for project detail page
+window.toggleTaskEdit = () => {
+    const viewArea = document.getElementById('task-view');
+    const editArea = document.getElementById('task-edit');
+    const input = document.getElementById('inline-task-input');
+    const currentTask = document.getElementById('current-task');
+
+    if (editArea && viewArea) {
+        viewArea.classList.add('hidden');
+        editArea.classList.add('active');
+        if (input && currentTask) {
+            input.value = currentTask.classList.contains('empty') ? '' : currentTask.textContent;
+            input.focus();
+        }
+    }
+};
+
+window.cancelTaskEdit = () => {
+    const viewArea = document.getElementById('task-view');
+    const editArea = document.getElementById('task-edit');
+
+    if (editArea && viewArea) {
+        viewArea.classList.remove('hidden');
+        editArea.classList.remove('active');
+    }
+};
+
+window.saveInlineTask = async () => {
+    const proj = AppState.currentItem;
+    if (!proj) return;
+
+    const input = document.getElementById('inline-task-input');
+    const task = input?.value?.trim() || '';
+    const result = await updateProject(proj.id, { currentTask: task });
+
+    if (result.success) {
+        proj.currentTask = task;
+        AppState.currentItem = proj;
+        const taskEl = document.getElementById('current-task');
+        if (taskEl) {
+            taskEl.textContent = task || 'No current task set.';
+            taskEl.classList.toggle('empty', !task);
+        }
+        cancelTaskEdit();
+        showToast('Task updated!', 'success');
+    }
+};
+
 window.handleDashboardTicket = async () => {
     console.log('handleDashboardTicket called');
     const projectId = document.getElementById('dash-ticket-project')?.value;
@@ -1773,25 +1821,32 @@ function renderProjectDetail() {
     if (el('detail-info')) {
         let previewsHtml = '';
         if (proj.previewLinks && proj.previewLinks.length) {
-            previewsHtml = `<div class="info-item"><label>Previews</label><span>${proj.previewLinks.map((link, i) => `<a href="${link}" target="_blank">Preview ${i + 1}</a>`).join(' • ')}</span></div>`;
+            // Show actual URLs instead of "Preview 1, 2..."
+            previewsHtml = `<div class="info-item"><label>Previews</label><span>${proj.previewLinks.map(link => `<a href="${escapeHtml(link)}" target="_blank" style="word-break: break-all;">${escapeHtml(link)}</a>`).join('<br>')}</span></div>`;
         }
         el('detail-info').innerHTML = `
-            <div class="info-item"><label>Email</label><span><a href="mailto:${proj.clientEmail || ''}">${proj.clientEmail || '-'}</a></span></div>
-            <div class="info-item"><label>Phone</label><span>${proj.clientPhone || '-'}</span></div>
-            <div class="info-item"><label>Website</label><span>${proj.websiteUrl ? `<a href="https://${proj.websiteUrl}" target="_blank">${proj.websiteUrl}</a>` : '-'}</span></div>
-            <div class="info-item"><label>Location</label><span>${proj.location || '-'}</span></div>
-            <div class="info-item"><label>Type</label><span>${proj.businessType || '-'}</span></div>
-            ${proj.githubLink ? `<div class="info-item"><label>GitHub Code</label><span><a href="${proj.githubLink}" target="_blank">View Repository</a></span></div>` : ''}
+            <div class="info-item"><label>Email</label><span><a href="mailto:${proj.clientEmail || ''}">${escapeHtml(proj.clientEmail || '-')}</a></span></div>
+            <div class="info-item"><label>Phone</label><span>${escapeHtml(proj.clientPhone || '-')}</span></div>
+            <div class="info-item"><label>Website</label><span>${proj.websiteUrl ? `<a href="https://${escapeHtml(proj.websiteUrl)}" target="_blank">${escapeHtml(proj.websiteUrl)}</a>` : '-'}</span></div>
+            <div class="info-item"><label>Location</label><span>${escapeHtml(proj.location || '-')}</span></div>
+            <div class="info-item"><label>Type</label><span>${escapeHtml(proj.businessType || '-')}</span></div>
+            ${proj.githubLink ? `<div class="info-item"><label>GitHub Code</label><span><a href="${escapeHtml(proj.githubLink)}" target="_blank">View Repository</a></span></div>` : ''}
             ${previewsHtml}`;
     }
-    
+
     renderMilestones('milestones', proj.milestones, AppState.isAdmin);
     renderInvoices('invoices', proj.invoices);
     subscribeToMessages(proj.id, msgs => renderMessages('messages-container', msgs));
     renderTickets('project-tickets', AppState.tickets.filter(t => t.projectId === proj.id));
-    
-    // Display current task
-    if (el('current-task')) el('current-task').textContent = proj.currentTask || 'No current task set.';
+
+    // Display current task with proper empty state
+    const taskEl = el('current-task');
+    if (taskEl) {
+        const hasTask = proj.currentTask && proj.currentTask.trim();
+        taskEl.textContent = hasTask ? proj.currentTask : 'No current task set.';
+        taskEl.classList.toggle('empty', !hasTask);
+    }
+    if (el('inline-task-input')) el('inline-task-input').value = proj.currentTask || '';
     if (el('edit-current-task')) el('edit-current-task').value = proj.currentTask || '';
     
     // Progress slider event
