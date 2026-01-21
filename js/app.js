@@ -396,13 +396,6 @@ function renderMilestones(containerId, milestones, editable = false) {
     }
 }
 
-function renderInvoices(containerId, invoices) {
-    const c = document.getElementById(containerId);
-    if (!c) return;
-    if (!invoices?.length) { c.innerHTML = '<p class="text-muted">No invoices yet.</p>'; return; }
-    c.innerHTML = invoices.map(i => `<div class="invoice-item"><div class="invoice-info"><strong>${i.number || 'Invoice'}</strong><br><span class="text-muted">${i.description || ''}</span></div><span class="badge badge-${i.status === 'paid' ? 'success' : 'warning'}">${i.status || 'pending'}</span><div class="invoice-amount">${formatCurrency(i.amount)}</div></div>`).join('');
-}
-
 function renderMessages(containerId, messages) {
     const c = document.getElementById(containerId);
     if (!c) return;
@@ -1001,17 +994,23 @@ window.saveInlineTask = async () => {
 // ============================================
 
 // Render invoices list
-function renderInvoices(containerId, invoices) {
+function renderInvoices(containerId, invoices, isClientView = false) {
     const c = document.getElementById(containerId);
     if (!c) return;
 
-    if (!invoices?.length) {
-        c.innerHTML = '<p class="text-muted" style="font-size:13px;">No invoices yet.</p>';
+    // For clients, only show sent/paid invoices (not drafts)
+    let visibleInvoices = invoices || [];
+    if (isClientView) {
+        visibleInvoices = visibleInvoices.filter(inv => inv.status === 'sent' || inv.status === 'paid');
+    }
+
+    if (!visibleInvoices?.length) {
+        c.innerHTML = `<p class="text-muted" style="font-size:13px;">${isClientView ? 'No invoices to display.' : 'No invoices yet.'}</p>`;
         return;
     }
 
     // Sort by date (newest first)
-    const sorted = [...invoices].sort((a, b) => {
+    const sorted = [...visibleInvoices].sort((a, b) => {
         const dateA = new Date(b.createdAt || 0);
         const dateB = new Date(a.createdAt || 0);
         return dateA - dateB;
@@ -1022,10 +1021,15 @@ function renderInvoices(containerId, invoices) {
         const dueDate = inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' }) : 'No due date';
         const amount = inv.amount ? `$${parseFloat(inv.amount).toFixed(2)}` : '$0.00';
         const isOverdue = inv.dueDate && new Date(inv.dueDate) < new Date() && inv.status !== 'paid' && inv.status !== 'cancelled';
+        const canPay = inv.status === 'sent' && inv.stripeLink;
+
+        // Admin view: clickable to edit
+        // Client view: not clickable, shows pay button
+        const mainClick = isClientView ? '' : `onclick="openEditInvoice('${escapeHtml(inv.id)}')" style="cursor:pointer;"`;
 
         return `
         <div class="invoice-item ${statusClass}${isOverdue ? ' overdue' : ''}">
-            <div class="invoice-main" onclick="openEditInvoice('${escapeHtml(inv.id)}')" style="cursor:pointer;">
+            <div class="invoice-main" ${mainClick}>
                 <div class="invoice-title">${escapeHtml(inv.title || 'Untitled Invoice')}</div>
                 <div class="invoice-meta">
                     <span class="invoice-amount">${amount}</span>
@@ -1035,6 +1039,7 @@ function renderInvoices(containerId, invoices) {
             <div class="invoice-actions">
                 <span class="status-badge ${statusClass}">${escapeHtml(getInvoiceStatusLabel(inv.status))}</span>
                 ${inv.pdfUrl ? `<a href="${escapeHtml(inv.pdfUrl)}" target="_blank" class="btn btn-ghost btn-sm" title="View PDF">📄</a>` : ''}
+                ${canPay ? `<a href="${escapeHtml(inv.stripeLink)}" target="_blank" class="btn btn-primary btn-sm">Pay Now</a>` : ''}
             </div>
         </div>`;
     }).join('')}</div>`;
@@ -1081,6 +1086,7 @@ window.openEditInvoice = (invoiceId) => {
     document.getElementById('invoice-due-date').value = invoice.dueDate || '';
     document.getElementById('invoice-status').value = invoice.status || 'draft';
     document.getElementById('invoice-notes').value = invoice.notes || '';
+    document.getElementById('invoice-stripe-link').value = invoice.stripeLink || '';
 
     // PDF handling
     pendingInvoicePdf = null;
@@ -1107,6 +1113,7 @@ window.openCreateInvoice = () => {
     document.getElementById('invoice-due-date').value = '';
     document.getElementById('invoice-status').value = 'draft';
     document.getElementById('invoice-notes').value = '';
+    document.getElementById('invoice-stripe-link').value = '';
 
     pendingInvoicePdf = null;
     document.getElementById('invoice-pdf').value = '';
@@ -1126,6 +1133,7 @@ window.handleSaveInvoice = async () => {
     const dueDate = document.getElementById('invoice-due-date')?.value;
     const status = document.getElementById('invoice-status')?.value || 'draft';
     const notes = document.getElementById('invoice-notes')?.value || '';
+    const stripeLink = document.getElementById('invoice-stripe-link')?.value || '';
     const removePdf = document.getElementById('invoice-edit-id')?.dataset.removePdf === 'true';
 
     if (!title) { showToast('Please enter an invoice title', 'error'); return; }
@@ -1163,6 +1171,7 @@ window.handleSaveInvoice = async () => {
                 dueDate,
                 status,
                 notes,
+                stripeLink,
                 updatedAt: new Date().toISOString()
             };
             // Handle PDF
@@ -1181,6 +1190,7 @@ window.handleSaveInvoice = async () => {
             dueDate,
             status,
             notes,
+            stripeLink,
             pdfUrl: pdfUrl || null,
             createdAt: new Date().toISOString()
         });
@@ -1192,7 +1202,8 @@ window.handleSaveInvoice = async () => {
         AppState.currentItem = proj;
         pendingInvoicePdf = null;
         closeAllModals();
-        renderInvoices('invoices', invoices);
+        renderInvoices('invoices', invoices);  // Admin view
+        renderInvoices('client-invoices', invoices, true);  // Client view
         showToast(editId ? 'Invoice updated!' : 'Invoice created!', 'success');
     }
 };
@@ -2072,7 +2083,8 @@ function renderProjectDetail() {
     }
 
     renderMilestones('milestones', proj.milestones, AppState.isAdmin);
-    renderInvoices('invoices', proj.invoices);
+    renderInvoices('invoices', proj.invoices);  // Admin view
+    renderInvoices('client-invoices', proj.invoices, true);  // Client view (only sent/paid, with Pay button)
     subscribeToMessages(proj.id, msgs => renderMessages('messages-container', msgs));
     renderTickets('project-tickets', AppState.tickets.filter(t => t.projectId === proj.id));
 

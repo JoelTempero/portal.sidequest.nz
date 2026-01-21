@@ -388,6 +388,14 @@
                             </div>
                             <div id="invoices"></div>
                         </div>
+
+                        <!-- Invoices (Client View) -->
+                        <div class="invoices-section client-only">
+                            <div class="invoices-header">
+                                <h3>Invoices</h3>
+                            </div>
+                            <div id="client-invoices"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -507,6 +515,11 @@
                         <a id="invoice-pdf-link" href="#" target="_blank" style="font-size:13px;">View current PDF</a>
                         <button type="button" class="btn btn-ghost btn-sm" onclick="clearInvoicePdf()" style="margin-left:8px;">Remove</button>
                     </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Stripe Payment Link <span style="font-size:11px;color:var(--color-text-muted);">(for client payment)</span></label>
+                    <input type="url" id="invoice-stripe-link" class="form-input" placeholder="https://buy.stripe.com/...">
+                    <p style="font-size:11px;color:var(--color-text-muted);margin-top:4px;">Create a payment link in Stripe Dashboard and paste it here</p>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Internal Notes <span style="font-size:11px;color:var(--color-text-muted);">(admin only)</span></label>
