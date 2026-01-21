@@ -195,8 +195,12 @@ function renderLeads(containerId) {
     c.classList.remove('loading');
     const items = applyFilters(AppState.leads);
     if (!items.length) { c.innerHTML = `<div class="empty-state"><h3>${AppState.leads.length ? 'No matches' : 'No leads yet'}</h3></div>`; return; }
+
+    // Collect logo URLs for preloading
+    const logoUrls = items.filter(l => l.logo).map(l => l.logo);
+
     c.innerHTML = items.map((l, i) => `
-        <div class="item-card fade-in" style="animation-delay:${i * 50}ms" onclick="window.location.href='${NAVIGATION.LEAD_DETAIL}?id=${escapeHtml(l.id)}'">
+        <div class="item-card waiting" data-index="${i}" onclick="window.location.href='${NAVIGATION.LEAD_DETAIL}?id=${escapeHtml(l.id)}'">
             ${l.logo ? `<div class="item-card-logo" style="background-image:url('${escapeHtml(l.logo)}')"></div>` : `<div class="item-card-logo item-card-logo-placeholder">${escapeHtml(getInitials(l.companyName))}</div>`}
             <div class="item-card-body">
                 <div class="item-company">${escapeHtml(l.companyName || 'Unnamed')}</div>
@@ -206,6 +210,35 @@ function renderLeads(containerId) {
                 <div class="item-meta"><span>Added ${formatDate(l.createdAt)}</span></div>
             </div>
         </div>`).join('');
+
+    // Preload logos then trigger fade-in
+    const triggerFadeIn = () => {
+        const cards = c.querySelectorAll('.item-card.waiting');
+        cards.forEach(card => {
+            const idx = parseInt(card.dataset.index) || 0;
+            card.classList.remove('waiting');
+            card.classList.add('fade-in');
+            card.style.animationDelay = `${idx * 50}ms`;
+        });
+    };
+
+    if (logoUrls.length > 0) {
+        let loaded = 0;
+        const timeout = setTimeout(triggerFadeIn, 2000);
+        logoUrls.forEach(url => {
+            const img = new Image();
+            img.onload = img.onerror = () => {
+                loaded++;
+                if (loaded >= logoUrls.length) {
+                    clearTimeout(timeout);
+                    triggerFadeIn();
+                }
+            };
+            img.src = url;
+        });
+    } else {
+        triggerFadeIn();
+    }
 }
 
 // Tier filter state
@@ -231,8 +264,12 @@ function renderProjects(containerId, items = null) {
     });
 
     if (!list.length) { c.innerHTML = `<div class="empty-state"><h3>No projects yet</h3></div>`; return; }
+
+    // Collect logo URLs for preloading
+    const logoUrls = list.filter(p => p.logo).map(p => p.logo);
+
     c.innerHTML = list.map((p, i) => `
-        <div class="item-card fade-in" style="animation-delay:${i * 50}ms">
+        <div class="item-card waiting" data-index="${i}">
             <div onclick="window.location.href='${NAVIGATION.PROJECT_DETAIL}?id=${escapeHtml(p.id)}'" style="cursor:pointer;">
                 ${p.logo ? `<div class="item-card-logo" style="background-image:url('${escapeHtml(p.logo)}')"></div>` : `<div class="item-card-logo item-card-logo-placeholder">${escapeHtml(getInitials(p.companyName))}</div>`}
                 <div class="item-card-body">
@@ -242,11 +279,53 @@ function renderProjects(containerId, items = null) {
                     <div class="item-progress"><div class="progress-header"><span>Progress</span><span>${parseInt(p.progress) || 0}%</span></div><div class="progress-bar"><div class="progress-fill" style="width:${parseInt(p.progress) || 0}%"></div></div></div>
                 </div>
             </div>
-            ${AppState.isAdmin ? `<div style="padding:0 16px 16px;border-top:1px solid var(--color-border-subtle);margin-top:8px;padding-top:12px;" onclick="event.stopPropagation();">
-                <label style="font-size:11px;color:var(--color-text-muted);display:block;margin-bottom:4px;">Current Task</label>
-                <div style="display:flex;gap:8px;"><input type="text" id="task-input-${escapeHtml(p.id)}" class="form-input" value="${escapeHtml(p.currentTask || '')}" placeholder="What's being worked on?" style="flex:1;font-size:13px;padding:6px 10px;"><button class="btn btn-primary btn-sm" onclick="handleQuickSaveTask('${escapeHtml(p.id)}')">Save</button></div>
-            </div>` : `<div style="padding:0 16px 16px;"><span style="font-size:12px;color:var(--color-text-muted);">Task:</span> <span style="font-size:13px;">${escapeHtml(p.currentTask || 'None set')}</span></div>`}
+            ${AppState.isAdmin ? `<div class="card-task-section" onclick="event.stopPropagation();">
+                <div class="card-task-view" id="task-view-${escapeHtml(p.id)}">
+                    <span class="card-task-label">Task:</span>
+                    <span class="card-task-text ${p.currentTask ? '' : 'empty'}">${escapeHtml(p.currentTask || 'None set')}</span>
+                    <button class="card-task-edit-btn" onclick="toggleCardTaskEdit('${escapeHtml(p.id)}')" title="Edit task">✏️</button>
+                </div>
+                <div class="card-task-edit" id="task-edit-${escapeHtml(p.id)}" style="display:none;">
+                    <input type="text" id="task-input-${escapeHtml(p.id)}" class="form-input" value="${escapeHtml(p.currentTask || '')}" placeholder="What's being worked on?" style="flex:1;font-size:13px;padding:6px 10px;">
+                    <div style="display:flex;gap:6px;margin-top:8px;justify-content:flex-end;">
+                        <button class="btn btn-ghost btn-sm" onclick="cancelCardTaskEdit('${escapeHtml(p.id)}')">Cancel</button>
+                        <button class="btn btn-primary btn-sm" onclick="handleQuickSaveTask('${escapeHtml(p.id)}')">Save</button>
+                    </div>
+                </div>
+            </div>` : `<div style="padding:0 16px 16px;"><span style="font-size:12px;color:var(--color-text-muted);">Task:</span> <span style="font-size:14px;">${escapeHtml(p.currentTask || 'None set')}</span></div>`}
         </div>`).join('');
+
+    // Preload logos then trigger fade-in animation
+    const triggerFadeIn = () => {
+        const cards = c.querySelectorAll('.item-card.waiting');
+        cards.forEach(card => {
+            const idx = parseInt(card.dataset.index) || 0;
+            card.classList.remove('waiting');
+            card.classList.add('fade-in');
+            card.style.animationDelay = `${idx * 50}ms`;
+        });
+    };
+
+    if (logoUrls.length > 0) {
+        let loaded = 0;
+        const total = logoUrls.length;
+        const timeout = setTimeout(triggerFadeIn, 2000); // Max 2s wait
+
+        logoUrls.forEach(url => {
+            const img = new Image();
+            img.onload = img.onerror = () => {
+                loaded++;
+                if (loaded >= total) {
+                    clearTimeout(timeout);
+                    triggerFadeIn();
+                }
+            };
+            img.src = url;
+        });
+    } else {
+        // No logos to preload, trigger immediately
+        triggerFadeIn();
+    }
 }
 
 function renderClients(containerId) {
@@ -932,12 +1011,43 @@ window.openEditTaskModal = (projectId) => {
 window.handleQuickSaveTask = async (projectId) => {
     const input = document.getElementById(`task-input-${projectId}`);
     if (!input) return;
-    const result = await updateProject(projectId, { currentTask: input.value });
+    const task = input.value.trim();
+    const result = await updateProject(projectId, { currentTask: task });
     if (result.success) {
         showToast('Task saved!', 'success');
         // Update local state
         const proj = AppState.projects.find(p => p.id === projectId);
-        if (proj) proj.currentTask = input.value;
+        if (proj) proj.currentTask = task;
+        // Update the display and hide edit area
+        const taskText = document.querySelector(`#task-view-${projectId} .card-task-text`);
+        if (taskText) {
+            taskText.textContent = task || 'None set';
+            taskText.classList.toggle('empty', !task);
+        }
+        cancelCardTaskEdit(projectId);
+    }
+};
+
+// Card task editing toggle (for project cards in grid view)
+window.toggleCardTaskEdit = (projectId) => {
+    const viewArea = document.getElementById(`task-view-${projectId}`);
+    const editArea = document.getElementById(`task-edit-${projectId}`);
+    const input = document.getElementById(`task-input-${projectId}`);
+
+    if (viewArea && editArea) {
+        viewArea.style.display = 'none';
+        editArea.style.display = 'block';
+        if (input) input.focus();
+    }
+};
+
+window.cancelCardTaskEdit = (projectId) => {
+    const viewArea = document.getElementById(`task-view-${projectId}`);
+    const editArea = document.getElementById(`task-edit-${projectId}`);
+
+    if (viewArea && editArea) {
+        viewArea.style.display = 'flex';
+        editArea.style.display = 'none';
     }
 };
 
@@ -1827,7 +1937,16 @@ function renderPage(page) {
         case 'dashboard.html':
             renderStats();
             if (AppState.isAdmin) {
-                renderProjects('projects-grid', AppState.projects.filter(p => p.status === 'active').slice(0, 6));
+                // Sort active projects by tier then progress, then take top 6
+                const activeProjects = AppState.projects
+                    .filter(p => p.status === 'active')
+                    .sort((a, b) => {
+                        const tierDiff = getTierOrder(a.tier) - getTierOrder(b.tier);
+                        if (tierDiff !== 0) return tierDiff;
+                        return (parseInt(b.progress) || 0) - (parseInt(a.progress) || 0);
+                    })
+                    .slice(0, 6);
+                renderProjects('projects-grid', activeProjects);
                 renderAdminDashboardTickets('admin-tickets-grid');
             } else {
                 // Client dashboard - show their projects and tickets
