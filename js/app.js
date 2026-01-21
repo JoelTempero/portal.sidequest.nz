@@ -996,6 +996,207 @@ window.saveInlineTask = async () => {
     }
 };
 
+// ============================================
+// INVOICE MANAGEMENT
+// ============================================
+
+// Render invoices list
+function renderInvoices(containerId, invoices) {
+    const c = document.getElementById(containerId);
+    if (!c) return;
+
+    if (!invoices?.length) {
+        c.innerHTML = '<p class="text-muted" style="font-size:13px;">No invoices yet.</p>';
+        return;
+    }
+
+    // Sort by date (newest first)
+    const sorted = [...invoices].sort((a, b) => {
+        const dateA = new Date(b.createdAt || 0);
+        const dateB = new Date(a.createdAt || 0);
+        return dateA - dateB;
+    });
+
+    c.innerHTML = `<div class="invoice-list">${sorted.map(inv => {
+        const statusClass = inv.status || 'draft';
+        const dueDate = inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' }) : 'No due date';
+        const amount = inv.amount ? `$${parseFloat(inv.amount).toFixed(2)}` : '$0.00';
+        const isOverdue = inv.dueDate && new Date(inv.dueDate) < new Date() && inv.status !== 'paid' && inv.status !== 'cancelled';
+
+        return `
+        <div class="invoice-item ${statusClass}${isOverdue ? ' overdue' : ''}">
+            <div class="invoice-main" onclick="openEditInvoice('${escapeHtml(inv.id)}')" style="cursor:pointer;">
+                <div class="invoice-title">${escapeHtml(inv.title || 'Untitled Invoice')}</div>
+                <div class="invoice-meta">
+                    <span class="invoice-amount">${amount}</span>
+                    <span class="invoice-due${isOverdue ? ' text-danger' : ''}">${isOverdue ? 'Overdue: ' : 'Due: '}${dueDate}</span>
+                </div>
+            </div>
+            <div class="invoice-actions">
+                <span class="status-badge ${statusClass}">${escapeHtml(getInvoiceStatusLabel(inv.status))}</span>
+                ${inv.pdfUrl ? `<a href="${escapeHtml(inv.pdfUrl)}" target="_blank" class="btn btn-ghost btn-sm" title="View PDF">📄</a>` : ''}
+            </div>
+        </div>`;
+    }).join('')}</div>`;
+}
+
+function getInvoiceStatusLabel(status) {
+    const labels = { draft: 'Draft', sent: 'Sent', paid: 'Paid', cancelled: 'Cancelled' };
+    return labels[status] || 'Draft';
+}
+
+// Track selected PDF file for upload
+let pendingInvoicePdf = null;
+
+window.handleInvoicePdfSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        pendingInvoicePdf = file;
+        document.getElementById('invoice-pdf-name').textContent = file.name;
+    }
+};
+
+window.clearInvoicePdf = () => {
+    pendingInvoicePdf = null;
+    document.getElementById('invoice-pdf').value = '';
+    document.getElementById('invoice-pdf-name').textContent = 'No file selected';
+    document.getElementById('invoice-pdf-existing').style.display = 'none';
+    // Mark for removal on save
+    document.getElementById('invoice-edit-id').dataset.removePdf = 'true';
+};
+
+window.openEditInvoice = (invoiceId) => {
+    const proj = AppState.currentItem;
+    if (!proj) return;
+
+    const invoice = proj.invoices?.find(inv => inv.id === invoiceId);
+    if (!invoice) return;
+
+    // Populate modal
+    document.getElementById('invoice-modal-title').textContent = 'Edit Invoice';
+    document.getElementById('invoice-edit-id').value = invoiceId;
+    document.getElementById('invoice-edit-id').dataset.removePdf = '';
+    document.getElementById('invoice-title').value = invoice.title || '';
+    document.getElementById('invoice-amount').value = invoice.amount || '';
+    document.getElementById('invoice-due-date').value = invoice.dueDate || '';
+    document.getElementById('invoice-status').value = invoice.status || 'draft';
+    document.getElementById('invoice-notes').value = invoice.notes || '';
+
+    // PDF handling
+    pendingInvoicePdf = null;
+    document.getElementById('invoice-pdf').value = '';
+    document.getElementById('invoice-pdf-name').textContent = 'No file selected';
+
+    if (invoice.pdfUrl) {
+        document.getElementById('invoice-pdf-existing').style.display = 'block';
+        document.getElementById('invoice-pdf-link').href = invoice.pdfUrl;
+    } else {
+        document.getElementById('invoice-pdf-existing').style.display = 'none';
+    }
+
+    openModal('create-invoice-modal');
+};
+
+window.openCreateInvoice = () => {
+    // Reset modal for new invoice
+    document.getElementById('invoice-modal-title').textContent = 'Create Invoice';
+    document.getElementById('invoice-edit-id').value = '';
+    document.getElementById('invoice-edit-id').dataset.removePdf = '';
+    document.getElementById('invoice-title').value = '';
+    document.getElementById('invoice-amount').value = '';
+    document.getElementById('invoice-due-date').value = '';
+    document.getElementById('invoice-status').value = 'draft';
+    document.getElementById('invoice-notes').value = '';
+
+    pendingInvoicePdf = null;
+    document.getElementById('invoice-pdf').value = '';
+    document.getElementById('invoice-pdf-name').textContent = 'No file selected';
+    document.getElementById('invoice-pdf-existing').style.display = 'none';
+
+    openModal('create-invoice-modal');
+};
+
+window.handleSaveInvoice = async () => {
+    const proj = AppState.currentItem;
+    if (!proj) return;
+
+    const editId = document.getElementById('invoice-edit-id')?.value;
+    const title = document.getElementById('invoice-title')?.value;
+    const amount = document.getElementById('invoice-amount')?.value;
+    const dueDate = document.getElementById('invoice-due-date')?.value;
+    const status = document.getElementById('invoice-status')?.value || 'draft';
+    const notes = document.getElementById('invoice-notes')?.value || '';
+    const removePdf = document.getElementById('invoice-edit-id')?.dataset.removePdf === 'true';
+
+    if (!title) { showToast('Please enter an invoice title', 'error'); return; }
+    if (!amount || parseFloat(amount) <= 0) { showToast('Please enter a valid amount', 'error'); return; }
+
+    let pdfUrl = null;
+
+    // Upload PDF if selected
+    if (pendingInvoicePdf) {
+        showToast('Uploading PDF...', 'info');
+        const timestamp = Date.now();
+        const fileName = `invoices/${proj.id}/${timestamp}_${pendingInvoicePdf.name}`;
+        const storageRef = ref(storage, fileName);
+
+        try {
+            await uploadBytes(storageRef, pendingInvoicePdf);
+            pdfUrl = await getDownloadURL(storageRef);
+        } catch (err) {
+            console.error('PDF upload error:', err);
+            showToast('Failed to upload PDF', 'error');
+            return;
+        }
+    }
+
+    const invoices = [...(proj.invoices || [])];
+
+    if (editId) {
+        // Update existing invoice
+        const idx = invoices.findIndex(inv => inv.id === editId);
+        if (idx !== -1) {
+            invoices[idx] = {
+                ...invoices[idx],
+                title,
+                amount: parseFloat(amount),
+                dueDate,
+                status,
+                notes,
+                updatedAt: new Date().toISOString()
+            };
+            // Handle PDF
+            if (pdfUrl) {
+                invoices[idx].pdfUrl = pdfUrl;
+            } else if (removePdf) {
+                delete invoices[idx].pdfUrl;
+            }
+        }
+    } else {
+        // Create new invoice
+        invoices.push({
+            id: 'inv' + Date.now(),
+            title,
+            amount: parseFloat(amount),
+            dueDate,
+            status,
+            notes,
+            pdfUrl: pdfUrl || null,
+            createdAt: new Date().toISOString()
+        });
+    }
+
+    const result = await updateProject(proj.id, { invoices });
+    if (result.success) {
+        proj.invoices = invoices;
+        AppState.currentItem = proj;
+        pendingInvoicePdf = null;
+        closeAllModals();
+        renderInvoices('invoices', invoices);
+        showToast(editId ? 'Invoice updated!' : 'Invoice created!', 'success');
+    }
+};
+
 window.handleDashboardTicket = async () => {
     console.log('handleDashboardTicket called');
     const projectId = document.getElementById('dash-ticket-project')?.value;

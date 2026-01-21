@@ -344,6 +344,69 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     margin-top: 4px;
 }
 
+/* Invoice List Styles */
+.invoice-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.invoice-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 16px;
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--color-text-muted);
+    transition: all 0.15s;
+}
+.invoice-item:hover {
+    background: var(--color-bg-primary);
+}
+.invoice-item.draft { border-left-color: var(--color-text-muted); }
+.invoice-item.sent { border-left-color: var(--color-primary); }
+.invoice-item.paid { border-left-color: var(--color-success); }
+.invoice-item.cancelled { border-left-color: var(--color-text-muted); opacity: 0.6; }
+.invoice-item.overdue { border-left-color: var(--color-danger); }
+
+.invoice-main {
+    flex: 1;
+    min-width: 0;
+}
+.invoice-title {
+    font-weight: 500;
+    font-size: 14px;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.invoice-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+}
+.invoice-amount {
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+.invoice-due.text-danger {
+    color: var(--color-danger);
+}
+.invoice-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Invoice status badges */
+.status-badge.draft { background: var(--color-bg-tertiary); color: var(--color-text-muted); }
+.status-badge.sent { background: rgba(124, 58, 237, 0.15); color: var(--color-primary); }
+.status-badge.paid { background: rgba(16, 185, 129, 0.15); color: var(--color-success); }
+.status-badge.cancelled { background: var(--color-bg-tertiary); color: var(--color-text-muted); text-decoration: line-through; }
+
 /* Login Page */
 .login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(135deg, var(--color-bg-primary) 0%, #1a1b2e 100%); }
 .login-container { width: 100%; max-width: 400px; text-align: center; }

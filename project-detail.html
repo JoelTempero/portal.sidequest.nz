@@ -384,7 +384,7 @@
                         <div class="invoices-section admin-only">
                             <div class="invoices-header">
                                 <h3>Invoices</h3>
-                                <button class="btn btn-primary btn-sm" onclick="openModal('create-invoice-modal')">New Invoice</button>
+                                <button class="btn btn-primary btn-sm" onclick="openCreateInvoice()">New Invoice</button>
                             </div>
                             <div id="invoices"></div>
                         </div>
@@ -462,6 +462,61 @@
             <div class="modal-header"><h3 class="modal-title">Confirm</h3><button class="modal-close" aria-label="Close modal">×</button></div>
             <div class="modal-body"><p class="confirm-message">Are you sure?</p></div>
             <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('confirm-modal')">Cancel</button><button class="btn btn-primary" onclick="handleConfirm()">Confirm</button></div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Invoice Modal -->
+    <div class="modal-overlay" id="create-invoice-modal">
+        <div class="modal" style="max-width:500px;">
+            <div class="modal-header"><h3 class="modal-title" id="invoice-modal-title">Create Invoice</h3><button class="modal-close" aria-label="Close modal">×</button></div>
+            <div class="modal-body">
+                <input type="hidden" id="invoice-edit-id">
+                <div class="form-row">
+                    <div class="form-group" style="flex:2;">
+                        <label class="form-label">Invoice Title</label>
+                        <input type="text" id="invoice-title" class="form-input" placeholder="e.g. Website Development - Phase 1">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label class="form-label">Amount (NZD)</label>
+                        <input type="number" id="invoice-amount" class="form-input" placeholder="0.00" step="0.01" min="0">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Due Date</label>
+                        <input type="date" id="invoice-due-date" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select id="invoice-status" class="form-input form-select">
+                            <option value="draft">Draft</option>
+                            <option value="sent">Sent</option>
+                            <option value="paid">Paid</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">PDF Invoice</label>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <input type="file" id="invoice-pdf" accept="application/pdf" style="display:none;" onchange="handleInvoicePdfSelect(event)">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('invoice-pdf').click()">Choose PDF</button>
+                        <span id="invoice-pdf-name" style="font-size:13px;color:var(--color-text-muted);">No file selected</span>
+                    </div>
+                    <div id="invoice-pdf-existing" style="margin-top:8px;display:none;">
+                        <a id="invoice-pdf-link" href="#" target="_blank" style="font-size:13px;">View current PDF</a>
+                        <button type="button" class="btn btn-ghost btn-sm" onclick="clearInvoicePdf()" style="margin-left:8px;">Remove</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Internal Notes <span style="font-size:11px;color:var(--color-text-muted);">(admin only)</span></label>
+                    <textarea id="invoice-notes" class="form-input form-textarea" placeholder="Notes about this invoice..." style="min-height:60px;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button>
+                <button class="btn btn-primary" onclick="handleSaveInvoice()">Save Invoice</button>
+            </div>
         </div>
     </div>
 
