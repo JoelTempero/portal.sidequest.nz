@@ -168,14 +168,35 @@ function renderCurrentPage() {
     if (currentPageType === 'projects') { renderFilterBar('filter-container', AppState.projects, 'project'); renderProjects('projects-grid'); }
 }
 
+// Skeleton loading cards
+function showSkeletonCards(containerId, count = 6) {
+    const c = document.getElementById(containerId);
+    if (!c) return;
+    c.classList.add('loading');
+    const skeletons = Array(count).fill('').map(() => `
+        <div class="skeleton-card">
+            <div class="skeleton-logo"></div>
+            <div class="skeleton-body">
+                <div class="skeleton-line title"></div>
+                <div class="skeleton-line subtitle"></div>
+                <div class="skeleton-line badge"></div>
+                <div class="skeleton-line badge"></div>
+                <div class="skeleton-line progress"></div>
+            </div>
+        </div>
+    `).join('');
+    c.innerHTML = skeletons;
+}
+
 // Cards with big logo on top
 function renderLeads(containerId) {
     const c = document.getElementById(containerId);
     if (!c) return;
+    c.classList.remove('loading');
     const items = applyFilters(AppState.leads);
     if (!items.length) { c.innerHTML = `<div class="empty-state"><h3>${AppState.leads.length ? 'No matches' : 'No leads yet'}</h3></div>`; return; }
-    c.innerHTML = items.map(l => `
-        <div class="item-card" onclick="window.location.href='${NAVIGATION.LEAD_DETAIL}?id=${escapeHtml(l.id)}'">
+    c.innerHTML = items.map((l, i) => `
+        <div class="item-card fade-in" style="animation-delay:${i * 50}ms" onclick="window.location.href='${NAVIGATION.LEAD_DETAIL}?id=${escapeHtml(l.id)}'">
             ${l.logo ? `<div class="item-card-logo" style="background-image:url('${escapeHtml(l.logo)}')"></div>` : `<div class="item-card-logo item-card-logo-placeholder">${escapeHtml(getInitials(l.companyName))}</div>`}
             <div class="item-card-body">
                 <div class="item-company">${escapeHtml(l.companyName || 'Unnamed')}</div>
@@ -193,6 +214,7 @@ let tierFilter = 'all';
 function renderProjects(containerId, items = null) {
     const c = document.getElementById(containerId);
     if (!c) return;
+    c.classList.remove('loading');
     let list = items || applyFilters(AppState.projects);
 
     // Apply tier filter
@@ -209,8 +231,8 @@ function renderProjects(containerId, items = null) {
     });
 
     if (!list.length) { c.innerHTML = `<div class="empty-state"><h3>No projects yet</h3></div>`; return; }
-    c.innerHTML = list.map(p => `
-        <div class="item-card">
+    c.innerHTML = list.map((p, i) => `
+        <div class="item-card fade-in" style="animation-delay:${i * 50}ms">
             <div onclick="window.location.href='${NAVIGATION.PROJECT_DETAIL}?id=${escapeHtml(p.id)}'" style="cursor:pointer;">
                 ${p.logo ? `<div class="item-card-logo" style="background-image:url('${escapeHtml(p.logo)}')"></div>` : `<div class="item-card-logo item-card-logo-placeholder">${escapeHtml(getInitials(p.companyName))}</div>`}
                 <div class="item-card-body">
@@ -299,10 +321,11 @@ function renderTickets(containerId, items = null, showResolvedSection = true) {
     }
 
     const renderTicketRow = (t) => `
-        <div class="ticket-row" onclick="window.location.href='${NAVIGATION.TICKET_DETAIL}?id=${escapeHtml(t.id)}'" style="cursor:pointer;">
+        <div class="ticket-row" onclick="window.location.href='${NAVIGATION.TICKET_DETAIL}?id=${escapeHtml(t.id)}'" style="cursor:pointer;flex-wrap:wrap;">
             <div class="ticket-priority ${escapeHtml(t.tier || 'host')}"></div>
-            <div class="ticket-info"><div class="ticket-title">${escapeHtml(t.title || 'Untitled')}</div><div class="ticket-meta">${escapeHtml(t.projectName || '-')} • ${escapeHtml(t.submittedBy || '-')} • ${timeAgo(t.submittedAt)}</div></div>
+            <div class="ticket-info" style="flex:1;min-width:200px;"><div class="ticket-title">${escapeHtml(t.title || 'Untitled')}</div><div class="ticket-meta">${escapeHtml(t.projectName || '-')} • ${escapeHtml(t.submittedBy || '-')} • ${timeAgo(t.submittedAt)}</div></div>
             <div class="ticket-badges"><span class="tier-badge ${escapeHtml(t.tier || 'host')}">${escapeHtml(getTierName(t.tier || 'host'))}</span><span class="status-badge ${escapeHtml(t.status || 'open')}">${escapeHtml(getStatusLabel(t.status || 'open'))}</span></div>
+            ${t.description ? `<div class="ticket-description-snippet" style="flex-basis:100%;margin-left:20px;margin-top:8px;">${escapeHtml(t.description)}</div>` : ''}
         </div>`;
 
     let html = '';
@@ -1544,6 +1567,7 @@ onAuthStateChanged(auth, async (user) => {
                 return;
             }
 
+            showPageSkeletons(page);
             await loadPageData(page);
             renderPage(page);
             updateUserInfo();
@@ -1558,6 +1582,21 @@ onAuthStateChanged(auth, async (user) => {
         showLoading(false);
     }
 });
+
+// Show skeleton loading states before data loads
+function showPageSkeletons(page) {
+    switch (page) {
+        case 'dashboard.html':
+            showSkeletonCards('projects-grid', 6);
+            break;
+        case 'leads.html':
+            showSkeletonCards('leads-grid', 6);
+            break;
+        case 'projects.html':
+            showSkeletonCards('projects-grid', 6);
+            break;
+    }
+}
 
 async function loadPageData(page) {
     switch (page) {
@@ -1639,19 +1678,15 @@ function renderAdminDashboardTickets(containerId) {
 
     c.innerHTML = ticketsToShow.map(t => {
         const project = AppState.projects.find(p => p.id === t.projectId);
-        const description = t.description ? t.description.slice(0, 100) + (t.description.length > 100 ? '...' : '') : '';
         return `
-        <div class="ticket-row" onclick="window.location.href='ticket-detail.html?id=${escapeHtml(t.id)}'" style="cursor:pointer;">
+        <div class="ticket-row" onclick="window.location.href='ticket-detail.html?id=${escapeHtml(t.id)}'" style="cursor:pointer;flex-wrap:wrap;">
             <div class="ticket-priority ${escapeHtml(t.urgency || 'week')}"></div>
-            <div class="ticket-info" style="flex: 1;">
+            <div class="ticket-info" style="flex: 1; min-width: 150px;">
                 <div class="ticket-title">${escapeHtml(t.title || 'Untitled')}</div>
-                <div class="ticket-meta">${timeAgo(t.submittedAt)}</div>
+                <div class="ticket-meta">${timeAgo(t.submittedAt)} • ${escapeHtml(project?.companyName || '-')}</div>
             </div>
-            <div style="flex: 1.5; font-size: 13px; color: var(--color-text-secondary); padding: 0 12px; line-height: 1.4;">${escapeHtml(description)}</div>
-            <div style="min-width: 120px; text-align: right;">
-                <div style="font-size: 13px; font-weight: 500;">${escapeHtml(project?.companyName || '-')}</div>
-                <span class="status-badge ${escapeHtml(t.status || 'open')}" style="font-size: 11px;">${escapeHtml(getStatusLabel(t.status || 'open'))}</span>
-            </div>
+            <span class="status-badge ${escapeHtml(t.status || 'open')}" style="font-size: 11px;align-self:flex-start;">${escapeHtml(getStatusLabel(t.status || 'open'))}</span>
+            ${t.description ? `<div class="ticket-description-snippet" style="flex-basis:100%;margin-left:20px;">${escapeHtml(t.description)}</div>` : ''}
         </div>`;
     }).join('');
 }
@@ -1692,10 +1727,11 @@ function renderClientTickets(containerId) {
     });
 
     const renderTicketRow = (t) => `
-        <div class="ticket-row" data-ticket-id="${escapeHtml(t.id)}" role="button" tabindex="0" style="cursor:pointer;">
+        <div class="ticket-row" data-ticket-id="${escapeHtml(t.id)}" role="button" tabindex="0" style="cursor:pointer;flex-wrap:wrap;">
             <div class="ticket-priority ${escapeHtml(t.tier || 'host')}"></div>
-            <div class="ticket-info"><div class="ticket-title">${escapeHtml(t.title || 'Untitled')}</div><div class="ticket-meta">${escapeHtml(t.projectName || '-')} • ${timeAgo(t.submittedAt)}</div></div>
+            <div class="ticket-info" style="flex:1;min-width:150px;"><div class="ticket-title">${escapeHtml(t.title || 'Untitled')}</div><div class="ticket-meta">${escapeHtml(t.projectName || '-')} • ${timeAgo(t.submittedAt)}</div></div>
             <span class="status-badge ${escapeHtml(t.status || 'open')}">${escapeHtml(getStatusLabel(t.status || 'open'))}</span>
+            ${t.description ? `<div class="ticket-description-snippet" style="flex-basis:100%;margin-left:20px;margin-top:4px;">${escapeHtml(t.description)}</div>` : ''}
         </div>`;
 
     let html = '';
