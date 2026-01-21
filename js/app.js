@@ -168,14 +168,35 @@ function renderCurrentPage() {
     if (currentPageType === 'projects') { renderFilterBar('filter-container', AppState.projects, 'project'); renderProjects('projects-grid'); }
 }
 
+// Skeleton loading cards
+function showSkeletonCards(containerId, count = 6) {
+    const c = document.getElementById(containerId);
+    if (!c) return;
+    c.classList.add('loading');
+    const skeletons = Array(count).fill('').map(() => `
+        <div class="skeleton-card">
+            <div class="skeleton-logo"></div>
+            <div class="skeleton-body">
+                <div class="skeleton-line title"></div>
+                <div class="skeleton-line subtitle"></div>
+                <div class="skeleton-line badge"></div>
+                <div class="skeleton-line badge"></div>
+                <div class="skeleton-line progress"></div>
+            </div>
+        </div>
+    `).join('');
+    c.innerHTML = skeletons;
+}
+
 // Cards with big logo on top
 function renderLeads(containerId) {
     const c = document.getElementById(containerId);
     if (!c) return;
+    c.classList.remove('loading');
     const items = applyFilters(AppState.leads);
     if (!items.length) { c.innerHTML = `<div class="empty-state"><h3>${AppState.leads.length ? 'No matches' : 'No leads yet'}</h3></div>`; return; }
-    c.innerHTML = items.map(l => `
-        <div class="item-card" onclick="window.location.href='${NAVIGATION.LEAD_DETAIL}?id=${escapeHtml(l.id)}'">
+    c.innerHTML = items.map((l, i) => `
+        <div class="item-card fade-in" style="animation-delay:${i * 50}ms" onclick="window.location.href='${NAVIGATION.LEAD_DETAIL}?id=${escapeHtml(l.id)}'">
             ${l.logo ? `<div class="item-card-logo" style="background-image:url('${escapeHtml(l.logo)}')"></div>` : `<div class="item-card-logo item-card-logo-placeholder">${escapeHtml(getInitials(l.companyName))}</div>`}
             <div class="item-card-body">
                 <div class="item-company">${escapeHtml(l.companyName || 'Unnamed')}</div>
@@ -193,6 +214,7 @@ let tierFilter = 'all';
 function renderProjects(containerId, items = null) {
     const c = document.getElementById(containerId);
     if (!c) return;
+    c.classList.remove('loading');
     let list = items || applyFilters(AppState.projects);
 
     // Apply tier filter
@@ -200,19 +222,17 @@ function renderProjects(containerId, items = null) {
         list = list.filter(p => p.tier === tierFilter);
     }
 
-    // Sort by tier first (highest tier first), then by creation date
+    // Sort by tier first (highest tier first), then by progress (highest first)
     list.sort((a, b) => {
         const tierDiff = getTierOrder(a.tier) - getTierOrder(b.tier);
         if (tierDiff !== 0) return tierDiff;
-        // If same tier, sort by creation date (newest first)
-        const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
-        const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
-        return dateB - dateA;
+        // If same tier, sort by progress (highest first)
+        return (parseInt(b.progress) || 0) - (parseInt(a.progress) || 0);
     });
 
     if (!list.length) { c.innerHTML = `<div class="empty-state"><h3>No projects yet</h3></div>`; return; }
-    c.innerHTML = list.map(p => `
-        <div class="item-card">
+    c.innerHTML = list.map((p, i) => `
+        <div class="item-card fade-in" style="animation-delay:${i * 50}ms">
             <div onclick="window.location.href='${NAVIGATION.PROJECT_DETAIL}?id=${escapeHtml(p.id)}'" style="cursor:pointer;">
                 ${p.logo ? `<div class="item-card-logo" style="background-image:url('${escapeHtml(p.logo)}')"></div>` : `<div class="item-card-logo item-card-logo-placeholder">${escapeHtml(getInitials(p.companyName))}</div>`}
                 <div class="item-card-body">
@@ -301,10 +321,11 @@ function renderTickets(containerId, items = null, showResolvedSection = true) {
     }
 
     const renderTicketRow = (t) => `
-        <div class="ticket-row" onclick="window.location.href='${NAVIGATION.TICKET_DETAIL}?id=${escapeHtml(t.id)}'" style="cursor:pointer;">
+        <div class="ticket-row" onclick="window.location.href='${NAVIGATION.TICKET_DETAIL}?id=${escapeHtml(t.id)}'" style="cursor:pointer;flex-wrap:wrap;">
             <div class="ticket-priority ${escapeHtml(t.tier || 'host')}"></div>
-            <div class="ticket-info"><div class="ticket-title">${escapeHtml(t.title || 'Untitled')}</div><div class="ticket-meta">${escapeHtml(t.projectName || '-')} • ${escapeHtml(t.submittedBy || '-')} • ${timeAgo(t.submittedAt)}</div></div>
+            <div class="ticket-info" style="flex:1;min-width:200px;"><div class="ticket-title">${escapeHtml(t.title || 'Untitled')}</div><div class="ticket-meta">${escapeHtml(t.projectName || '-')} • ${escapeHtml(t.submittedBy || '-')} • ${timeAgo(t.submittedAt)}</div></div>
             <div class="ticket-badges"><span class="tier-badge ${escapeHtml(t.tier || 'host')}">${escapeHtml(getTierName(t.tier || 'host'))}</span><span class="status-badge ${escapeHtml(t.status || 'open')}">${escapeHtml(getStatusLabel(t.status || 'open'))}</span></div>
+            ${t.description ? `<div class="ticket-description-snippet" style="flex-basis:100%;margin-left:20px;margin-top:8px;">${escapeHtml(t.description)}</div>` : ''}
         </div>`;
 
     let html = '';
@@ -373,13 +394,6 @@ function renderMilestones(containerId, milestones, editable = false) {
             });
         });
     }
-}
-
-function renderInvoices(containerId, invoices) {
-    const c = document.getElementById(containerId);
-    if (!c) return;
-    if (!invoices?.length) { c.innerHTML = '<p class="text-muted">No invoices yet.</p>'; return; }
-    c.innerHTML = invoices.map(i => `<div class="invoice-item"><div class="invoice-info"><strong>${i.number || 'Invoice'}</strong><br><span class="text-muted">${i.description || ''}</span></div><span class="badge badge-${i.status === 'paid' ? 'success' : 'warning'}">${i.status || 'pending'}</span><div class="invoice-amount">${formatCurrency(i.amount)}</div></div>`).join('');
 }
 
 function renderMessages(containerId, messages) {
@@ -924,6 +938,273 @@ window.handleQuickSaveTask = async (projectId) => {
         // Update local state
         const proj = AppState.projects.find(p => p.id === projectId);
         if (proj) proj.currentTask = input.value;
+    }
+};
+
+// Inline task editing for project detail page
+window.toggleTaskEdit = () => {
+    const viewArea = document.getElementById('task-view');
+    const editArea = document.getElementById('task-edit');
+    const input = document.getElementById('inline-task-input');
+    const currentTask = document.getElementById('current-task');
+
+    if (editArea && viewArea) {
+        viewArea.classList.add('hidden');
+        editArea.classList.add('active');
+        if (input && currentTask) {
+            input.value = currentTask.classList.contains('empty') ? '' : currentTask.textContent;
+            input.focus();
+        }
+    }
+};
+
+window.cancelTaskEdit = () => {
+    const viewArea = document.getElementById('task-view');
+    const editArea = document.getElementById('task-edit');
+
+    if (editArea && viewArea) {
+        viewArea.classList.remove('hidden');
+        editArea.classList.remove('active');
+    }
+};
+
+window.saveInlineTask = async () => {
+    const proj = AppState.currentItem;
+    if (!proj) return;
+
+    const input = document.getElementById('inline-task-input');
+    const task = input?.value?.trim() || '';
+    const result = await updateProject(proj.id, { currentTask: task });
+
+    if (result.success) {
+        proj.currentTask = task;
+        AppState.currentItem = proj;
+        const taskEl = document.getElementById('current-task');
+        if (taskEl) {
+            taskEl.textContent = task || 'No current task set.';
+            taskEl.classList.toggle('empty', !task);
+        }
+        cancelTaskEdit();
+        showToast('Task updated!', 'success');
+    }
+};
+
+// ============================================
+// INVOICE MANAGEMENT
+// ============================================
+
+// Render invoices list
+function renderInvoices(containerId, invoices, isClientView = false) {
+    const c = document.getElementById(containerId);
+    if (!c) return;
+
+    // For clients, only show sent/paid invoices (not drafts)
+    let visibleInvoices = invoices || [];
+    if (isClientView) {
+        visibleInvoices = visibleInvoices.filter(inv => inv.status === 'sent' || inv.status === 'paid');
+    }
+
+    if (!visibleInvoices?.length) {
+        c.innerHTML = `<p class="text-muted" style="font-size:13px;">${isClientView ? 'No invoices to display.' : 'No invoices yet.'}</p>`;
+        return;
+    }
+
+    // Sort by date (newest first)
+    const sorted = [...visibleInvoices].sort((a, b) => {
+        const dateA = new Date(b.createdAt || 0);
+        const dateB = new Date(a.createdAt || 0);
+        return dateA - dateB;
+    });
+
+    c.innerHTML = `<div class="invoice-list">${sorted.map(inv => {
+        const statusClass = inv.status || 'draft';
+        const dueDate = inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' }) : 'No due date';
+        const amount = inv.amount ? `$${parseFloat(inv.amount).toFixed(2)}` : '$0.00';
+        const isOverdue = inv.dueDate && new Date(inv.dueDate) < new Date() && inv.status !== 'paid' && inv.status !== 'cancelled';
+        const canPay = inv.status === 'sent' && inv.stripeLink;
+
+        // Admin view: clickable to edit
+        // Client view: not clickable, shows pay button
+        const mainClick = isClientView ? '' : `onclick="openEditInvoice('${escapeHtml(inv.id)}')" style="cursor:pointer;"`;
+
+        return `
+        <div class="invoice-item ${statusClass}${isOverdue ? ' overdue' : ''}">
+            <div class="invoice-main" ${mainClick}>
+                <div class="invoice-title">${escapeHtml(inv.title || 'Untitled Invoice')}</div>
+                <div class="invoice-meta">
+                    <span class="invoice-amount">${amount}</span>
+                    <span class="invoice-due${isOverdue ? ' text-danger' : ''}">${isOverdue ? 'Overdue: ' : 'Due: '}${dueDate}</span>
+                </div>
+            </div>
+            <div class="invoice-actions">
+                <span class="status-badge ${statusClass}">${escapeHtml(getInvoiceStatusLabel(inv.status))}</span>
+                ${inv.pdfUrl ? `<a href="${escapeHtml(inv.pdfUrl)}" target="_blank" class="btn btn-ghost btn-sm" title="View PDF">📄</a>` : ''}
+                ${canPay ? `<a href="${escapeHtml(inv.stripeLink)}" target="_blank" class="btn btn-primary btn-sm">Pay Now</a>` : ''}
+            </div>
+        </div>`;
+    }).join('')}</div>`;
+}
+
+function getInvoiceStatusLabel(status) {
+    const labels = { draft: 'Draft', sent: 'Sent', paid: 'Paid', cancelled: 'Cancelled' };
+    return labels[status] || 'Draft';
+}
+
+// Track selected PDF file for upload
+let pendingInvoicePdf = null;
+
+window.handleInvoicePdfSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        pendingInvoicePdf = file;
+        document.getElementById('invoice-pdf-name').textContent = file.name;
+    }
+};
+
+window.clearInvoicePdf = () => {
+    pendingInvoicePdf = null;
+    document.getElementById('invoice-pdf').value = '';
+    document.getElementById('invoice-pdf-name').textContent = 'No file selected';
+    document.getElementById('invoice-pdf-existing').style.display = 'none';
+    // Mark for removal on save
+    document.getElementById('invoice-edit-id').dataset.removePdf = 'true';
+};
+
+window.openEditInvoice = (invoiceId) => {
+    const proj = AppState.currentItem;
+    if (!proj) return;
+
+    const invoice = proj.invoices?.find(inv => inv.id === invoiceId);
+    if (!invoice) return;
+
+    // Populate modal
+    document.getElementById('invoice-modal-title').textContent = 'Edit Invoice';
+    document.getElementById('invoice-edit-id').value = invoiceId;
+    document.getElementById('invoice-edit-id').dataset.removePdf = '';
+    document.getElementById('invoice-title').value = invoice.title || '';
+    document.getElementById('invoice-amount').value = invoice.amount || '';
+    document.getElementById('invoice-due-date').value = invoice.dueDate || '';
+    document.getElementById('invoice-status').value = invoice.status || 'draft';
+    document.getElementById('invoice-notes').value = invoice.notes || '';
+    document.getElementById('invoice-stripe-link').value = invoice.stripeLink || '';
+
+    // PDF handling
+    pendingInvoicePdf = null;
+    document.getElementById('invoice-pdf').value = '';
+    document.getElementById('invoice-pdf-name').textContent = 'No file selected';
+
+    if (invoice.pdfUrl) {
+        document.getElementById('invoice-pdf-existing').style.display = 'block';
+        document.getElementById('invoice-pdf-link').href = invoice.pdfUrl;
+    } else {
+        document.getElementById('invoice-pdf-existing').style.display = 'none';
+    }
+
+    openModal('create-invoice-modal');
+};
+
+window.openCreateInvoice = () => {
+    // Reset modal for new invoice
+    document.getElementById('invoice-modal-title').textContent = 'Create Invoice';
+    document.getElementById('invoice-edit-id').value = '';
+    document.getElementById('invoice-edit-id').dataset.removePdf = '';
+    document.getElementById('invoice-title').value = '';
+    document.getElementById('invoice-amount').value = '';
+    document.getElementById('invoice-due-date').value = '';
+    document.getElementById('invoice-status').value = 'draft';
+    document.getElementById('invoice-notes').value = '';
+    document.getElementById('invoice-stripe-link').value = '';
+
+    pendingInvoicePdf = null;
+    document.getElementById('invoice-pdf').value = '';
+    document.getElementById('invoice-pdf-name').textContent = 'No file selected';
+    document.getElementById('invoice-pdf-existing').style.display = 'none';
+
+    openModal('create-invoice-modal');
+};
+
+window.handleSaveInvoice = async () => {
+    const proj = AppState.currentItem;
+    if (!proj) return;
+
+    const editId = document.getElementById('invoice-edit-id')?.value;
+    const title = document.getElementById('invoice-title')?.value;
+    const amount = document.getElementById('invoice-amount')?.value;
+    const dueDate = document.getElementById('invoice-due-date')?.value;
+    const status = document.getElementById('invoice-status')?.value || 'draft';
+    const notes = document.getElementById('invoice-notes')?.value || '';
+    const stripeLink = document.getElementById('invoice-stripe-link')?.value || '';
+    const removePdf = document.getElementById('invoice-edit-id')?.dataset.removePdf === 'true';
+
+    if (!title) { showToast('Please enter an invoice title', 'error'); return; }
+    if (!amount || parseFloat(amount) <= 0) { showToast('Please enter a valid amount', 'error'); return; }
+
+    let pdfUrl = null;
+
+    // Upload PDF if selected
+    if (pendingInvoicePdf) {
+        showToast('Uploading PDF...', 'info');
+        const timestamp = Date.now();
+        const fileName = `invoices/${proj.id}/${timestamp}_${pendingInvoicePdf.name}`;
+        const storageRef = ref(storage, fileName);
+
+        try {
+            await uploadBytes(storageRef, pendingInvoicePdf);
+            pdfUrl = await getDownloadURL(storageRef);
+        } catch (err) {
+            console.error('PDF upload error:', err);
+            showToast('Failed to upload PDF', 'error');
+            return;
+        }
+    }
+
+    const invoices = [...(proj.invoices || [])];
+
+    if (editId) {
+        // Update existing invoice
+        const idx = invoices.findIndex(inv => inv.id === editId);
+        if (idx !== -1) {
+            invoices[idx] = {
+                ...invoices[idx],
+                title,
+                amount: parseFloat(amount),
+                dueDate,
+                status,
+                notes,
+                stripeLink,
+                updatedAt: new Date().toISOString()
+            };
+            // Handle PDF
+            if (pdfUrl) {
+                invoices[idx].pdfUrl = pdfUrl;
+            } else if (removePdf) {
+                delete invoices[idx].pdfUrl;
+            }
+        }
+    } else {
+        // Create new invoice
+        invoices.push({
+            id: 'inv' + Date.now(),
+            title,
+            amount: parseFloat(amount),
+            dueDate,
+            status,
+            notes,
+            stripeLink,
+            pdfUrl: pdfUrl || null,
+            createdAt: new Date().toISOString()
+        });
+    }
+
+    const result = await updateProject(proj.id, { invoices });
+    if (result.success) {
+        proj.invoices = invoices;
+        AppState.currentItem = proj;
+        pendingInvoicePdf = null;
+        closeAllModals();
+        renderInvoices('invoices', invoices);  // Admin view
+        renderInvoices('client-invoices', invoices, true);  // Client view
+        showToast(editId ? 'Invoice updated!' : 'Invoice created!', 'success');
     }
 };
 
@@ -1498,6 +1779,7 @@ onAuthStateChanged(auth, async (user) => {
                 return;
             }
 
+            showPageSkeletons(page);
             await loadPageData(page);
             renderPage(page);
             updateUserInfo();
@@ -1512,6 +1794,21 @@ onAuthStateChanged(auth, async (user) => {
         showLoading(false);
     }
 });
+
+// Show skeleton loading states before data loads
+function showPageSkeletons(page) {
+    switch (page) {
+        case 'dashboard.html':
+            showSkeletonCards('projects-grid', 6);
+            break;
+        case 'leads.html':
+            showSkeletonCards('leads-grid', 6);
+            break;
+        case 'projects.html':
+            showSkeletonCards('projects-grid', 6);
+            break;
+    }
+}
 
 async function loadPageData(page) {
     switch (page) {
@@ -1530,8 +1827,8 @@ function renderPage(page) {
         case 'dashboard.html':
             renderStats();
             if (AppState.isAdmin) {
-                renderProjects('projects-grid', AppState.projects.filter(p => p.status === 'active').slice(0, 4));
-                renderAnalyticsCharts();
+                renderProjects('projects-grid', AppState.projects.filter(p => p.status === 'active').slice(0, 6));
+                renderAdminDashboardTickets('admin-tickets-grid');
             } else {
                 // Client dashboard - show their projects and tickets
                 renderProjects('projects-grid', AppState.projects);
@@ -1564,6 +1861,46 @@ function renderPage(page) {
             }
             break;
     }
+}
+
+function renderAdminDashboardTickets(containerId) {
+    const c = document.getElementById(containerId);
+    if (!c) return;
+
+    // Get active tickets (not resolved)
+    const activeTickets = AppState.tickets.filter(t => t.status !== 'resolved');
+
+    if (!activeTickets.length) {
+        c.innerHTML = '<p class="text-muted" style="padding: 16px;">No active tickets</p>';
+        return;
+    }
+
+    // Sort by urgency then date
+    const urgencyOrder = { 'asap': 0, 'day': 1, 'week': 2, 'month': 3 };
+    activeTickets.sort((a, b) => {
+        const urgencyDiff = (urgencyOrder[a.urgency] || 3) - (urgencyOrder[b.urgency] || 3);
+        if (urgencyDiff !== 0) return urgencyDiff;
+        const dateA = a.submittedAt?.toDate?.() || new Date(a.submittedAt || 0);
+        const dateB = b.submittedAt?.toDate?.() || new Date(b.submittedAt || 0);
+        return dateA - dateB;
+    });
+
+    // Show up to 8 tickets
+    const ticketsToShow = activeTickets.slice(0, 8);
+
+    c.innerHTML = ticketsToShow.map(t => {
+        const project = AppState.projects.find(p => p.id === t.projectId);
+        return `
+        <div class="ticket-row" onclick="window.location.href='ticket-detail.html?id=${escapeHtml(t.id)}'" style="cursor:pointer;flex-wrap:wrap;">
+            <div class="ticket-priority ${escapeHtml(t.urgency || 'week')}"></div>
+            <div class="ticket-info" style="flex: 1; min-width: 150px;">
+                <div class="ticket-title">${escapeHtml(t.title || 'Untitled')}</div>
+                <div class="ticket-meta">${timeAgo(t.submittedAt)} • ${escapeHtml(project?.companyName || '-')}</div>
+            </div>
+            <span class="status-badge ${escapeHtml(t.status || 'open')}" style="font-size: 11px;align-self:flex-start;">${escapeHtml(getStatusLabel(t.status || 'open'))}</span>
+            ${t.description ? `<div class="ticket-description-snippet" style="flex-basis:100%;margin-left:20px;">${escapeHtml(t.description)}</div>` : ''}
+        </div>`;
+    }).join('');
 }
 
 function renderClientTickets(containerId) {
@@ -1602,10 +1939,11 @@ function renderClientTickets(containerId) {
     });
 
     const renderTicketRow = (t) => `
-        <div class="ticket-row" data-ticket-id="${escapeHtml(t.id)}" role="button" tabindex="0" style="cursor:pointer;">
+        <div class="ticket-row" data-ticket-id="${escapeHtml(t.id)}" role="button" tabindex="0" style="cursor:pointer;flex-wrap:wrap;">
             <div class="ticket-priority ${escapeHtml(t.tier || 'host')}"></div>
-            <div class="ticket-info"><div class="ticket-title">${escapeHtml(t.title || 'Untitled')}</div><div class="ticket-meta">${escapeHtml(t.projectName || '-')} • ${timeAgo(t.submittedAt)}</div></div>
+            <div class="ticket-info" style="flex:1;min-width:150px;"><div class="ticket-title">${escapeHtml(t.title || 'Untitled')}</div><div class="ticket-meta">${escapeHtml(t.projectName || '-')} • ${timeAgo(t.submittedAt)}</div></div>
             <span class="status-badge ${escapeHtml(t.status || 'open')}">${escapeHtml(getStatusLabel(t.status || 'open'))}</span>
+            ${t.description ? `<div class="ticket-description-snippet" style="flex-basis:100%;margin-left:20px;margin-top:4px;">${escapeHtml(t.description)}</div>` : ''}
         </div>`;
 
     let html = '';
@@ -1731,25 +2069,33 @@ function renderProjectDetail() {
     if (el('detail-info')) {
         let previewsHtml = '';
         if (proj.previewLinks && proj.previewLinks.length) {
-            previewsHtml = `<div class="info-item"><label>Previews</label><span>${proj.previewLinks.map((link, i) => `<a href="${link}" target="_blank">Preview ${i + 1}</a>`).join(' • ')}</span></div>`;
+            // Show actual URLs instead of "Preview 1, 2..."
+            previewsHtml = `<div class="info-item"><label>Previews</label><span>${proj.previewLinks.map(link => `<a href="${escapeHtml(link)}" target="_blank" style="word-break: break-all;">${escapeHtml(link)}</a>`).join('<br>')}</span></div>`;
         }
         el('detail-info').innerHTML = `
-            <div class="info-item"><label>Email</label><span><a href="mailto:${proj.clientEmail || ''}">${proj.clientEmail || '-'}</a></span></div>
-            <div class="info-item"><label>Phone</label><span>${proj.clientPhone || '-'}</span></div>
-            <div class="info-item"><label>Website</label><span>${proj.websiteUrl ? `<a href="https://${proj.websiteUrl}" target="_blank">${proj.websiteUrl}</a>` : '-'}</span></div>
-            <div class="info-item"><label>Location</label><span>${proj.location || '-'}</span></div>
-            <div class="info-item"><label>Type</label><span>${proj.businessType || '-'}</span></div>
-            ${proj.githubLink ? `<div class="info-item"><label>GitHub Code</label><span><a href="${proj.githubLink}" target="_blank">View Repository</a></span></div>` : ''}
+            <div class="info-item"><label>Email</label><span><a href="mailto:${proj.clientEmail || ''}">${escapeHtml(proj.clientEmail || '-')}</a></span></div>
+            <div class="info-item"><label>Phone</label><span>${escapeHtml(proj.clientPhone || '-')}</span></div>
+            <div class="info-item"><label>Website</label><span>${proj.websiteUrl ? `<a href="https://${escapeHtml(proj.websiteUrl)}" target="_blank">${escapeHtml(proj.websiteUrl)}</a>` : '-'}</span></div>
+            <div class="info-item"><label>Location</label><span>${escapeHtml(proj.location || '-')}</span></div>
+            <div class="info-item"><label>Type</label><span>${escapeHtml(proj.businessType || '-')}</span></div>
+            ${proj.githubLink ? `<div class="info-item"><label>GitHub Code</label><span><a href="${escapeHtml(proj.githubLink)}" target="_blank">View Repository</a></span></div>` : ''}
             ${previewsHtml}`;
     }
-    
+
     renderMilestones('milestones', proj.milestones, AppState.isAdmin);
-    renderInvoices('invoices', proj.invoices);
+    renderInvoices('invoices', proj.invoices);  // Admin view
+    renderInvoices('client-invoices', proj.invoices, true);  // Client view (only sent/paid, with Pay button)
     subscribeToMessages(proj.id, msgs => renderMessages('messages-container', msgs));
     renderTickets('project-tickets', AppState.tickets.filter(t => t.projectId === proj.id));
-    
-    // Display current task
-    if (el('current-task')) el('current-task').textContent = proj.currentTask || 'No current task set.';
+
+    // Display current task with proper empty state
+    const taskEl = el('current-task');
+    if (taskEl) {
+        const hasTask = proj.currentTask && proj.currentTask.trim();
+        taskEl.textContent = hasTask ? proj.currentTask : 'No current task set.';
+        taskEl.classList.toggle('empty', !hasTask);
+    }
+    if (el('inline-task-input')) el('inline-task-input').value = proj.currentTask || '';
     if (el('edit-current-task')) el('edit-current-task').value = proj.currentTask || '';
     
     // Progress slider event

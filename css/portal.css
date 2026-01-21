@@ -298,6 +298,114 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* Animations */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.7; } }
+
+/* Skeleton Loading Cards */
+.skeleton-card {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+.skeleton-logo {
+    width: 100%;
+    height: 140px;
+    background: var(--color-bg-tertiary);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+.skeleton-body { padding: 16px; }
+.skeleton-line {
+    height: 14px;
+    background: var(--color-bg-tertiary);
+    border-radius: 4px;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+.skeleton-line.title { width: 70%; height: 18px; margin-bottom: 8px; }
+.skeleton-line.subtitle { width: 50%; margin-bottom: 16px; }
+.skeleton-line.badge { width: 80px; height: 22px; display: inline-block; margin-right: 8px; }
+.skeleton-line.progress { width: 100%; height: 8px; margin-top: 16px; }
+
+/* Card fade-in animation */
+.item-card.fade-in {
+    opacity: 0;
+    animation: fadeIn 0.3s ease-out forwards;
+}
+.item-grid.loading .skeleton-card { display: block; }
+
+/* Ticket description snippet (2-3 lines) */
+.ticket-description-snippet {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+/* Invoice List Styles */
+.invoice-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.invoice-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 16px;
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--color-text-muted);
+    transition: all 0.15s;
+}
+.invoice-item:hover {
+    background: var(--color-bg-primary);
+}
+.invoice-item.draft { border-left-color: var(--color-text-muted); }
+.invoice-item.sent { border-left-color: var(--color-primary); }
+.invoice-item.paid { border-left-color: var(--color-success); }
+.invoice-item.cancelled { border-left-color: var(--color-text-muted); opacity: 0.6; }
+.invoice-item.overdue { border-left-color: var(--color-danger); }
+
+.invoice-main {
+    flex: 1;
+    min-width: 0;
+}
+.invoice-title {
+    font-weight: 500;
+    font-size: 14px;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.invoice-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+}
+.invoice-amount {
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+.invoice-due.text-danger {
+    color: var(--color-danger);
+}
+.invoice-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Invoice status badges */
+.status-badge.draft { background: var(--color-bg-tertiary); color: var(--color-text-muted); }
+.status-badge.sent { background: rgba(124, 58, 237, 0.15); color: var(--color-primary); }
+.status-badge.paid { background: rgba(16, 185, 129, 0.15); color: var(--color-success); }
+.status-badge.cancelled { background: var(--color-bg-tertiary); color: var(--color-text-muted); text-decoration: line-through; }
 
 /* Login Page */
 .login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(135deg, var(--color-bg-primary) 0%, #1a1b2e 100%); }
@@ -1084,6 +1192,19 @@ body.is-client .admin-only {
     margin-top: var(--space-lg);
 }
 
+/* Dashboard grid */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+}
+
+@media (max-width: 1024px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 768px) {
     .pagination {
         flex-direction: column;
@@ -1092,6 +1213,10 @@ body.is-client .admin-only {
     }
 
     .analytics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-grid {
         grid-template-columns: 1fr;
     }
 }

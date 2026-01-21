@@ -23,13 +23,13 @@
         })();
     </script>
     <style>
-        /* Project Detail Page Layout */
+        /* Project Detail Page Layout - Balanced 50/50 */
         .project-grid {
             display: grid;
-            grid-template-columns: 1fr 380px;
+            grid-template-columns: 1fr 1fr;
             gap: 24px;
         }
-        @media (max-width: 1200px) {
+        @media (max-width: 1024px) {
             .project-grid {
                 grid-template-columns: 1fr;
             }
@@ -37,12 +37,40 @@
         .project-main {
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            gap: 20px;
         }
         .project-sidebar {
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            gap: 20px;
+        }
+        /* Progress inline with header */
+        .progress-inline {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 12px 20px;
+            max-width: 400px;
+            margin-bottom: 20px;
+        }
+        .progress-inline .progress-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--color-text-muted);
+            white-space: nowrap;
+        }
+        .progress-inline .progress-bar {
+            flex: 1;
+            height: 8px;
+        }
+        .progress-inline .progress-value {
+            font-size: 14px;
+            font-weight: 600;
+            min-width: 40px;
+            text-align: right;
         }
         /* Messages Section */
         .messages-section {
@@ -51,7 +79,8 @@
             border-radius: var(--radius-lg);
             display: flex;
             flex-direction: column;
-            max-height: 450px;
+            min-height: 400px;
+            max-height: 500px;
         }
         .messages-header {
             padding: 16px 20px;
@@ -73,7 +102,6 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
-            min-height: 200px;
         }
         .messages-input {
             padding: 16px 20px;
@@ -89,6 +117,7 @@
             background: var(--color-bg-secondary);
             border: 1px solid var(--color-border-subtle);
             border-radius: var(--radius-lg);
+            flex: 1;
         }
         .tickets-header {
             padding: 16px 20px;
@@ -105,11 +134,68 @@
         }
         .tickets-list {
             padding: 8px 0;
-            max-height: 350px;
+            max-height: 300px;
             overflow-y: auto;
         }
         .tickets-list .ticket-row {
             padding: 12px 20px;
+        }
+        /* Current Task Box - Larger text, inline edit */
+        .task-box {
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+        }
+        .task-box-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .task-box-header h3 {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 1rem;
+            margin: 0;
+            color: var(--color-text-muted);
+        }
+        .task-edit-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px;
+            opacity: 0.6;
+            transition: opacity 0.15s;
+        }
+        .task-edit-btn:hover {
+            opacity: 1;
+        }
+        .task-content {
+            font-size: 18px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            color: var(--color-text-primary);
+        }
+        .task-content.empty {
+            color: var(--color-text-muted);
+            font-style: italic;
+        }
+        .task-edit-area {
+            display: none;
+        }
+        .task-edit-area.active {
+            display: block;
+        }
+        .task-edit-area textarea {
+            width: 100%;
+            min-height: 80px;
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+        .task-view-area.hidden {
+            display: none;
         }
         /* Info Section Compact */
         .info-section {
@@ -124,43 +210,24 @@
             font-size: 1rem;
             margin: 0 0 16px 0;
         }
-        /* Milestones Compact */
-        .milestones-section {
+        /* Upcoming Tasks (formerly Milestones) */
+        .upcoming-tasks-section {
             background: var(--color-bg-secondary);
             border: 1px solid var(--color-border-subtle);
             border-radius: var(--radius-lg);
             padding: 20px;
         }
-        .milestones-header {
+        .upcoming-tasks-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             margin-bottom: 16px;
         }
-        .milestones-header h3 {
+        .upcoming-tasks-header h3 {
             font-family: var(--font-display);
             font-weight: 600;
             font-size: 1rem;
             margin: 0;
-        }
-        /* Current Task Box */
-        .task-box {
-            background: var(--color-bg-secondary);
-            border: 1px solid var(--color-border-subtle);
-            border-radius: var(--radius-lg);
-            padding: 20px;
-        }
-        .task-box h3 {
-            font-family: var(--font-display);
-            font-weight: 600;
-            font-size: 0.9rem;
-            margin: 0 0 12px 0;
-            color: var(--color-text-muted);
-        }
-        .task-content {
-            font-size: 14px;
-            line-height: 1.6;
-            white-space: pre-wrap;
         }
         /* Invoices Section */
         .invoices-section {
@@ -169,11 +236,34 @@
             border-radius: var(--radius-lg);
             padding: 20px;
         }
-        .invoices-section h3 {
+        .invoices-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .invoices-header h3 {
             font-family: var(--font-display);
             font-weight: 600;
             font-size: 1rem;
-            margin: 0 0 16px 0;
+            margin: 0;
+        }
+        /* Loading fade animation */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .loading-placeholder {
+            background: var(--color-bg-tertiary);
+            border-radius: var(--radius-md);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 0.3; }
         }
     </style>
 </head>
@@ -221,51 +311,17 @@
                     </div>
                 </div>
 
-                <!-- Progress Bar (Admin Only) -->
-                <div class="card mb-lg admin-only" style="padding: 16px 20px;">
-                    <div class="project-progress">
-                        <div class="progress-header"><span>Progress</span><span id="detail-progress">0%</span></div>
-                        <input type="range" id="progress-slider" min="0" max="100" value="0" style="width:100%;margin:8px 0;accent-color:var(--color-primary);">
-                        <div class="progress-bar" style="height:10px;"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
-                    </div>
+                <!-- Progress Bar (Admin Only) - Compact inline -->
+                <div class="progress-inline admin-only">
+                    <span class="progress-label">Progress</span>
+                    <input type="range" id="progress-slider" min="0" max="100" value="0" style="flex:1;accent-color:var(--color-primary);">
+                    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+                    <span class="progress-value" id="detail-progress">0%</span>
                 </div>
 
-                <!-- Two Column Layout -->
+                <!-- Two Column Layout - Balanced -->
                 <div class="project-grid">
-                    <!-- Left Column: Main Content -->
-                    <div class="project-main">
-                        <!-- Current Task -->
-                        <div class="task-box">
-                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                                <h3 style="margin: 0;">Current Task</h3>
-                                <button class="btn btn-ghost btn-sm admin-only" onclick="openModal('edit-task-modal')">Edit</button>
-                            </div>
-                            <p id="current-task" class="task-content">No current task set.</p>
-                        </div>
-
-                        <!-- Project Info -->
-                        <div class="info-section">
-                            <h3>Project Information</h3>
-                            <div class="info-grid" id="detail-info"></div>
-                        </div>
-
-                        <!-- Milestones -->
-                        <div class="milestones-section">
-                            <div class="milestones-header">
-                                <h3>Milestones</h3>
-                                <button class="btn btn-primary btn-sm admin-only" onclick="openModal('add-milestone-modal')">Add Milestone</button>
-                            </div>
-                            <div id="milestones"></div>
-                        </div>
-
-                        <!-- Invoices (Admin Only) -->
-                        <div class="invoices-section admin-only">
-                            <h3>Invoices</h3>
-                            <div id="invoices"></div>
-                        </div>
-                    </div>
-
-                    <!-- Right Column: Messages & Tickets -->
+                    <!-- Left Column: Messages & Tickets (Primary) -->
                     <div class="project-sidebar">
                         <!-- Messages -->
                         <div class="messages-section">
@@ -286,6 +342,59 @@
                                 <button class="btn btn-primary btn-sm" onclick="openModal('new-ticket-modal')">New Ticket</button>
                             </div>
                             <div id="project-tickets" class="tickets-list"></div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Project Details -->
+                    <div class="project-main">
+                        <!-- Current Task - Inline edit with pencil -->
+                        <div class="task-box">
+                            <div class="task-box-header">
+                                <h3>Current Task</h3>
+                                <button class="task-edit-btn admin-only" onclick="toggleTaskEdit()" title="Edit task">✏️</button>
+                            </div>
+                            <div class="task-view-area" id="task-view">
+                                <p id="current-task" class="task-content empty">No current task set.</p>
+                            </div>
+                            <div class="task-edit-area admin-only" id="task-edit">
+                                <textarea id="inline-task-input" class="form-input form-textarea" placeholder="What are you currently working on?"></textarea>
+                                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                                    <button class="btn btn-ghost btn-sm" onclick="cancelTaskEdit()">Cancel</button>
+                                    <button class="btn btn-primary btn-sm" onclick="saveInlineTask()">Save</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Project Info -->
+                        <div class="info-section">
+                            <h3>Project Information</h3>
+                            <div class="info-grid" id="detail-info"></div>
+                        </div>
+
+                        <!-- Upcoming Tasks (formerly Milestones) -->
+                        <div class="upcoming-tasks-section">
+                            <div class="upcoming-tasks-header">
+                                <h3>Upcoming Tasks</h3>
+                                <button class="btn btn-primary btn-sm admin-only" onclick="openModal('add-milestone-modal')">Add Task</button>
+                            </div>
+                            <div id="milestones"></div>
+                        </div>
+
+                        <!-- Invoices (Admin Only) -->
+                        <div class="invoices-section admin-only">
+                            <div class="invoices-header">
+                                <h3>Invoices</h3>
+                                <button class="btn btn-primary btn-sm" onclick="openCreateInvoice()">New Invoice</button>
+                            </div>
+                            <div id="invoices"></div>
+                        </div>
+
+                        <!-- Invoices (Client View) -->
+                        <div class="invoices-section client-only">
+                            <div class="invoices-header">
+                                <h3>Invoices</h3>
+                            </div>
+                            <div id="client-invoices"></div>
                         </div>
                     </div>
                 </div>
@@ -332,15 +441,15 @@
         <div class="modal-footer"><button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button><button class="btn btn-primary" onclick="handleSubmitTicket(new URLSearchParams(location.search).get('id'))">Submit Ticket</button></div></div>
     </div>
 
-    <!-- Add Milestone Modal -->
+    <!-- Add Task Modal (formerly Milestone) -->
     <div class="modal-overlay" id="add-milestone-modal">
         <div class="modal" style="max-width:400px;">
-            <div class="modal-header"><h3 class="modal-title">Add Milestone</h3><button class="modal-close" aria-label="Close modal">×</button></div>
+            <div class="modal-header"><h3 class="modal-title">Add Upcoming Task</h3><button class="modal-close" aria-label="Close modal">×</button></div>
             <div class="modal-body">
-                <div class="form-group"><label class="form-label">Title</label><input type="text" id="new-milestone-title" class="form-input" placeholder="e.g. Design Complete"></div>
+                <div class="form-group"><label class="form-label">Task</label><input type="text" id="new-milestone-title" class="form-input" placeholder="e.g. Complete homepage design"></div>
                 <div class="form-group"><label class="form-label">Target Date</label><input type="date" id="new-milestone-date" class="form-input"></div>
             </div>
-            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button><button class="btn btn-primary" onclick="handleAddMilestone()">Add Milestone</button></div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button><button class="btn btn-primary" onclick="handleAddMilestone()">Add Task</button></div>
         </div>
     </div>
 
@@ -361,6 +470,66 @@
             <div class="modal-header"><h3 class="modal-title">Confirm</h3><button class="modal-close" aria-label="Close modal">×</button></div>
             <div class="modal-body"><p class="confirm-message">Are you sure?</p></div>
             <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('confirm-modal')">Cancel</button><button class="btn btn-primary" onclick="handleConfirm()">Confirm</button></div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Invoice Modal -->
+    <div class="modal-overlay" id="create-invoice-modal">
+        <div class="modal" style="max-width:500px;">
+            <div class="modal-header"><h3 class="modal-title" id="invoice-modal-title">Create Invoice</h3><button class="modal-close" aria-label="Close modal">×</button></div>
+            <div class="modal-body">
+                <input type="hidden" id="invoice-edit-id">
+                <div class="form-row">
+                    <div class="form-group" style="flex:2;">
+                        <label class="form-label">Invoice Title</label>
+                        <input type="text" id="invoice-title" class="form-input" placeholder="e.g. Website Development - Phase 1">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label class="form-label">Amount (NZD)</label>
+                        <input type="number" id="invoice-amount" class="form-input" placeholder="0.00" step="0.01" min="0">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Due Date</label>
+                        <input type="date" id="invoice-due-date" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select id="invoice-status" class="form-input form-select">
+                            <option value="draft">Draft</option>
+                            <option value="sent">Sent</option>
+                            <option value="paid">Paid</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">PDF Invoice</label>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <input type="file" id="invoice-pdf" accept="application/pdf" style="display:none;" onchange="handleInvoicePdfSelect(event)">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('invoice-pdf').click()">Choose PDF</button>
+                        <span id="invoice-pdf-name" style="font-size:13px;color:var(--color-text-muted);">No file selected</span>
+                    </div>
+                    <div id="invoice-pdf-existing" style="margin-top:8px;display:none;">
+                        <a id="invoice-pdf-link" href="#" target="_blank" style="font-size:13px;">View current PDF</a>
+                        <button type="button" class="btn btn-ghost btn-sm" onclick="clearInvoicePdf()" style="margin-left:8px;">Remove</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Stripe Payment Link <span style="font-size:11px;color:var(--color-text-muted);">(for client payment)</span></label>
+                    <input type="url" id="invoice-stripe-link" class="form-input" placeholder="https://buy.stripe.com/...">
+                    <p style="font-size:11px;color:var(--color-text-muted);margin-top:4px;">Create a payment link in Stripe Dashboard and paste it here</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Internal Notes <span style="font-size:11px;color:var(--color-text-muted);">(admin only)</span></label>
+                    <textarea id="invoice-notes" class="form-input form-textarea" placeholder="Notes about this invoice..." style="min-height:60px;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button>
+                <button class="btn btn-primary" onclick="handleSaveInvoice()">Save Invoice</button>
+            </div>
         </div>
     </div>
 
