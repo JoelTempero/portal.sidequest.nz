@@ -46,23 +46,9 @@
             <div class="page-content">
                 <div class="page-header"><h1>Welcome back! </h1><p>Here's what's happening with your projects.</p></div>
                 <div class="stats-grid" id="stats-grid"></div>
-                <!-- Analytics Section (Admin Only) -->
-                <div class="analytics-grid admin-only" id="analytics-section">
-                    <div class="chart-container">
-                        <div class="chart-header">
-                            <div><h4 class="chart-title">Tickets by Status</h4><p class="chart-subtitle">Current distribution</p></div>
-                        </div>
-                        <div id="tickets-status-chart" class="simple-chart"></div>
-                    </div>
-                    <div class="chart-container">
-                        <div class="chart-header">
-                            <div><h4 class="chart-title">Projects by Tier</h4><p class="chart-subtitle">Client tier breakdown</p></div>
-                        </div>
-                        <div id="projects-tier-chart" class="simple-chart"></div>
-                    </div>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr;gap:24px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;" class="dashboard-grid">
                     <div class="card"><div class="card-header"><h3 class="card-title admin-only">Active Projects</h3><h3 class="card-title client-only">My Projects</h3><a href="projects.html" class="card-action">View all</a></div><div class="item-grid" id="projects-grid"></div></div>
+                    <div class="card admin-only"><div class="card-header"><h3 class="card-title">Active Tickets</h3><a href="tickets.html" class="card-action">View all</a></div><div id="admin-tickets-grid"></div></div>
                     <div class="card client-only"><div class="card-header"><h3 class="card-title">My Tickets</h3><button class="btn btn-primary btn-sm" onclick="openModal('dashboard-ticket-modal')">New Ticket</button></div><div id="tickets-grid"></div></div>
                 </div>
             </div>

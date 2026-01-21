@@ -200,14 +200,12 @@ function renderProjects(containerId, items = null) {
         list = list.filter(p => p.tier === tierFilter);
     }
 
-    // Sort by tier first (highest tier first), then by creation date
+    // Sort by tier first (highest tier first), then by progress (highest first)
     list.sort((a, b) => {
         const tierDiff = getTierOrder(a.tier) - getTierOrder(b.tier);
         if (tierDiff !== 0) return tierDiff;
-        // If same tier, sort by creation date (newest first)
-        const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
-        const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
-        return dateB - dateA;
+        // If same tier, sort by progress (highest first)
+        return (parseInt(b.progress) || 0) - (parseInt(a.progress) || 0);
     });
 
     if (!list.length) { c.innerHTML = `<div class="empty-state"><h3>No projects yet</h3></div>`; return; }
@@ -1530,8 +1528,8 @@ function renderPage(page) {
         case 'dashboard.html':
             renderStats();
             if (AppState.isAdmin) {
-                renderProjects('projects-grid', AppState.projects.filter(p => p.status === 'active').slice(0, 4));
-                renderAnalyticsCharts();
+                renderProjects('projects-grid', AppState.projects.filter(p => p.status === 'active').slice(0, 6));
+                renderAdminDashboardTickets('admin-tickets-grid');
             } else {
                 // Client dashboard - show their projects and tickets
                 renderProjects('projects-grid', AppState.projects);
@@ -1564,6 +1562,50 @@ function renderPage(page) {
             }
             break;
     }
+}
+
+function renderAdminDashboardTickets(containerId) {
+    const c = document.getElementById(containerId);
+    if (!c) return;
+
+    // Get active tickets (not resolved)
+    const activeTickets = AppState.tickets.filter(t => t.status !== 'resolved');
+
+    if (!activeTickets.length) {
+        c.innerHTML = '<p class="text-muted" style="padding: 16px;">No active tickets</p>';
+        return;
+    }
+
+    // Sort by urgency then date
+    const urgencyOrder = { 'asap': 0, 'day': 1, 'week': 2, 'month': 3 };
+    activeTickets.sort((a, b) => {
+        const urgencyDiff = (urgencyOrder[a.urgency] || 3) - (urgencyOrder[b.urgency] || 3);
+        if (urgencyDiff !== 0) return urgencyDiff;
+        const dateA = a.submittedAt?.toDate?.() || new Date(a.submittedAt || 0);
+        const dateB = b.submittedAt?.toDate?.() || new Date(b.submittedAt || 0);
+        return dateA - dateB;
+    });
+
+    // Show up to 8 tickets
+    const ticketsToShow = activeTickets.slice(0, 8);
+
+    c.innerHTML = ticketsToShow.map(t => {
+        const project = AppState.projects.find(p => p.id === t.projectId);
+        const description = t.description ? t.description.slice(0, 100) + (t.description.length > 100 ? '...' : '') : '';
+        return `
+        <div class="ticket-row" onclick="window.location.href='ticket-detail.html?id=${escapeHtml(t.id)}'" style="cursor:pointer;">
+            <div class="ticket-priority ${escapeHtml(t.urgency || 'week')}"></div>
+            <div class="ticket-info" style="flex: 1;">
+                <div class="ticket-title">${escapeHtml(t.title || 'Untitled')}</div>
+                <div class="ticket-meta">${timeAgo(t.submittedAt)}</div>
+            </div>
+            <div style="flex: 1.5; font-size: 13px; color: var(--color-text-secondary); padding: 0 12px; line-height: 1.4;">${escapeHtml(description)}</div>
+            <div style="min-width: 120px; text-align: right;">
+                <div style="font-size: 13px; font-weight: 500;">${escapeHtml(project?.companyName || '-')}</div>
+                <span class="status-badge ${escapeHtml(t.status || 'open')}" style="font-size: 11px;">${escapeHtml(getStatusLabel(t.status || 'open'))}</span>
+            </div>
+        </div>`;
+    }).join('');
 }
 
 function renderClientTickets(containerId) {

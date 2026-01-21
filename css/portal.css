@@ -1084,6 +1084,19 @@ body.is-client .admin-only {
     margin-top: var(--space-lg);
 }
 
+/* Dashboard grid */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+}
+
+@media (max-width: 1024px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 768px) {
     .pagination {
         flex-direction: column;
@@ -1092,6 +1105,10 @@ body.is-client .admin-only {
     }
 
     .analytics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-grid {
         grid-template-columns: 1fr;
     }
 }
