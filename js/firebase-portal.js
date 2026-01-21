@@ -8,9 +8,9 @@ import { FIREBASE_CONFIG, NAVIGATION, UI_TIMING } from './config/constants.js';
 // Use centralized Firebase config from constants.js
 const firebaseConfig = FIREBASE_CONFIG;
 
-// Tier names: Host, Bug Catcher, Farmer, Watchful Eye, Guardian
-const TIER_NAMES = { host: 'Host', bugcatcher: 'Bug Catcher', farmer: 'Farmer', watchfuleye: 'Watchful Eye', guardian: 'Guardian' };
-const TIER_ORDER = { guardian: 0, watchfuleye: 1, farmer: 2, bugcatcher: 3, host: 4 };
+// Tier names: Personal, Host, Bug Catcher, Farmer, Watchful Eye, Guardian
+const TIER_NAMES = { personal: 'Personal', host: 'Host', bugcatcher: 'Bug Catcher', farmer: 'Farmer', watchfuleye: 'Watchful Eye', guardian: 'Guardian' };
+const TIER_ORDER = { guardian: 0, watchfuleye: 1, farmer: 2, bugcatcher: 3, host: 4, personal: 5 };
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, browserLocalPersistence, setPersistence } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
@@ -75,13 +75,17 @@ const formatDate = d => { if (!d) return '-'; const date = d.toDate ? d.toDate()
 const formatCurrency = n => new Intl.NumberFormat('en-NZ', { style: 'currency', currency: 'NZD' }).format(n || 0);
 const timeAgo = d => { if (!d) return '-'; const date = d.toDate ? d.toDate() : new Date(d); const s = Math.floor((new Date() - date) / 1000); if (s < 60) return 'Just now'; if (s < 3600) return Math.floor(s/60) + 'm ago'; if (s < 86400) return Math.floor(s/3600) + 'h ago'; return Math.floor(s/86400) + 'd ago'; };
 const getInitials = n => n ? n.split(' ').map(x => x[0]).join('').slice(0,2).toUpperCase() : '??';
-const getTierOrder = t => TIER_ORDER[t] ?? 5;
 const LEGACY_TIER_MAP = { premium: 'watchfuleye', enterprise: 'watchfuleye', professional: 'farmer', starter: 'bugcatcher', basic: 'host' };
+const getTierOrder = t => {
+    // Map legacy tiers to current ones before getting order
+    const mapped = LEGACY_TIER_MAP[t] || t;
+    return TIER_ORDER[mapped] ?? 6; // Unknown tiers go last
+};
 const getTierName = t => {
     const mapped = LEGACY_TIER_MAP[t] || t;
     return TIER_NAMES[mapped] || t;
 };
-const getStatusLabel = s => ({ 'noted': 'Noted', 'demo-complete': 'Demo Complete', 'demo-sent': 'Demo Sent', 'active': 'Active', 'paused': 'Paused', 'completed': 'Completed', 'open': 'Open', 'in-progress': 'In Progress', 'resolved': 'Resolved' }[s] || s);
+const getStatusLabel = s => ({ 'noted': 'Noted', 'demo-complete': 'Demo Complete', 'demo-sent': 'Demo Sent', 'active': 'Active', 'testing': 'Testing', 'paused': 'Paused', 'completed': 'Completed', 'open': 'Open', 'in-progress': 'In Progress', 'resolved': 'Resolved' }[s] || s);
 const showLoading = (show = true) => { const l = document.getElementById('loading-overlay'); if (l) l.style.display = show ? 'flex' : 'none'; };
 const showToast = (msg, type = 'info') => { document.querySelector('.toast')?.remove(); const t = document.createElement('div'); t.className = `toast toast-${type}`; t.textContent = msg; t.style.cssText = `position:fixed;bottom:20px;right:20px;padding:12px 24px;border-radius:8px;color:white;z-index:9999;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.3);background:${type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : '#3b82f6'};`; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); };
 
