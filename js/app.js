@@ -34,8 +34,8 @@ import { escapeHtml } from './utils/sanitize.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { doc, getDoc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
-// Filter State
-let filters = { search: '', location: '', businessType: '', status: '' };
+// Filter State - arrays for multi-select
+let filters = { search: '', locations: [], businessTypes: [], statuses: [], tiers: [] };
 
 function applyFilters(items) {
     return items.filter(item => {
@@ -43,9 +43,10 @@ function applyFilters(items) {
             const s = filters.search.toLowerCase();
             if (!`${item.companyName || ''} ${item.clientName || ''} ${item.clientEmail || ''}`.toLowerCase().includes(s)) return false;
         }
-        if (filters.location && item.location !== filters.location) return false;
-        if (filters.businessType && item.businessType !== filters.businessType) return false;
-        if (filters.status && item.status !== filters.status) return false;
+        if (filters.locations.length && !filters.locations.includes(item.location)) return false;
+        if (filters.businessTypes.length && !filters.businessTypes.includes(item.businessType)) return false;
+        if (filters.statuses.length && !filters.statuses.includes(item.status)) return false;
+        if (filters.tiers.length && !filters.tiers.includes(item.tier)) return false;
         return true;
     });
 }
@@ -53,6 +54,77 @@ function applyFilters(items) {
 function getUniqueValues(items, field) {
     return [...new Set(items.map(i => i[field]).filter(Boolean))].sort();
 }
+
+// Multi-select dropdown component
+function createMultiSelect(id, label, options, selectedValues, onChange) {
+    const selectedCount = selectedValues.length;
+    const displayText = selectedCount === 0 ? `All ${label}` :
+                        selectedCount === 1 ? options.find(o => o.value === selectedValues[0])?.label || selectedValues[0] :
+                        `${selectedCount} selected`;
+
+    return `
+        <div class="multi-select" id="${id}">
+            <button type="button" class="multi-select-btn" onclick="toggleMultiSelect('${id}')">
+                <span>${displayText}</span>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="multi-select-dropdown">
+                ${options.map(opt => `
+                    <label class="multi-select-option">
+                        <input type="checkbox" value="${opt.value}" ${selectedValues.includes(opt.value) ? 'checked' : ''} onchange="handleMultiSelectChange('${id}', this)">
+                        <span>${opt.label}</span>
+                    </label>
+                `).join('')}
+            </div>
+        </div>`;
+}
+
+window.toggleMultiSelect = (id) => {
+    const el = document.getElementById(id);
+    if (el) {
+        // Close other open dropdowns
+        document.querySelectorAll('.multi-select.open').forEach(ms => {
+            if (ms.id !== id) ms.classList.remove('open');
+        });
+        el.classList.toggle('open');
+    }
+};
+
+window.handleMultiSelectChange = (id, checkbox) => {
+    const filterMap = {
+        'filter-tier': 'tiers',
+        'filter-location': 'locations',
+        'filter-type': 'businessTypes',
+        'filter-status': 'statuses'
+    };
+    const filterKey = filterMap[id];
+    if (!filterKey) return;
+
+    if (checkbox.checked) {
+        if (!filters[filterKey].includes(checkbox.value)) {
+            filters[filterKey].push(checkbox.value);
+        }
+    } else {
+        filters[filterKey] = filters[filterKey].filter(v => v !== checkbox.value);
+    }
+
+    // Update button text
+    const btn = document.querySelector(`#${id} .multi-select-btn span`);
+    const count = filters[filterKey].length;
+    const labelMap = { tiers: 'Tiers', locations: 'Locations', businessTypes: 'Types', statuses: 'Statuses' };
+    if (btn) {
+        btn.textContent = count === 0 ? `All ${labelMap[filterKey]}` : `${count} selected`;
+    }
+
+    renderGridOnly();
+};
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.multi-select')) {
+        document.querySelectorAll('.multi-select.open').forEach(ms => ms.classList.remove('open'));
+    }
+});
 
 // ============================================
 // RENDERING
@@ -129,34 +201,38 @@ function renderAnalyticsCharts() {
 function renderFilterBar(containerId, items, type) {
     const c = document.getElementById(containerId);
     if (!c) return;
-    const locations = getUniqueValues(items, 'location');
-    const types = getUniqueValues(items, 'businessType');
-    const statuses = type === 'lead' ? ['noted', 'demo-complete', 'demo-sent'] : ['active', 'paused', 'completed'];
-    const tiers = ['guardian', 'watchfuleye', 'farmer', 'bugcatcher', 'host'];
+    const locations = getUniqueValues(items, 'location').map(l => ({ value: l, label: l }));
+    const types = getUniqueValues(items, 'businessType').map(t => ({ value: t, label: t }));
+    const statuses = type === 'lead'
+        ? [{ value: 'noted', label: 'Noted' }, { value: 'demo-complete', label: 'Demo Complete' }, { value: 'demo-sent', label: 'Demo Sent' }]
+        : [{ value: 'active', label: 'Active' }, { value: 'testing', label: 'Testing' }, { value: 'paused', label: 'Paused' }, { value: 'completed', label: 'Completed' }];
+    const tiers = [
+        { value: 'guardian', label: 'Guardian' },
+        { value: 'watchfuleye', label: 'Watchful Eye' },
+        { value: 'farmer', label: 'Farmer' },
+        { value: 'bugcatcher', label: 'Bug Catcher' },
+        { value: 'host', label: 'Host' },
+        { value: 'personal', label: 'Personal' }
+    ];
 
     // Add tier filter only for projects
-    const tierFilterHtml = type === 'project' ? `
-        <select class="form-input form-select" id="filter-tier" style="width:150px;">
-            <option value="all" ${tierFilter === 'all' ? 'selected' : ''}>All Tiers</option>
-            ${tiers.map(t => `<option value="${t}" ${tierFilter === t ? 'selected' : ''}>${getTierName(t)}</option>`).join('')}
-        </select>` : '';
+    const tierFilterHtml = type === 'project' ? createMultiSelect('filter-tier', 'Tiers', tiers, filters.tiers, () => {}) : '';
 
     c.innerHTML = `<div class="filter-bar">
         <input type="text" class="form-input" id="filter-search" placeholder="Search..." value="${filters.search}" style="flex:1;min-width:200px;">
         ${tierFilterHtml}
-        <select class="form-input form-select" id="filter-location" style="width:150px;"><option value="">All Locations</option>${locations.map(l => `<option value="${l}" ${filters.location === l ? 'selected' : ''}>${l}</option>`).join('')}</select>
-        <select class="form-input form-select" id="filter-type" style="width:180px;"><option value="">All Types</option>${types.map(t => `<option value="${t}" ${filters.businessType === t ? 'selected' : ''}>${t}</option>`).join('')}</select>
-        <select class="form-input form-select" id="filter-status" style="width:150px;"><option value="">All Statuses</option>${statuses.map(s => `<option value="${s}" ${filters.status === s ? 'selected' : ''}>${getStatusLabel(s)}</option>`).join('')}</select>
+        ${createMultiSelect('filter-location', 'Locations', locations, filters.locations, () => {})}
+        ${createMultiSelect('filter-type', 'Types', types, filters.businessTypes, () => {})}
+        ${createMultiSelect('filter-status', 'Statuses', statuses, filters.statuses, () => {})}
         <button class="btn btn-ghost" onclick="clearFilters()">Clear</button>
     </div>`;
     document.getElementById('filter-search')?.addEventListener('input', e => { filters.search = e.target.value; renderGridOnly(); });
-    document.getElementById('filter-tier')?.addEventListener('change', e => { tierFilter = e.target.value; renderGridOnly(); });
-    document.getElementById('filter-location')?.addEventListener('change', e => { filters.location = e.target.value; renderGridOnly(); });
-    document.getElementById('filter-type')?.addEventListener('change', e => { filters.businessType = e.target.value; renderGridOnly(); });
-    document.getElementById('filter-status')?.addEventListener('change', e => { filters.status = e.target.value; renderGridOnly(); });
 }
 
-window.clearFilters = () => { filters = { search: '', location: '', businessType: '', status: '' }; tierFilter = 'all'; renderCurrentPage(); };
+window.clearFilters = () => {
+    filters = { search: '', locations: [], businessTypes: [], statuses: [], tiers: [] };
+    renderCurrentPage();
+};
 
 let currentPageType = '';
 function renderGridOnly() {
@@ -241,19 +317,11 @@ function renderLeads(containerId) {
     }
 }
 
-// Tier filter state
-let tierFilter = 'all';
-
 function renderProjects(containerId, items = null) {
     const c = document.getElementById(containerId);
     if (!c) return;
     c.classList.remove('loading');
     let list = items || applyFilters(AppState.projects);
-
-    // Apply tier filter
-    if (tierFilter !== 'all') {
-        list = list.filter(p => p.tier === tierFilter);
-    }
 
     // Sort by tier first (highest tier first), then by progress (highest first)
     list.sort((a, b) => {
@@ -788,13 +856,37 @@ window.handleCreateProject = async (e) => {
 window.handleCreateClient = async (e) => {
     e.preventDefault();
     const form = e.target;
-    const r = await createClientWithAuth(
-        form.querySelector('[name="email"]').value,
-        form.querySelector('[name="password"]').value,
-        form.querySelector('[name="displayName"]').value,
-        form.querySelector('[name="company"]').value
-    );
-    if (r.success) { closeAllModals(); form.reset(); await loadClients(); renderClients('clients-grid'); }
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn?.textContent;
+
+    // Show loading state
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Creating...';
+    }
+    showLoading(true);
+
+    try {
+        const r = await createClientWithAuth(
+            form.querySelector('[name="email"]').value,
+            form.querySelector('[name="password"]').value,
+            form.querySelector('[name="displayName"]').value,
+            form.querySelector('[name="company"]').value
+        );
+        if (r.success) {
+            closeAllModals();
+            form.reset();
+            await loadClients();
+            renderClients('clients-grid');
+            showToast('Client created successfully!', 'success');
+        }
+    } finally {
+        showLoading(false);
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        }
+    }
 };
 
 window.handleUpdateLead = async (e) => {
@@ -1937,7 +2029,7 @@ function renderPage(page) {
         case 'dashboard.html':
             renderStats();
             if (AppState.isAdmin) {
-                // Sort active projects by tier then progress, then take top 6
+                // Sort active projects by tier then progress, then take top 10
                 const activeProjects = AppState.projects
                     .filter(p => p.status === 'active')
                     .sort((a, b) => {
@@ -1945,7 +2037,7 @@ function renderPage(page) {
                         if (tierDiff !== 0) return tierDiff;
                         return (parseInt(b.progress) || 0) - (parseInt(a.progress) || 0);
                     })
-                    .slice(0, 6);
+                    .slice(0, 10);
                 renderProjects('projects-grid', activeProjects);
                 renderAdminDashboardTickets('admin-tickets-grid');
             } else {

@@ -33,10 +33,6 @@
                 <div class="nav-section admin-only"><div class="nav-section-title">Support</div>
                     <a href="tickets.html" class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Tickets</a>
                 </div>
-                <div class="nav-section client-only"><div class="nav-section-title">My Account</div>
-                    <a href="projects.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>My Projects</a>
-                    <a href="my-tickets.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>My Tickets</a>
-                </div>
             </nav>
             <div class="sidebar-footer"><button class="user-card" id="logout-btn" style="cursor:pointer;width:100%;text-align:left;" aria-label="Sign out"><div class="user-avatar" id="user-avatar">?</div><div class="user-info"><div class="user-name" id="user-name">Loading...</div><div class="user-role" id="user-role">Admin</div></div><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--color-text-muted)" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button></div>
         </aside>
@@ -111,7 +107,6 @@
                         <button class="btn btn-secondary filter-btn active" data-filter="all" onclick="filterByStatus('all')">All</button>
                         <button class="btn btn-secondary filter-btn" data-filter="open" onclick="filterByStatus('open')">Open</button>
                         <button class="btn btn-secondary filter-btn" data-filter="in-progress" onclick="filterByStatus('in-progress')">In Progress</button>
-                        <button class="btn btn-secondary filter-btn" data-filter="resolved" onclick="filterByStatus('resolved')">Resolved</button>
                         <button class="btn btn-secondary filter-btn" data-filter="breached" onclick="filterByStatus('breached')">SLA Breached</button>
                     </div>
                 </div>
@@ -191,6 +186,7 @@
                                 </tbody>
                             </table>
                         </div>
+                        <div id="load-more-resolved" style="display:none;justify-content:center;padding:16px;border-top:1px solid var(--color-border-subtle);"></div>
                     </div>
                 </div>
             </div>
@@ -399,14 +395,27 @@
             return mapping[tier] || 'host';
         }
 
+        // Track how many resolved tickets to show
+        let resolvedTicketsToShow = 15;
+        let allResolvedTickets = [];
+
         function renderTickets(tickets) {
             // Separate active and resolved tickets
             const activeTickets = tickets.filter(t => t.status !== 'resolved');
-            const resolvedTickets = tickets.filter(t => t.status === 'resolved');
+            allResolvedTickets = tickets.filter(t => t.status === 'resolved');
+
+            // Sort resolved by date (newest first)
+            allResolvedTickets.sort((a, b) => {
+                const dateA = (a.resolvedAt || a.updatedAt || a.submittedAt);
+                const dateB = (b.resolvedAt || b.updatedAt || b.submittedAt);
+                const timeA = dateA?.toDate ? dateA.toDate().getTime() : new Date(dateA || 0).getTime();
+                const timeB = dateB?.toDate ? dateB.toDate().getTime() : new Date(dateB || 0).getTime();
+                return timeB - timeA;
+            });
 
             // Update counts
             document.getElementById('active-count').textContent = activeTickets.length;
-            document.getElementById('resolved-count').textContent = resolvedTickets.length;
+            document.getElementById('resolved-count').textContent = allResolvedTickets.length;
 
             // Render active tickets
             const tbody = document.getElementById('tickets-list');
@@ -420,13 +429,35 @@
                 tbody.innerHTML = activeTickets.map(ticket => renderTicketRow(ticket, true)).join('');
             }
 
-            // Render resolved tickets
-            const resolvedTbody = document.getElementById('resolved-tickets-list');
-            resolvedTbody.innerHTML = resolvedTickets.map(ticket => renderResolvedTicketRow(ticket)).join('');
+            // Render resolved tickets (limited by resolvedTicketsToShow)
+            renderResolvedTickets();
 
             // Show/hide resolved section
-            document.getElementById('resolved-tickets-card').style.display = resolvedTickets.length > 0 ? 'block' : 'none';
+            document.getElementById('resolved-tickets-card').style.display = allResolvedTickets.length > 0 ? 'block' : 'none';
         }
+
+        function renderResolvedTickets() {
+            const resolvedTbody = document.getElementById('resolved-tickets-list');
+            const visibleResolved = allResolvedTickets.slice(0, resolvedTicketsToShow);
+            resolvedTbody.innerHTML = visibleResolved.map(ticket => renderResolvedTicketRow(ticket)).join('');
+
+            // Show/hide Load More button
+            const loadMoreContainer = document.getElementById('load-more-resolved');
+            if (loadMoreContainer) {
+                if (allResolvedTickets.length > resolvedTicketsToShow) {
+                    const remaining = allResolvedTickets.length - resolvedTicketsToShow;
+                    loadMoreContainer.innerHTML = `<button class="btn btn-secondary" onclick="loadMoreResolved()">Load More (${remaining} remaining)</button>`;
+                    loadMoreContainer.style.display = 'flex';
+                } else {
+                    loadMoreContainer.style.display = 'none';
+                }
+            }
+        }
+
+        window.loadMoreResolved = function() {
+            resolvedTicketsToShow += 15;
+            renderResolvedTickets();
+        };
 
         // Cache for project logos
         let projectLogos = {};
@@ -527,9 +558,17 @@
                             <span style="font-weight:500;font-size:14px;">${escapeHtml(ticket.projectName || 'No Project')}</span>
                         </div>
                     </td>
-                    <td style="white-space:nowrap;color:var(--color-text-muted);">${timeAgo(ticket.updatedAt || ticket.submittedAt || ticket.createdAt)}</td>
+                    <td style="white-space:nowrap;color:var(--color-text-muted);">${formatResolvedDate(ticket.resolvedAt || ticket.updatedAt || ticket.submittedAt)}</td>
                 </tr>
             `;
+        }
+
+        // Format date for resolved tickets (date + time)
+        function formatResolvedDate(date) {
+            if (!date) return '-';
+            const d = date.toDate ? date.toDate() : new Date(date);
+            return d.toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' }) +
+                   ' ' + d.toLocaleTimeString('en-NZ', { hour: '2-digit', minute: '2-digit' });
         }
 
         // Selection functions

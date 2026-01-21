@@ -197,6 +197,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .tier-badge.farmer { background: linear-gradient(135deg, #c0c0c0, #a8a8a8); color: #000; }
 .tier-badge.bugcatcher { background: linear-gradient(135deg, #cd7f32, #b87333); color: #fff; }
 .tier-badge.host { background: var(--color-bg-tertiary); color: var(--color-text-muted); }
+.tier-badge.personal { background: var(--color-bg-primary); color: var(--color-text-muted); border: 1px dashed var(--color-border-subtle); }
+
+/* Testing status badge */
+.status-badge.testing { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
 
 .tag { background: var(--color-bg-tertiary); color: var(--color-text-secondary); font-size: 11px; }
 .badge-secondary { background: var(--color-bg-tertiary); }
@@ -311,6 +315,74 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 /* Filter Bar */
 .filter-bar { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
+
+/* Multi-select Dropdown */
+.multi-select {
+    position: relative;
+    min-width: 140px;
+}
+.multi-select-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    color: var(--color-text-primary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+.multi-select-btn:hover {
+    border-color: var(--color-primary);
+}
+.multi-select-btn svg {
+    flex-shrink: 0;
+    transition: transform 0.2s;
+}
+.multi-select.open .multi-select-btn svg {
+    transform: rotate(180deg);
+}
+.multi-select-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    padding: 8px;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 100;
+    max-height: 200px;
+    overflow-y: auto;
+}
+.multi-select.open .multi-select-dropdown {
+    display: block;
+}
+.multi-select-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 13px;
+}
+.multi-select-option:hover {
+    background: var(--color-bg-tertiary);
+}
+.multi-select-option input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--color-primary);
+    cursor: pointer;
+}
 
 /* Checkbox Items */
 .checkbox-item { display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; border-radius: var(--radius-sm); }
