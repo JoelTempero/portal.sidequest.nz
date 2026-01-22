@@ -777,6 +777,7 @@ function renderProductTasksList(productId, taskStates, projectId) {
 
     const categories = getCategoriesForProduct(productId);
     const allTasks = getProductTasks(productId);
+    const isReadOnly = !AppState.isAdmin; // Clients can only view, not edit
 
     let html = '';
     categories.forEach(category => {
@@ -788,7 +789,7 @@ function renderProductTasksList(productId, taskStates, projectId) {
             ${categoryTasks.map(task => {
                 const isCompleted = !!taskStates[task.id];
                 return `<div class="task-item ${isCompleted ? 'completed' : ''}">
-                    <input type="checkbox" id="task-${escapeHtml(task.id)}" ${isCompleted ? 'checked' : ''} onchange="toggleProductTask('${projectId}', '${escapeHtml(task.id)}', this.checked)">
+                    <input type="checkbox" id="task-${escapeHtml(task.id)}" ${isCompleted ? 'checked' : ''} ${isReadOnly ? 'disabled' : `onchange="toggleProductTask('${projectId}', '${escapeHtml(task.id)}', this.checked)"`}>
                     <label for="task-${escapeHtml(task.id)}">${escapeHtml(task.text)}</label>
                 </div>`;
             }).join('')}
