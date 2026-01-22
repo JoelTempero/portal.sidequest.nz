@@ -210,24 +210,143 @@
             font-size: 1rem;
             margin: 0 0 16px 0;
         }
-        /* Upcoming Tasks (formerly Milestones) */
-        .upcoming-tasks-section {
+        /* Development Tasks Section */
+        .development-tasks-section {
             background: var(--color-bg-secondary);
             border: 1px solid var(--color-border-subtle);
             border-radius: var(--radius-lg);
             padding: 20px;
         }
-        .upcoming-tasks-header {
+        .development-tasks-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             margin-bottom: 16px;
         }
-        .upcoming-tasks-header h3 {
+        .development-tasks-header h3 {
             font-family: var(--font-display);
             font-weight: 600;
             font-size: 1rem;
             margin: 0;
+        }
+        .tasks-summary {
+            font-size: 13px;
+            color: var(--color-text-muted);
+        }
+        .tasks-summary .completed-count {
+            color: var(--color-success);
+            font-weight: 600;
+        }
+        /* Product Tabs */
+        .product-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .product-tab {
+            padding: 8px 16px;
+            border-radius: var(--radius-md);
+            background: var(--color-bg-tertiary);
+            border: 1px solid var(--color-border-subtle);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.15s;
+        }
+        .product-tab:hover {
+            background: var(--color-bg-hover);
+        }
+        .product-tab.active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+        .product-tab .tab-progress {
+            font-size: 11px;
+            opacity: 0.8;
+            margin-left: 6px;
+        }
+        /* Tasks Container */
+        .tasks-container {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .task-category {
+            margin-bottom: 16px;
+        }
+        .task-category-header {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--color-text-muted);
+            padding: 8px 0;
+            border-bottom: 1px solid var(--color-border-subtle);
+            margin-bottom: 8px;
+        }
+        .task-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 0;
+        }
+        .task-item input[type="checkbox"] {
+            margin-top: 2px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--color-primary);
+        }
+        .task-item label {
+            flex: 1;
+            font-size: 14px;
+            cursor: pointer;
+            line-height: 1.4;
+        }
+        .task-item.completed label {
+            text-decoration: line-through;
+            color: var(--color-text-muted);
+        }
+        .task-item .delete-task {
+            opacity: 0;
+            padding: 4px;
+            color: var(--color-error);
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+        .task-item:hover .delete-task {
+            opacity: 0.6;
+        }
+        .task-item .delete-task:hover {
+            opacity: 1;
+        }
+        /* Product Checkboxes in Edit Modal */
+        .product-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--color-bg-tertiary);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .product-checkbox:hover {
+            background: var(--color-bg-hover);
+        }
+        .product-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--color-primary);
+        }
+        .product-checkbox input:checked + .product-label {
+            color: var(--color-primary);
+            font-weight: 600;
+        }
+        .product-label {
+            font-size: 14px;
         }
         /* Invoices Section */
         .invoices-section {
@@ -311,10 +430,9 @@
                     </div>
                 </div>
 
-                <!-- Progress Bar (Admin Only) - Compact inline -->
-                <div class="progress-inline admin-only">
+                <!-- Progress Bar - Calculated from task completion -->
+                <div class="progress-inline">
                     <span class="progress-label">Progress</span>
-                    <input type="range" id="progress-slider" min="0" max="100" value="0" style="flex:1;accent-color:var(--color-primary);">
                     <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
                     <span class="progress-value" id="detail-progress">0%</span>
                 </div>
@@ -371,13 +489,23 @@
                             <div class="info-grid" id="detail-info"></div>
                         </div>
 
-                        <!-- Upcoming Tasks (formerly Milestones) -->
-                        <div class="upcoming-tasks-section">
-                            <div class="upcoming-tasks-header">
-                                <h3>Upcoming Tasks</h3>
-                                <button class="btn btn-primary btn-sm admin-only" onclick="openModal('add-milestone-modal')">Add Task</button>
+                        <!-- Development Tasks - Tabbed by product -->
+                        <div class="development-tasks-section" id="development-tasks-section">
+                            <div class="development-tasks-header">
+                                <h3>Development Tasks</h3>
+                                <div class="tasks-summary" id="tasks-summary"></div>
                             </div>
-                            <div id="milestones"></div>
+                            <div class="product-tabs" id="product-tabs"></div>
+                            <div class="tasks-container" id="tasks-container">
+                                <p class="no-products-msg" style="color:var(--color-text-muted);padding:16px 0;">No products selected. Edit the project to add products and populate development tasks.</p>
+                            </div>
+                            <div class="custom-tasks-section admin-only" id="custom-tasks-section" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--color-border-subtle);">
+                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                                    <h4 style="font-size:14px;font-weight:600;margin:0;">Custom Tasks</h4>
+                                    <button class="btn btn-secondary btn-sm" onclick="openModal('add-custom-task-modal')">Add Custom Task</button>
+                                </div>
+                                <div id="custom-tasks-list"></div>
+                            </div>
                         </div>
 
                         <!-- Invoices (Admin Only) -->
@@ -412,7 +540,17 @@
                     <div class="form-row"><div class="form-group"><label class="form-label">Email</label><input type="email" name="clientEmail" class="form-input"></div><div class="form-group"><label class="form-label">Phone</label><input type="tel" name="clientPhone" class="form-input"></div></div>
                     <div class="form-row"><div class="form-group"><label class="form-label">Website</label><input type="text" name="websiteUrl" class="form-input"></div><div class="form-group"><label class="form-label">Location</label><input type="text" name="location" class="form-input"></div></div>
                     <div class="form-row"><div class="form-group"><label class="form-label">Business Type</label><input type="text" name="businessType" class="form-input"></div><div class="form-group"><label class="form-label">Status</label><select name="status" class="form-input form-select"><option value="active">Active</option><option value="testing">Testing</option><option value="paused">Paused</option><option value="completed">Completed</option></select></div></div>
-                    <div class="form-row"><div class="form-group"><label class="form-label">Tier</label><select name="tier" class="form-input form-select"><option value="personal">Personal</option><option value="host">Host</option><option value="bugcatcher">Bug Catcher</option><option value="farmer">Farmer</option><option value="watchfuleye">Watchful Eye</option><option value="guardian">Guardian</option></select></div><div class="form-group"><label class="form-label">Progress: <span id="progress-value">0%</span></label><input type="range" name="progress" min="0" max="100" value="0" class="form-input" style="padding:0;"></div></div>
+                    <div class="form-row"><div class="form-group"><label class="form-label">Tier</label><select name="tier" class="form-input form-select"><option value="personal">Personal</option><option value="host">Host</option><option value="bugcatcher">Bug Catcher</option><option value="farmer">Farmer</option><option value="watchfuleye">Watchful Eye</option><option value="guardian">Guardian</option></select></div></div>
+                    <div class="form-group">
+                        <label class="form-label">Products</label>
+                        <p style="font-size:12px;color:var(--color-text-muted);margin-bottom:8px;">Select the products being developed. This will populate task lists automatically.</p>
+                        <div class="products-checkboxes" style="display:flex;flex-wrap:wrap;gap:16px;">
+                            <label class="product-checkbox"><input type="checkbox" name="products" value="website"><span class="product-label">🌐 Website</span></label>
+                            <label class="product-checkbox"><input type="checkbox" name="products" value="customApp"><span class="product-label">📱 Custom App</span></label>
+                            <label class="product-checkbox"><input type="checkbox" name="products" value="clientPortal"><span class="product-label">🔐 Client Portal</span></label>
+                            <label class="product-checkbox"><input type="checkbox" name="products" value="managementSystem"><span class="product-label">⚙️ Management System</span></label>
+                        </div>
+                    </div>
                     <div class="form-group"><label class="form-label">GitHub Code</label><input type="url" name="githubLink" class="form-input" placeholder="https://github.com/..."></div>
                     <div class="form-group"><label class="form-label">Preview Links (one per line)</label><textarea name="previewLinks" class="form-input form-textarea" style="min-height:80px;" placeholder="https://preview1.github.io&#10;https://preview2.github.io"></textarea></div>
                     <div class="form-group"><label class="form-label">Notes</label><textarea name="notes" class="form-input form-textarea"></textarea></div>
@@ -441,15 +579,23 @@
         <div class="modal-footer"><button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button><button class="btn btn-primary" onclick="handleSubmitTicket(new URLSearchParams(location.search).get('id'))">Submit Ticket</button></div></div>
     </div>
 
-    <!-- Add Task Modal (formerly Milestone) -->
-    <div class="modal-overlay" id="add-milestone-modal">
-        <div class="modal" style="max-width:400px;">
-            <div class="modal-header"><h3 class="modal-title">Add Upcoming Task</h3><button class="modal-close" aria-label="Close modal">×</button></div>
+    <!-- Add Custom Task Modal -->
+    <div class="modal-overlay" id="add-custom-task-modal">
+        <div class="modal" style="max-width:450px;">
+            <div class="modal-header"><h3 class="modal-title">Add Custom Task</h3><button class="modal-close" aria-label="Close modal">×</button></div>
             <div class="modal-body">
-                <div class="form-group"><label class="form-label">Task</label><input type="text" id="new-milestone-title" class="form-input" placeholder="e.g. Complete homepage design"></div>
-                <div class="form-group"><label class="form-label">Target Date</label><input type="date" id="new-milestone-date" class="form-input"></div>
+                <div class="form-group"><label class="form-label">Task Description</label><input type="text" id="custom-task-text" class="form-input" placeholder="e.g. Set up payment integration"></div>
+                <div class="form-group"><label class="form-label">Product (optional)</label>
+                    <select id="custom-task-product" class="form-input form-select">
+                        <option value="">General</option>
+                        <option value="website">Website</option>
+                        <option value="customApp">Custom App</option>
+                        <option value="clientPortal">Client Portal</option>
+                        <option value="managementSystem">Management System</option>
+                    </select>
+                </div>
             </div>
-            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button><button class="btn btn-primary" onclick="handleAddMilestone()">Add Task</button></div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button><button class="btn btn-primary" onclick="handleAddCustomTask()">Add Task</button></div>
         </div>
     </div>
 

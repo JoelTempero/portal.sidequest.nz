@@ -30,12 +30,17 @@ import {
 
 import { NAVIGATION, UI_TIMING } from './config/constants.js';
 import { escapeHtml } from './utils/sanitize.js';
+import { PRODUCT_TASKS, TASK_CATEGORIES, PRODUCT_TYPES, getProductTasks, getCategoriesForProduct } from './config/product-tasks.js';
 
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { doc, getDoc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 // Filter State - arrays for multi-select
 let filters = { search: '', locations: [], businessTypes: [], statuses: [], tiers: [] };
+
+// Auth state tracking - prevent redundant initialization on token refresh
+let pageInitialized = false;
+let lastAuthUid = null;
 
 function applyFilters(items) {
     return items.filter(item => {
@@ -396,6 +401,144 @@ function renderProjects(containerId, items = null) {
     }
 }
 
+// Dashboard-specific list view for projects - large task text, compact layout
+function renderDashboardProjectsList(containerId, items = null) {
+    const c = document.getElementById(containerId);
+    if (!c) return;
+
+    let list = items || AppState.projects;
+
+    if (!list.length) {
+        c.innerHTML = `<div class="empty-state" style="padding:32px;text-align:center;"><h3>No projects yet</h3></div>`;
+        return;
+    }
+
+    // Collect logo URLs for preloading
+    const logoUrls = list.filter(p => p.logo).map(p => p.logo);
+
+    c.innerHTML = list.map((p, i) => `
+        <div class="project-list-item waiting" data-index="${i}" data-id="${escapeHtml(p.id)}">
+            <div onclick="window.location.href='${NAVIGATION.PROJECT_DETAIL}?id=${escapeHtml(p.id)}'" style="display:flex;align-items:center;gap:16px;flex:1;min-width:0;">
+                ${p.logo
+                    ? `<div class="project-list-logo" style="background-image:url('${escapeHtml(p.logo)}')"></div>`
+                    : `<div class="project-list-logo">${escapeHtml(getInitials(p.companyName))}</div>`}
+                <div class="project-list-info">
+                    <div class="project-list-header">
+                        <span class="project-list-name">${escapeHtml(p.companyName || 'Unnamed')}</span>
+                        <div class="project-list-badges">
+                            <span class="status-badge ${escapeHtml(p.status || 'active')}" style="font-size:11px;padding:2px 8px;">${escapeHtml(getStatusLabel(p.status || 'active'))}</span>
+                            <span class="tier-badge ${escapeHtml(p.tier || 'farmer')}" style="font-size:11px;padding:2px 8px;">${escapeHtml(getTierName(p.tier || 'farmer'))}</span>
+                        </div>
+                    </div>
+                    ${AppState.isAdmin
+                        ? `<div class="project-list-task-container" onclick="event.stopPropagation();">
+                            <div class="project-list-task-view" id="dash-task-view-${escapeHtml(p.id)}">
+                                <span class="project-list-task ${p.currentTask ? '' : 'empty'}">${escapeHtml(p.currentTask || 'No task set')}</span>
+                                <button class="project-list-edit-btn" onclick="toggleDashTaskEdit('${escapeHtml(p.id)}')" title="Edit task">✏️</button>
+                            </div>
+                            <div class="project-list-task-edit" id="dash-task-edit-${escapeHtml(p.id)}" style="display:none;">
+                                <input type="text" id="dash-task-input-${escapeHtml(p.id)}" class="form-input" value="${escapeHtml(p.currentTask || '')}" placeholder="Current task..." onkeydown="if(event.key==='Enter'){handleDashSaveTask('${escapeHtml(p.id)}');event.preventDefault();}">
+                                <button class="btn btn-ghost btn-sm" onclick="cancelDashTaskEdit('${escapeHtml(p.id)}')">Cancel</button>
+                                <button class="btn btn-primary btn-sm" onclick="handleDashSaveTask('${escapeHtml(p.id)}')">Save</button>
+                            </div>
+                        </div>`
+                        : `<p class="project-list-task ${p.currentTask ? '' : 'empty'}">${escapeHtml(p.currentTask || 'No task set')}</p>`
+                    }
+                </div>
+            </div>
+            <div class="project-list-progress" onclick="window.location.href='${NAVIGATION.PROJECT_DETAIL}?id=${escapeHtml(p.id)}'">
+                <div class="progress-bar"><div class="progress-fill" style="width:${parseInt(p.progress) || 0}%"></div></div>
+                <span class="progress-value">${parseInt(p.progress) || 0}%</span>
+            </div>
+        </div>`).join('');
+
+    // Preload logos then trigger fade-in
+    const triggerFadeIn = () => {
+        const items = c.querySelectorAll('.project-list-item.waiting');
+        items.forEach(item => {
+            const idx = parseInt(item.dataset.index) || 0;
+            item.classList.remove('waiting');
+            item.classList.add('fade-in');
+            item.style.animationDelay = `${idx * 30}ms`;
+        });
+    };
+
+    if (logoUrls.length > 0) {
+        let loaded = 0;
+        const total = logoUrls.length;
+        const timeout = setTimeout(triggerFadeIn, 1500);
+
+        logoUrls.forEach(url => {
+            const img = new Image();
+            img.onload = img.onerror = () => {
+                loaded++;
+                if (loaded >= total) {
+                    clearTimeout(timeout);
+                    triggerFadeIn();
+                }
+            };
+            img.src = url;
+        });
+    } else {
+        triggerFadeIn();
+    }
+}
+
+// Dashboard task edit functions
+window.toggleDashTaskEdit = (projectId) => {
+    const viewEl = document.getElementById(`dash-task-view-${projectId}`);
+    const editEl = document.getElementById(`dash-task-edit-${projectId}`);
+    const inputEl = document.getElementById(`dash-task-input-${projectId}`);
+    if (viewEl && editEl) {
+        viewEl.style.display = 'none';
+        editEl.style.display = 'flex';
+        inputEl?.focus();
+    }
+};
+
+window.cancelDashTaskEdit = (projectId) => {
+    const viewEl = document.getElementById(`dash-task-view-${projectId}`);
+    const editEl = document.getElementById(`dash-task-edit-${projectId}`);
+    const proj = AppState.projects.find(p => p.id === projectId);
+    const inputEl = document.getElementById(`dash-task-input-${projectId}`);
+    if (viewEl && editEl) {
+        viewEl.style.display = 'flex';
+        editEl.style.display = 'none';
+        if (inputEl && proj) inputEl.value = proj.currentTask || '';
+    }
+};
+
+window.handleDashSaveTask = async (projectId) => {
+    const inputEl = document.getElementById(`dash-task-input-${projectId}`);
+    if (!inputEl) return;
+    const newTask = inputEl.value.trim();
+
+    try {
+        await updateProject(projectId, { currentTask: newTask });
+        // Update local state
+        const proj = AppState.projects.find(p => p.id === projectId);
+        if (proj) proj.currentTask = newTask;
+
+        // Update the view
+        const viewEl = document.getElementById(`dash-task-view-${projectId}`);
+        const editEl = document.getElementById(`dash-task-edit-${projectId}`);
+        if (viewEl) {
+            const taskSpan = viewEl.querySelector('.project-list-task');
+            if (taskSpan) {
+                taskSpan.textContent = newTask || 'No task set';
+                taskSpan.classList.toggle('empty', !newTask);
+            }
+            viewEl.style.display = 'flex';
+        }
+        if (editEl) editEl.style.display = 'none';
+
+        showToast('Task updated', 'success');
+    } catch (error) {
+        console.error('Failed to update task:', error);
+        showToast('Failed to update task', 'error');
+    }
+};
+
 function renderClients(containerId) {
     const c = document.getElementById(containerId);
     if (!c) return;
@@ -543,6 +686,256 @@ function renderMilestones(containerId, milestones, editable = false) {
     }
 }
 
+// ============================================
+// PRODUCT TASKS SYSTEM
+// ============================================
+
+let activeProductTab = null;
+
+function renderProductTasks(proj) {
+    const tabsContainer = document.getElementById('product-tabs');
+    const tasksContainer = document.getElementById('tasks-container');
+    const summaryEl = document.getElementById('tasks-summary');
+    const customTasksSection = document.getElementById('custom-tasks-section');
+
+    if (!tabsContainer || !tasksContainer) return;
+
+    const products = proj.products || [];
+    const taskStates = proj.taskStates || {};
+    const customTasks = proj.customTasks || [];
+
+    // No products selected
+    if (products.length === 0) {
+        tabsContainer.innerHTML = '';
+        tasksContainer.innerHTML = '<p class="no-products-msg" style="color:var(--color-text-muted);padding:16px 0;">No products selected. Edit the project to add products and populate development tasks.</p>';
+        if (summaryEl) summaryEl.innerHTML = '';
+        if (customTasksSection) customTasksSection.style.display = 'none';
+        updateProjectProgress(proj.id, 0);
+        return;
+    }
+
+    // Calculate progress for each product and total
+    let totalTasks = 0;
+    let totalCompleted = 0;
+    const productProgress = {};
+
+    products.forEach(productId => {
+        const tasks = getProductTasks(productId);
+        let completed = 0;
+        tasks.forEach(task => {
+            if (taskStates[task.id]) completed++;
+        });
+        productProgress[productId] = { total: tasks.length, completed };
+        totalTasks += tasks.length;
+        totalCompleted += completed;
+    });
+
+    // Add custom tasks to total
+    customTasks.forEach(task => {
+        totalTasks++;
+        if (task.completed) totalCompleted++;
+    });
+
+    // Render tabs
+    if (!activeProductTab || !products.includes(activeProductTab)) {
+        activeProductTab = products[0];
+    }
+
+    tabsContainer.innerHTML = products.map(productId => {
+        const productInfo = PRODUCT_TYPES.find(p => p.id === productId) || { name: productId, icon: '📦' };
+        const prog = productProgress[productId];
+        const pct = prog.total > 0 ? Math.round((prog.completed / prog.total) * 100) : 0;
+        return `<button class="product-tab ${activeProductTab === productId ? 'active' : ''}" onclick="switchProductTab('${productId}')">
+            ${productInfo.icon} ${productInfo.name}
+            <span class="tab-progress">${pct}%</span>
+        </button>`;
+    }).join('');
+
+    // Render tasks for active product
+    renderProductTasksList(activeProductTab, taskStates, proj.id);
+
+    // Render custom tasks
+    if (customTasksSection) {
+        customTasksSection.style.display = AppState.isAdmin ? 'block' : 'none';
+        renderCustomTasks(customTasks, proj.id);
+    }
+
+    // Update summary
+    const totalPct = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
+    if (summaryEl) {
+        summaryEl.innerHTML = `<span class="completed-count">${totalCompleted}</span> / ${totalTasks} tasks completed`;
+    }
+
+    // Update progress bar
+    updateProjectProgress(proj.id, totalPct);
+}
+
+function renderProductTasksList(productId, taskStates, projectId) {
+    const container = document.getElementById('tasks-container');
+    if (!container) return;
+
+    const categories = getCategoriesForProduct(productId);
+    const allTasks = getProductTasks(productId);
+
+    let html = '';
+    categories.forEach(category => {
+        const categoryTasks = allTasks.filter(t => t.category === category.id);
+        if (categoryTasks.length === 0) return;
+
+        html += `<div class="task-category">
+            <div class="task-category-header">${escapeHtml(category.name)}</div>
+            ${categoryTasks.map(task => {
+                const isCompleted = !!taskStates[task.id];
+                return `<div class="task-item ${isCompleted ? 'completed' : ''}">
+                    <input type="checkbox" id="task-${escapeHtml(task.id)}" ${isCompleted ? 'checked' : ''} onchange="toggleProductTask('${projectId}', '${escapeHtml(task.id)}', this.checked)">
+                    <label for="task-${escapeHtml(task.id)}">${escapeHtml(task.text)}</label>
+                </div>`;
+            }).join('')}
+        </div>`;
+    });
+
+    container.innerHTML = html || '<p style="color:var(--color-text-muted);">No tasks for this product.</p>';
+}
+
+function renderCustomTasks(customTasks, projectId) {
+    const container = document.getElementById('custom-tasks-list');
+    if (!container) return;
+
+    if (!customTasks || customTasks.length === 0) {
+        container.innerHTML = '<p style="color:var(--color-text-muted);font-size:13px;">No custom tasks added.</p>';
+        return;
+    }
+
+    container.innerHTML = customTasks.map((task, index) => `
+        <div class="task-item ${task.completed ? 'completed' : ''}">
+            <input type="checkbox" id="custom-task-${index}" ${task.completed ? 'checked' : ''} onchange="toggleCustomTask('${projectId}', ${index}, this.checked)">
+            <label for="custom-task-${index}">${escapeHtml(task.text)}${task.product ? ` <span style="font-size:11px;color:var(--color-text-muted);">(${task.product})</span>` : ''}</label>
+            <button class="delete-task" onclick="deleteCustomTask('${projectId}', ${index})" title="Delete task">&times;</button>
+        </div>
+    `).join('');
+}
+
+window.switchProductTab = (productId) => {
+    activeProductTab = productId;
+    const proj = AppState.currentItem;
+    if (proj) {
+        // Update tab active states
+        document.querySelectorAll('.product-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.textContent.includes(PRODUCT_TYPES.find(p => p.id === productId)?.name || ''));
+        });
+        renderProductTasksList(productId, proj.taskStates || {}, proj.id);
+    }
+};
+
+window.toggleProductTask = async (projectId, taskId, completed) => {
+    const proj = AppState.projects.find(p => p.id === projectId);
+    if (!proj) return;
+
+    const taskStates = { ...(proj.taskStates || {}) };
+    if (completed) {
+        taskStates[taskId] = true;
+    } else {
+        delete taskStates[taskId];
+    }
+
+    try {
+        await updateProject(projectId, { taskStates });
+        proj.taskStates = taskStates;
+        // Recalculate and update progress
+        renderProductTasks(proj);
+    } catch (error) {
+        console.error('Failed to toggle task:', error);
+        showToast('Failed to update task', 'error');
+    }
+};
+
+window.toggleCustomTask = async (projectId, index, completed) => {
+    const proj = AppState.projects.find(p => p.id === projectId);
+    if (!proj) return;
+
+    const customTasks = [...(proj.customTasks || [])];
+    if (customTasks[index]) {
+        customTasks[index] = { ...customTasks[index], completed };
+    }
+
+    try {
+        await updateProject(projectId, { customTasks });
+        proj.customTasks = customTasks;
+        renderProductTasks(proj);
+    } catch (error) {
+        console.error('Failed to toggle custom task:', error);
+        showToast('Failed to update task', 'error');
+    }
+};
+
+window.deleteCustomTask = async (projectId, index) => {
+    if (!confirm('Delete this custom task?')) return;
+
+    const proj = AppState.projects.find(p => p.id === projectId);
+    if (!proj) return;
+
+    const customTasks = [...(proj.customTasks || [])];
+    customTasks.splice(index, 1);
+
+    try {
+        await updateProject(projectId, { customTasks });
+        proj.customTasks = customTasks;
+        renderProductTasks(proj);
+        showToast('Task deleted', 'success');
+    } catch (error) {
+        console.error('Failed to delete task:', error);
+        showToast('Failed to delete task', 'error');
+    }
+};
+
+window.handleAddCustomTask = async () => {
+    const textEl = document.getElementById('custom-task-text');
+    const productEl = document.getElementById('custom-task-product');
+    const text = textEl?.value?.trim();
+    const product = productEl?.value || '';
+
+    if (!text) {
+        showToast('Please enter a task description', 'warning');
+        return;
+    }
+
+    const proj = AppState.currentItem;
+    if (!proj) return;
+
+    const customTasks = [...(proj.customTasks || [])];
+    customTasks.push({ text, product, completed: false });
+
+    try {
+        await updateProject(proj.id, { customTasks });
+        proj.customTasks = customTasks;
+        renderProductTasks(proj);
+        closeAllModals();
+        textEl.value = '';
+        productEl.value = '';
+        showToast('Task added', 'success');
+    } catch (error) {
+        console.error('Failed to add task:', error);
+        showToast('Failed to add task', 'error');
+    }
+};
+
+function updateProjectProgress(projectId, progress) {
+    const proj = AppState.projects.find(p => p.id === projectId);
+
+    // Update UI
+    const progressFill = document.getElementById('progress-fill');
+    const progressValue = document.getElementById('detail-progress');
+    if (progressFill) progressFill.style.width = `${progress}%`;
+    if (progressValue) progressValue.textContent = `${progress}%`;
+
+    // Save to database if different from stored value
+    if (proj && proj.progress !== progress) {
+        updateProject(projectId, { progress }).then(() => {
+            proj.progress = progress;
+        }).catch(console.error);
+    }
+}
+
 function renderMessages(containerId, messages) {
     const c = document.getElementById(containerId);
     if (!c) return;
@@ -626,7 +1019,7 @@ window.openEditProjectModal = () => {
     if (!p) { console.error('No current item'); return; }
     const m = document.getElementById('edit-project-modal');
     if (!m) { console.error('No modal found'); return; }
-    
+
     m.querySelector('[name="companyName"]').value = p.companyName || '';
     m.querySelector('[name="clientName"]').value = p.clientName || '';
     m.querySelector('[name="clientEmail"]').value = p.clientEmail || '';
@@ -636,12 +1029,13 @@ window.openEditProjectModal = () => {
     m.querySelector('[name="businessType"]').value = p.businessType || '';
     m.querySelector('[name="tier"]').value = p.tier || 'farmer';
     m.querySelector('[name="status"]').value = p.status || 'active';
-    
-    const progressInput = m.querySelector('[name="progress"]');
-    const progressValue = m.querySelector('#progress-value');
-    if (progressInput) progressInput.value = p.progress || 0;
-    if (progressValue) progressValue.textContent = (p.progress || 0) + '%';
-    
+
+    // Populate products checkboxes
+    const products = p.products || [];
+    m.querySelectorAll('[name="products"]').forEach(checkbox => {
+        checkbox.checked = products.includes(checkbox.value);
+    });
+
     m.querySelector('[name="githubLink"]').value = p.githubLink || '';
     m.querySelector('[name="previewLinks"]').value = (p.previewLinks || []).join('\n');
     m.querySelector('[name="notes"]').value = p.notes || '';
@@ -903,25 +1297,29 @@ window.handleUpdateProject = async (e) => {
     e.preventDefault();
     const proj = AppState.currentItem;
     if (!proj) { console.error('No project selected'); return; }
-    
+
     const form = e.target;
     const data = Object.fromEntries(new FormData(form));
-    data.progress = parseInt(data.progress) || 0;
-    
+
     // Parse preview links from textarea (one per line)
     if (data.previewLinks) {
         data.previewLinks = data.previewLinks.split('\n').map(l => l.trim()).filter(l => l);
     } else {
         data.previewLinks = [];
     }
-    
+
     // Get assigned clients
-    const checkboxes = form.querySelectorAll('[name="assignedClients"]:checked');
-    data.assignedClients = Array.from(checkboxes).map(cb => cb.value);
-    
-    // Remove 'logo' from data if empty (don't overwrite existing)
+    const clientCheckboxes = form.querySelectorAll('[name="assignedClients"]:checked');
+    data.assignedClients = Array.from(clientCheckboxes).map(cb => cb.value);
+
+    // Get selected products
+    const productCheckboxes = form.querySelectorAll('[name="products"]:checked');
+    data.products = Array.from(productCheckboxes).map(cb => cb.value);
+
+    // Remove fields that shouldn't be saved directly
     delete data.logo;
-    
+    delete data.progress; // Progress is now calculated from tasks
+
     console.log('Saving project:', proj.id, data);
     const result = await updateProject(proj.id, data);
     if (result.success) {
@@ -1954,6 +2352,12 @@ onAuthStateChanged(auth, async (user) => {
     const page = location.pathname.split('/').pop() || 'index.html';
 
     if (user) {
+        // Skip redundant initialization if same user and page already set up
+        if (pageInitialized && lastAuthUid === user.uid) {
+            console.log('[Auth] Skipping redundant init for same user');
+            return;
+        }
+
         AppState.currentUser = user;
 
         try {
@@ -1985,6 +2389,10 @@ onAuthStateChanged(auth, async (user) => {
             await loadPageData(page);
             renderPage(page);
             updateUserInfo();
+
+            // Mark page as initialized after successful setup
+            pageInitialized = true;
+            lastAuthUid = user.uid;
         } catch (error) {
             console.error('Error loading user profile:', error);
             showToast('Failed to load user profile', 'error');
@@ -1992,7 +2400,15 @@ onAuthStateChanged(auth, async (user) => {
             showLoading(false);
         }
     } else {
-        if (page !== 'index.html') window.location.href = NAVIGATION.LOGIN;
+        // Only redirect if user was previously logged in (not initial load)
+        if (lastAuthUid !== null) {
+            pageInitialized = false;
+            lastAuthUid = null;
+            if (page !== 'index.html') window.location.href = NAVIGATION.LOGIN;
+        } else if (page !== 'index.html') {
+            // Initial page load with no auth
+            window.location.href = NAVIGATION.LOGIN;
+        }
         showLoading(false);
     }
 });
@@ -2029,20 +2445,19 @@ function renderPage(page) {
         case 'dashboard.html':
             renderStats();
             if (AppState.isAdmin) {
-                // Sort active projects by tier then progress, then take top 10
-                const activeProjects = AppState.projects
-                    .filter(p => p.status === 'active')
+                // Show Active AND Testing projects, sorted by tier then progress
+                const dashboardProjects = AppState.projects
+                    .filter(p => p.status === 'active' || p.status === 'testing')
                     .sort((a, b) => {
                         const tierDiff = getTierOrder(a.tier) - getTierOrder(b.tier);
                         if (tierDiff !== 0) return tierDiff;
                         return (parseInt(b.progress) || 0) - (parseInt(a.progress) || 0);
-                    })
-                    .slice(0, 10);
-                renderProjects('projects-grid', activeProjects);
+                    });
+                renderDashboardProjectsList('projects-grid', dashboardProjects);
                 renderAdminDashboardTickets('admin-tickets-grid');
             } else {
                 // Client dashboard - show their projects and tickets
-                renderProjects('projects-grid', AppState.projects);
+                renderDashboardProjectsList('projects-grid', AppState.projects);
                 renderClientTickets('tickets-grid');
                 populateDashboardTicketProjects();
             }
@@ -2253,7 +2668,16 @@ function renderLeadDetail() {
 function renderProjectDetail() {
     const id = new URLSearchParams(location.search).get('id');
     const proj = AppState.projects.find(p => p.id === id);
-    if (!proj) { window.location.href = NAVIGATION.PROJECTS; return; }
+    if (!proj) {
+        // Only redirect if projects have loaded and project truly doesn't exist
+        if (AppState.projects.length > 0) {
+            console.warn('[Project Detail] Project not found:', id);
+            window.location.href = NAVIGATION.PROJECTS;
+        } else {
+            console.log('[Project Detail] Waiting for projects to load...');
+        }
+        return;
+    }
     AppState.currentItem = proj;
     
     const el = i => document.getElementById(i);
@@ -2293,7 +2717,9 @@ function renderProjectDetail() {
             ${previewsHtml}`;
     }
 
-    renderMilestones('milestones', proj.milestones, AppState.isAdmin);
+    // Render product tasks (new system)
+    renderProductTasks(proj);
+
     renderInvoices('invoices', proj.invoices);  // Admin view
     renderInvoices('client-invoices', proj.invoices, true);  // Client view (only sent/paid, with Pay button)
     subscribeToMessages(proj.id, msgs => renderMessages('messages-container', msgs));
@@ -2308,17 +2734,6 @@ function renderProjectDetail() {
     }
     if (el('inline-task-input')) el('inline-task-input').value = proj.currentTask || '';
     if (el('edit-current-task')) el('edit-current-task').value = proj.currentTask || '';
-    
-    // Progress slider event
-    const progressSlider = document.getElementById('progress-slider');
-    if (progressSlider) {
-        progressSlider.value = proj.progress || 0;
-        progressSlider.addEventListener('change', e => updateProgress(e.target.value));
-        progressSlider.addEventListener('input', e => {
-            document.getElementById('detail-progress').textContent = e.target.value + '%';
-            document.getElementById('progress-fill').style.width = e.target.value + '%';
-        });
-    }
 }
 
 // Setup
