@@ -1300,6 +1300,7 @@ window.handleUpdateProject = async (e) => {
     if (!proj) { console.error('No project selected'); return; }
 
     const form = e.target;
+    console.log('Form element:', form);
 
     // Build data object manually to handle checkboxes properly
     const data = {
@@ -1324,19 +1325,26 @@ window.handleUpdateProject = async (e) => {
     const clientCheckboxes = form.querySelectorAll('[name="assignedClients"]:checked');
     data.assignedClients = Array.from(clientCheckboxes).map(cb => cb.value);
 
-    // Get selected products
-    const productCheckboxes = form.querySelectorAll('[name="products"]:checked');
-    data.products = Array.from(productCheckboxes).map(cb => cb.value);
+    // Get selected products - look in the modal for all product checkboxes
+    const allProductCheckboxes = document.querySelectorAll('#edit-project-modal [name="products"]');
+    console.log('All product checkboxes found:', allProductCheckboxes.length);
+    allProductCheckboxes.forEach(cb => console.log('  -', cb.value, 'checked:', cb.checked));
 
-    console.log('Saving project:', proj.id, data);
+    const productCheckboxes = document.querySelectorAll('#edit-project-modal [name="products"]:checked');
+    data.products = Array.from(productCheckboxes).map(cb => cb.value);
+    console.log('Selected products:', data.products);
+
+    console.log('Full data to save:', JSON.stringify(data, null, 2));
     showLoading(true);
 
     try {
         const result = await updateProject(proj.id, data);
+        console.log('Update result:', result);
         if (result.success) {
             showToast('Project updated', 'success');
             closeAllModals();
-            location.reload();
+            // Small delay before reload to ensure Firestore has committed
+            setTimeout(() => location.reload(), 500);
         } else {
             showToast('Failed to save: ' + (result.error || 'Unknown error'), 'error');
             showLoading(false);
