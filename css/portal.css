@@ -1325,6 +1325,139 @@ body.is-client .admin-only {
     }
 }
 
+/* Dashboard Projects List View */
+.projects-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.project-list-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border-bottom: 1px solid var(--color-border-subtle);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.project-list-item:last-child {
+    border-bottom: none;
+}
+.project-list-item:hover {
+    background: var(--color-bg-hover);
+}
+.project-list-item.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+.project-list-item.waiting {
+    opacity: 0;
+}
+
+.project-list-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    background: var(--color-bg-tertiary);
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.project-list-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.project-list-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.project-list-name {
+    font-weight: 600;
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.project-list-badges {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+/* Current task - large and prominent */
+.project-list-task {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    line-height: 1.4;
+    margin-top: 6px;
+}
+.project-list-task.empty {
+    color: var(--color-text-muted);
+    font-style: italic;
+    font-size: 14px;
+}
+
+/* Admin task edit on list view */
+.project-list-task-edit {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.project-list-task-edit input {
+    flex: 1;
+    font-size: 16px;
+    padding: 8px 12px;
+}
+
+.project-list-edit-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px 8px;
+    opacity: 0.6;
+    transition: opacity 0.15s;
+}
+.project-list-edit-btn:hover {
+    opacity: 1;
+}
+
+/* Progress mini-bar for list view */
+.project-list-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    width: 120px;
+}
+
+.project-list-progress .progress-bar {
+    flex: 1;
+    height: 6px;
+}
+
+.project-list-progress .progress-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    min-width: 32px;
+    text-align: right;
+}
+
 @media (max-width: 768px) {
     .pagination {
         flex-direction: column;
@@ -1337,6 +1470,34 @@ body.is-client .admin-only {
     }
 
     .dashboard-grid {
-        grid-template-columns: 1fr;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Tickets first on mobile for admin dashboard */
+    .dashboard-tickets-card {
+        order: 1;
+    }
+    .dashboard-projects-card {
+        order: 2;
+    }
+
+    /* Hide hamburger on mobile - we want visible nav instead */
+    .mobile-menu-toggle {
+        display: none !important;
+    }
+
+    .project-list-item {
+        flex-wrap: wrap;
+        padding: 12px;
+    }
+
+    .project-list-progress {
+        width: 100%;
+        margin-top: 8px;
+    }
+
+    .project-list-task {
+        font-size: 16px;
     }
 }
