@@ -41,6 +41,7 @@ let filters = { search: '', locations: [], businessTypes: [], statuses: [], tier
 // Auth state tracking - prevent redundant initialization on token refresh
 let pageInitialized = false;
 let lastAuthUid = null;
+let authCheckComplete = false;
 
 function applyFilters(items) {
     return items.filter(item => {
@@ -2371,6 +2372,8 @@ onAuthStateChanged(auth, async (user) => {
     const page = location.pathname.split('/').pop() || 'index.html';
 
     if (user) {
+        authCheckComplete = true;
+
         // Skip redundant initialization if same user and page already set up
         if (pageInitialized && lastAuthUid === user.uid) {
             console.log('[Auth] Skipping redundant init for same user');
@@ -2419,13 +2422,27 @@ onAuthStateChanged(auth, async (user) => {
             showLoading(false);
         }
     } else {
-        // Only redirect if user was previously logged in (not initial load)
+        // Wait a moment before redirecting on initial load - auth might still be initializing
+        if (!authCheckComplete && page !== 'index.html') {
+            // First auth check returned null - wait and see if a user comes through
+            setTimeout(() => {
+                if (!authCheckComplete && !AppState.currentUser) {
+                    console.log('[Auth] No user after timeout, redirecting to login');
+                    window.location.href = NAVIGATION.LOGIN;
+                }
+            }, 1500);
+            return;
+        }
+
+        // User explicitly logged out (was previously logged in)
         if (lastAuthUid !== null) {
+            console.log('[Auth] User logged out, redirecting');
             pageInitialized = false;
             lastAuthUid = null;
+            authCheckComplete = false;
             if (page !== 'index.html') window.location.href = NAVIGATION.LOGIN;
-        } else if (page !== 'index.html') {
-            // Initial page load with no auth
+        } else if (authCheckComplete && page !== 'index.html') {
+            // Auth check complete and no user
             window.location.href = NAVIGATION.LOGIN;
         }
         showLoading(false);
