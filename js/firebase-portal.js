@@ -128,6 +128,55 @@ async function createClientWithAuth(email, password, displayName, company) {
     }
 }
 
+// Image Compression - compress images before upload for faster loading
+async function compressImage(file, maxWidth = 400, quality = 0.8) {
+    // Only compress images
+    if (!file.type.startsWith('image/')) return file;
+
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                // Calculate new dimensions
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                }
+
+                // Create canvas and compress
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob((blob) => {
+                    if (blob && blob.size < file.size) {
+                        // Create a new file from the compressed blob
+                        const compressedFile = new File([blob], file.name, {
+                            type: 'image/jpeg',
+                            lastModified: Date.now()
+                        });
+                        console.log(`[Image] Compressed from ${Math.round(file.size/1024)}KB to ${Math.round(blob.size/1024)}KB`);
+                        resolve(compressedFile);
+                    } else {
+                        // Original is smaller or same, use original
+                        resolve(file);
+                    }
+                }, 'image/jpeg', quality);
+            };
+            img.onerror = () => resolve(file); // On error, use original
+            img.src = e.target.result;
+        };
+        reader.onerror = () => resolve(file); // On error, use original
+        reader.readAsDataURL(file);
+    });
+}
+
 // File Upload
 async function uploadFile(file, path) {
     try {
@@ -139,16 +188,21 @@ async function uploadFile(file, path) {
 
 async function uploadLogo(file, itemId, type = 'project') {
     try {
-        const path = `logos/${type}s/${itemId}/${Date.now()}_${file.name}`;
-        const url = await uploadFile(file, path);
+        showLoading(true);
+        // Compress the image before upload (max 400px wide for logos)
+        const compressedFile = await compressImage(file, 400, 0.85);
+        const path = `logos/${type}s/${itemId}/${Date.now()}_logo.jpg`;
+        const url = await uploadFile(compressedFile, path);
         if (url) {
             const col = type === 'lead' ? 'leads' : 'projects';
             await updateDoc(doc(db, col, itemId), { logo: url });
             showToast('Logo uploaded!', 'success');
+            showLoading(false);
             return { success: true, url };
         }
+        showLoading(false);
         return { success: false };
-    } catch (e) { showToast('Upload failed', 'error'); return { success: false }; }
+    } catch (e) { showLoading(false); showToast('Upload failed', 'error'); return { success: false }; }
 }
 
 // LEADS

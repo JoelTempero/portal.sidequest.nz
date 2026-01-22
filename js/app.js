@@ -41,6 +41,7 @@ let filters = { search: '', locations: [], businessTypes: [], statuses: [], tier
 // Auth state tracking - prevent redundant initialization on token refresh
 let pageInitialized = false;
 let lastAuthUid = null;
+let authCheckComplete = false;
 
 function applyFilters(items) {
     return items.filter(item => {
@@ -1299,14 +1300,25 @@ window.handleUpdateProject = async (e) => {
     if (!proj) { console.error('No project selected'); return; }
 
     const form = e.target;
-    const data = Object.fromEntries(new FormData(form));
+
+    // Build data object manually to handle checkboxes properly
+    const data = {
+        companyName: form.querySelector('[name="companyName"]')?.value || '',
+        clientName: form.querySelector('[name="clientName"]')?.value || '',
+        clientEmail: form.querySelector('[name="clientEmail"]')?.value || '',
+        clientPhone: form.querySelector('[name="clientPhone"]')?.value || '',
+        websiteUrl: form.querySelector('[name="websiteUrl"]')?.value || '',
+        location: form.querySelector('[name="location"]')?.value || '',
+        businessType: form.querySelector('[name="businessType"]')?.value || '',
+        tier: form.querySelector('[name="tier"]')?.value || 'farmer',
+        status: form.querySelector('[name="status"]')?.value || 'active',
+        githubLink: form.querySelector('[name="githubLink"]')?.value || '',
+        notes: form.querySelector('[name="notes"]')?.value || ''
+    };
 
     // Parse preview links from textarea (one per line)
-    if (data.previewLinks) {
-        data.previewLinks = data.previewLinks.split('\n').map(l => l.trim()).filter(l => l);
-    } else {
-        data.previewLinks = [];
-    }
+    const previewLinksText = form.querySelector('[name="previewLinks"]')?.value || '';
+    data.previewLinks = previewLinksText.split('\n').map(l => l.trim()).filter(l => l);
 
     // Get assigned clients
     const clientCheckboxes = form.querySelectorAll('[name="assignedClients"]:checked');
@@ -1316,15 +1328,23 @@ window.handleUpdateProject = async (e) => {
     const productCheckboxes = form.querySelectorAll('[name="products"]:checked');
     data.products = Array.from(productCheckboxes).map(cb => cb.value);
 
-    // Remove fields that shouldn't be saved directly
-    delete data.logo;
-    delete data.progress; // Progress is now calculated from tasks
-
     console.log('Saving project:', proj.id, data);
-    const result = await updateProject(proj.id, data);
-    if (result.success) {
-        closeAllModals();
-        location.reload();
+    showLoading(true);
+
+    try {
+        const result = await updateProject(proj.id, data);
+        if (result.success) {
+            showToast('Project updated', 'success');
+            closeAllModals();
+            location.reload();
+        } else {
+            showToast('Failed to save: ' + (result.error || 'Unknown error'), 'error');
+            showLoading(false);
+        }
+    } catch (error) {
+        console.error('Error saving project:', error);
+        showToast('Error saving project: ' + error.message, 'error');
+        showLoading(false);
     }
 };
 
@@ -2352,6 +2372,8 @@ onAuthStateChanged(auth, async (user) => {
     const page = location.pathname.split('/').pop() || 'index.html';
 
     if (user) {
+        authCheckComplete = true;
+
         // Skip redundant initialization if same user and page already set up
         if (pageInitialized && lastAuthUid === user.uid) {
             console.log('[Auth] Skipping redundant init for same user');
@@ -2400,13 +2422,27 @@ onAuthStateChanged(auth, async (user) => {
             showLoading(false);
         }
     } else {
-        // Only redirect if user was previously logged in (not initial load)
+        // Wait a moment before redirecting on initial load - auth might still be initializing
+        if (!authCheckComplete && page !== 'index.html') {
+            // First auth check returned null - wait and see if a user comes through
+            setTimeout(() => {
+                if (!authCheckComplete && !AppState.currentUser) {
+                    console.log('[Auth] No user after timeout, redirecting to login');
+                    window.location.href = NAVIGATION.LOGIN;
+                }
+            }, 1500);
+            return;
+        }
+
+        // User explicitly logged out (was previously logged in)
         if (lastAuthUid !== null) {
+            console.log('[Auth] User logged out, redirecting');
             pageInitialized = false;
             lastAuthUid = null;
+            authCheckComplete = false;
             if (page !== 'index.html') window.location.href = NAVIGATION.LOGIN;
-        } else if (page !== 'index.html') {
-            // Initial page load with no auth
+        } else if (authCheckComplete && page !== 'index.html') {
+            // Auth check complete and no user
             window.location.href = NAVIGATION.LOGIN;
         }
         showLoading(false);
